@@ -165,6 +165,9 @@
                         <input type="checkbox" id="windCheck"> <label for="windCheck">Wind</label>
                     </div>
                     <div class="hud-box">
+                        <input type="checkbox" id="wallCheck" checked> <label for="wallCheck">Mauer</label>
+                    </div>
+                    <div class="hud-box">
                         <span id="windDisplay">Wind: 0</span>
                     </div>
                 </div>
@@ -208,6 +211,7 @@ window.addEventListener('load', function() {
     const uiWind = document.getElementById('windDisplay');
     const uiLog = document.getElementById('log-container');
     const checkWind = document.getElementById('windCheck');
+    const checkWall = document.getElementById('wallCheck');
     const btnReset = document.getElementById('reset-btn');
 
     // Konstanten
@@ -223,6 +227,7 @@ window.addEventListener('load', function() {
         turn: 1,
         wind: 0,
         windEnabled: false,
+        wallEnabled: true,
         isAnimating: false,
         isAiming: false,
         aimVector: { x: 0, y: 0, power: 0, angle: 0 },
@@ -235,7 +240,7 @@ window.addEventListener('load', function() {
 
     function init() {
         game.players = [
-            { id: 1, x: 50, y: GROUND_Y - 60, w: 60, h: 60, hp: 100, color: '#3498db', name: "BLAU2" },
+            { id: 1, x: 50, y: GROUND_Y - 60, w: 60, h: 60, hp: 100, color: '#3498db', name: "BLAU" },
             { id: 2, x: 890, y: GROUND_Y - 60, w: 60, h: 60, hp: 100, color: '#e74c3c', name: "ROT" }
         ];
         game.ball = null;
@@ -268,7 +273,7 @@ window.addEventListener('load', function() {
             
             // Kollisionsprüfungen
             if (game.ball.y >= GROUND_Y) { createExplosion(game.ball.x, GROUND_Y, "#27ae60"); hit = true; }
-            else if (checkRectCollide(game.ball.x, game.ball.y, game.obstacle)) { createExplosion(game.ball.x, game.ball.y, game.obstacle.color); hit = true; }
+            else if (game.wallEnabled && checkRectCollide(game.ball.x, game.ball.y, game.obstacle)) { createExplosion(game.ball.x, game.ball.y, game.obstacle.color); hit = true; }
             else if (game.ball.x < -100 || game.ball.x > gameCanvas.width + 100) { hit = true; }
             else {
                 let enemy = game.players[game.turn === 1 ? 1 : 0];
@@ -300,7 +305,9 @@ window.addEventListener('load', function() {
         ctx.fillStyle = grad; ctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
 
         // Objekte
-        ctx.fillStyle = game.obstacle.color; ctx.fillRect(game.obstacle.x, game.obstacle.y, game.obstacle.w, game.obstacle.h);
+        if (game.wallEnabled) {
+            ctx.fillStyle = game.obstacle.color; ctx.fillRect(game.obstacle.x, game.obstacle.y, game.obstacle.w, game.obstacle.h);
+        }
         ctx.fillStyle = "#27ae60"; ctx.fillRect(0, GROUND_Y, gameCanvas.width, gameCanvas.height - GROUND_Y);
 
         game.players.forEach(p => {
@@ -492,7 +499,7 @@ window.addEventListener('load', function() {
             simVY += GRAVITY; simVX += game.wind * WIND_SCALE;
             simX += simVX; simY += simVY;
             if (i % 4 === 0) game.trajectoryPoints.push({x: simX, y: simY});
-            if (simY >= GROUND_Y || checkRectCollide(simX, simY, game.obstacle)) break;
+            if (simY >= GROUND_Y || (game.wallEnabled && checkRectCollide(simX, simY, game.obstacle))) break;
         }
     }
 
@@ -549,6 +556,7 @@ window.addEventListener('load', function() {
     };
 
     checkWind.addEventListener('change', (e) => { game.windEnabled = e.target.checked; if(!game.windEnabled) game.wind = 0; updateUI(); });
+    checkWall.addEventListener('change', (e) => { game.wallEnabled = e.target.checked; });
     btnReset.addEventListener('click', init);
 
     init();
