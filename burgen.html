@@ -168,6 +168,9 @@
                         <input type="checkbox" id="wallCheck" checked> <label for="wallCheck">Mauer</label>
                     </div>
                     <div class="hud-box">
+                        <input type="checkbox" id="previewCheck" checked> <label for="previewCheck">Vorschau</label>
+                    </div>
+                    <div class="hud-box">
                         <span id="windDisplay">Wind: 0</span>
                     </div>
                 </div>
@@ -212,6 +215,7 @@ window.addEventListener('load', function() {
     const uiLog = document.getElementById('log-container');
     const checkWind = document.getElementById('windCheck');
     const checkWall = document.getElementById('wallCheck');
+    const checkPreview = document.getElementById('previewCheck');
     const btnReset = document.getElementById('reset-btn');
 
     // Konstanten
@@ -228,6 +232,7 @@ window.addEventListener('load', function() {
         wind: 0,
         windEnabled: false,
         wallEnabled: true,
+        previewEnabled: true,
         isAnimating: false,
         isAiming: false,
         aimVector: { x: 0, y: 0, power: 0, angle: 0 },
@@ -322,7 +327,9 @@ window.addEventListener('load', function() {
         // Aiming
         if (game.isAiming && !game.isAnimating) {
             drawAimLine();
-            drawTrajectory();
+            if (game.previewEnabled) {
+                drawTrajectory();
+            }
         }
 
         // Ball
@@ -557,6 +564,7 @@ window.addEventListener('load', function() {
 
     checkWind.addEventListener('change', (e) => { game.windEnabled = e.target.checked; if(!game.windEnabled) game.wind = 0; updateUI(); });
     checkWall.addEventListener('change', (e) => { game.wallEnabled = e.target.checked; });
+    checkPreview.addEventListener('change', (e) => { game.previewEnabled = e.target.checked; });
     btnReset.addEventListener('click', init);
 
     init();
