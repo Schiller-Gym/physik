@@ -168,7 +168,7 @@
                         <input type="checkbox" id="wallCheck" checked> <label for="wallCheck">Mauer</label>
                     </div>
                     <div class="hud-box">
-                        <input type="checkbox" id="previewCheck" checked> <label for="previewCheck">Vorschau</label>
+                        <input type="checkbox" id="previewCheck"> <label for="previewCheck">Vorschau</label>
                     </div>
                     <div class="hud-box">
                         <span id="windDisplay">Wind: 0</span>
@@ -183,8 +183,8 @@
                         <input type="number" id="inputAngle" value="45" min="0" max="90" style="width:60px; padding:5px; border-radius:4px; border:none; text-align:center; color:black;">
                     </div>
                     <div style="display:flex; flex-direction:column; align-items:center;">
-                        <label style="font-size:12px; margin-bottom:2px;">Pulver</label>
-                        <input type="number" id="inputPower" value="50" min="0" max="100" style="width:60px; padding:5px; border-radius:4px; border:none; text-align:center; color:black;">
+                        <label style="font-size:12px; margin-bottom:2px;">v0 (m/s)</label>
+                        <input type="number" id="inputPower" value="15" min="0" max="100" style="width:60px; padding:5px; border-radius:4px; border:none; text-align:center; color:black;">
                     </div>
                     <div style="display:flex; flex-direction:column; align-items:center;">
                         <label style="font-size:12px; margin-bottom:2px;">Gravitation</label>
@@ -239,9 +239,8 @@ window.addEventListener('load', function() {
 
     // Konstanten
     const GROUND_Y = 450;
-    const GRAVITY_SCALE = 0.25 / 9.81; 
-    const POWER_SCALE = 0.4; 
-    const WIND_SCALE = 0.06;
+    const PIXELS_PER_METER = 40; // Maßstab: 40px = 1m
+    const FPS = 60;
     const MAX_DRAG_DIST = 250;
 
     // State
@@ -252,7 +251,7 @@ window.addEventListener('load', function() {
         wind: 0,
         windEnabled: false,
         wallEnabled: true,
-        previewEnabled: true,
+        previewEnabled: false,
         isAnimating: false,
         isAiming: false,
         aimVector: { x: 0, y: 0, power: 0, angle: 0 },
@@ -265,8 +264,8 @@ window.addEventListener('load', function() {
 
     function init() {
         game.players = [
-            { id: 1, x: 50, y: GROUND_Y - 60, w: 60, h: 60, hp: 100, color: '#3498db', name: "BLAU" },
-            { id: 2, x: 890, y: GROUND_Y - 60, w: 60, h: 60, hp: 100, color: '#e74c3c', name: "ROT" }
+            { id: 1, x: 50, y: GROUND_Y - 60, w: 60, h: 60, hp: 200, color: '#3498db', name: "BLAU" },
+            { id: 2, x: 890, y: GROUND_Y - 60, w: 60, h: 60, hp: 200, color: '#e74c3c', name: "ROT" }
         ];
         game.ball = null;
         game.particles = [];
@@ -292,7 +291,7 @@ window.addEventListener('load', function() {
     function update() {
         if (game.ball) {
             game.ball.vy += game.gravity;
-            game.ball.vx += game.wind * WIND_SCALE;
+            game.ball.vx += game.wind * PIXELS_PER_METER / (FPS * FPS);
             game.ball.x += game.ball.vx;
             game.ball.y += game.ball.vy;
 
@@ -343,7 +342,7 @@ window.addEventListener('load', function() {
                 ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.w, p.h);
                 // HP Bar
                 ctx.fillStyle = "black"; ctx.fillRect(p.x, p.y - 20, p.w, 6);
-                ctx.fillStyle = (p.hp>50) ? "#2ecc71" : "#e74c3c"; ctx.fillRect(p.x+1, p.y - 19, (p.w-2) * (p.hp/100), 4);
+                ctx.fillStyle = (p.hp>100) ? "#2ecc71" : "#e74c3c"; ctx.fillRect(p.x+1, p.y - 19, (p.w-2) * (p.hp/200), 4);
             }
         });
 
@@ -372,15 +371,16 @@ window.addEventListener('load', function() {
         let angle = Math.round(game.aimVector.angle);
         // if (game.turn === 2) angle = 180 - angle; // Nicht mehr nötig bei direkter Eingabe
         // angle = Math.abs(angle);
-        let power = Math.round((game.aimVector.power / MAX_DRAG_DIST) * 100);
+        let speed = parseFloat(inputPower.value);
+        let distMeters = (distance / PIXELS_PER_METER).toFixed(2);
 
         let dataPoint = {
             id: shotHistory.length + 1,
             player: activeP.name.charAt(0), // B oder R
             color: activeP.color,
             angle: angle,
-            power: power,
-            distance: Math.round(distance)
+            power: speed,
+            distance: parseFloat(distMeters)
         };
         shotHistory.push(dataPoint);
         
@@ -389,7 +389,7 @@ window.addEventListener('load', function() {
         row.className = 'log-entry';
         row.style.borderLeft = `4px solid ${dataPoint.color}`;
         row.style.paddingLeft = "5px";
-        row.innerHTML = `<span>#${dataPoint.id}</span> <span>${dataPoint.angle}°</span> <span>${dataPoint.power}%</span> <span>-> ${dataPoint.distance}px</span>`;
+        row.innerHTML = `<span>#${dataPoint.id}</span> <span>${dataPoint.angle}°</span> <span>${dataPoint.power} m/s</span> <span>-> ${dataPoint.distance} m</span>`;
         if(uiLog.innerHTML.includes("Warte")) uiLog.innerHTML = "";
         uiLog.prepend(row);
         
@@ -419,7 +419,7 @@ window.addEventListener('load', function() {
         ctxChart.stroke();
 
         ctxChart.fillStyle = "#34495e"; ctxChart.font = "10px sans-serif";
-        ctxChart.fillText("Weite", 2, pad-5); ctxChart.fillText("Winkel (°)", dw-50, dh-5);
+        ctxChart.fillText("Weite (m)", 2, pad-5); ctxChart.fillText("Winkel (°)", dw-50, dh-5);
 
         for(let deg=0; deg<=90; deg+=15) {
             let x = pad + (deg/90)*(dw-2*pad);
@@ -428,7 +428,7 @@ window.addEventListener('load', function() {
         }
 
         if (shotHistory.length === 0) return;
-        let maxDist = Math.max(...shotHistory.map(s => s.distance), 900);
+        let maxDist = Math.max(...shotHistory.map(s => s.distance), 25); // Min 25m Scale
 
         shotHistory.forEach(s => {
             let px = pad + (s.angle / 90) * (dw - 2*pad);
@@ -446,27 +446,28 @@ window.addEventListener('load', function() {
         if (game.isAnimating) return;
         
         let angle = parseFloat(inputAngle.value);
-        let power = parseFloat(inputPower.value);
+        let speedMS = parseFloat(inputPower.value); // Jetzt m/s
         
         // Clamp values
         if (angle < 0) angle = 0; if (angle > 90) angle = 90;
-        if (power < 0) power = 0; if (power > 100) power = 100;
+        if (speedMS < 0) speedMS = 0; if (speedMS > 100) speedMS = 100;
 
-        let dist = (power / 100) * MAX_DRAG_DIST;
+        // Umrechnung m/s in Pixel/Frame
+        // v_px = v_ms * PIXELS_PER_METER / FPS
+        let speedPxPerFrame = speedMS * PIXELS_PER_METER / FPS;
+
         let rad = angle * (Math.PI / 180);
         
-        // Player 1 (Left) aims Right. Player 2 (Right) aims Left.
-        // dx must be positive for P1, negative for P2.
-        // dy must be negative (up).
-        
-        let dx = Math.cos(rad) * dist;
-        let dy = -Math.sin(rad) * dist;
+        let dx = Math.cos(rad) * speedPxPerFrame;
+        let dy = -Math.sin(rad) * speedPxPerFrame;
         
         if (game.turn === 2) {
             dx = -dx;
         }
         
-        game.aimVector = { x: dx, y: dy, power: dist, angle: angle };
+        // Power für Visualisierung (Pfeillänge)
+        let visualPower = Math.min((speedMS / 30) * MAX_DRAG_DIST, MAX_DRAG_DIST);
+        game.aimVector = { x: dx, y: dy, power: visualPower, angle: angle };
         calculateTrajectory();
     }
 
@@ -475,11 +476,11 @@ window.addEventListener('load', function() {
         const activeP = game.players[game.turn - 1];
         let simX = activeP.x + activeP.w / 2;
         let simY = activeP.y + activeP.h / 2;
-        let simVX = game.aimVector.x * POWER_SCALE;
-        let simVY = game.aimVector.y * POWER_SCALE;
+        let simVX = game.aimVector.x; // Ist jetzt schon korrekt skaliert
+        let simVY = game.aimVector.y;
 
         for (let i = 0; i < 150; i++) {
-            simVY += game.gravity; simVX += game.wind * WIND_SCALE;
+            simVY += game.gravity; simVX += game.wind * PIXELS_PER_METER / (FPS * FPS);
             simX += simVX; simY += simVY;
             if (i % 4 === 0) game.trajectoryPoints.push({x: simX, y: simY});
             if (simY >= GROUND_Y || (game.wallEnabled && checkRectCollide(simX, simY, game.obstacle))) break;
@@ -491,7 +492,7 @@ window.addEventListener('load', function() {
         const activeP = game.players[game.turn - 1];
         game.ball = {
             x: activeP.x + activeP.w / 2, y: activeP.y + activeP.h / 2,
-            vx: game.aimVector.x * POWER_SCALE, vy: game.aimVector.y * POWER_SCALE
+            vx: game.aimVector.x, vy: game.aimVector.y
         };
         game.isAnimating = true;
         game.isAiming = false;
@@ -501,7 +502,8 @@ window.addEventListener('load', function() {
     function updateGravity() {
         let val = parseFloat(inputGravity.value);
         gravityDisplay.innerText = val.toFixed(2) + " m/s²";
-        game.gravity = val * GRAVITY_SCALE;
+        // g_px = g_ms * PIXELS_PER_METER / FPS^2
+        game.gravity = val * PIXELS_PER_METER / (FPS * FPS);
         if(game.isAiming) calculateTrajectory();
     }
 
@@ -531,12 +533,12 @@ window.addEventListener('load', function() {
         game.isAiming = true;
         updateAimFromInputs();
     }
-    function randomizeWind() { game.wind = (Math.random() * 3) - 1.5; }
+    function randomizeWind() { game.wind = (Math.random() * 10) - 5; } // -5 bis 5 m/s²
     function updateUI() { 
         uiStatus.innerText = game.players[game.turn-1].name + " ZIELT"; 
         uiStatus.style.color = game.players[game.turn-1].color;
         let dir = game.wind > 0 ? "→" : (Math.abs(game.wind)<0.1?"•":"←"); 
-        uiWind.innerText = `Wind: ${dir} ${Math.abs(game.wind).toFixed(2)}`;
+        uiWind.innerText = `Wind: ${dir} ${Math.abs(game.wind).toFixed(2)} m/s²`;
     }
     
     // CSV Export
