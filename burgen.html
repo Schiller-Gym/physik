@@ -186,6 +186,11 @@
                         <label style="font-size:12px; margin-bottom:2px;">Pulver</label>
                         <input type="number" id="inputPower" value="50" min="0" max="100" style="width:60px; padding:5px; border-radius:4px; border:none; text-align:center; color:black;">
                     </div>
+                    <div style="display:flex; flex-direction:column; align-items:center;">
+                        <label style="font-size:12px; margin-bottom:2px;">Gravitation</label>
+                        <input type="range" id="inputGravity" value="9.81" min="0" max="25" step="0.1" style="width:80px; cursor:pointer;">
+                        <span id="gravityDisplay" style="font-size:10px;">9.81 m/s²</span>
+                    </div>
                     <button id="btnFire" style="background:#c0392b; padding: 10px 20px; font-size: 16px; border: 2px solid white;">FEUER</button>
                     <button id="reset-btn" style="background:#e67e22; margin-left: 5px;">↺</button>
                 </div>
@@ -229,17 +234,20 @@ window.addEventListener('load', function() {
     const btnFire = document.getElementById('btnFire');
     const inputAngle = document.getElementById('inputAngle');
     const inputPower = document.getElementById('inputPower');
+    const inputGravity = document.getElementById('inputGravity');
+    const gravityDisplay = document.getElementById('gravityDisplay');
 
     // Konstanten
     const GROUND_Y = 450;
-    const GRAVITY = 0.25;
-    const POWER_SCALE = 0.18; 
+    const GRAVITY_SCALE = 0.25 / 9.81; 
+    const POWER_SCALE = 0.4; 
     const WIND_SCALE = 0.06;
     const MAX_DRAG_DIST = 250;
 
     // State
     let shotHistory = [];
     let game = {
+        gravity: 0.25,
         turn: 1,
         wind: 0,
         windEnabled: false,
@@ -268,6 +276,7 @@ window.addEventListener('load', function() {
         if(game.windEnabled) randomizeWind(); else game.wind = 0;
         game.isAiming = true;
         updateUI();
+        updateGravity();
         updateAimFromInputs();
         drawChart();
         requestAnimationFrame(loop);
@@ -282,7 +291,7 @@ window.addEventListener('load', function() {
 
     function update() {
         if (game.ball) {
-            game.ball.vy += GRAVITY;
+            game.ball.vy += game.gravity;
             game.ball.vx += game.wind * WIND_SCALE;
             game.ball.x += game.ball.vx;
             game.ball.y += game.ball.vy;
@@ -470,7 +479,7 @@ window.addEventListener('load', function() {
         let simVY = game.aimVector.y * POWER_SCALE;
 
         for (let i = 0; i < 150; i++) {
-            simVY += GRAVITY; simVX += game.wind * WIND_SCALE;
+            simVY += game.gravity; simVX += game.wind * WIND_SCALE;
             simX += simVX; simY += simVY;
             if (i % 4 === 0) game.trajectoryPoints.push({x: simX, y: simY});
             if (simY >= GROUND_Y || (game.wallEnabled && checkRectCollide(simX, simY, game.obstacle))) break;
@@ -489,9 +498,17 @@ window.addEventListener('load', function() {
         uiStatus.innerText = "";
     }
 
+    function updateGravity() {
+        let val = parseFloat(inputGravity.value);
+        gravityDisplay.innerText = val.toFixed(2) + " m/s²";
+        game.gravity = val * GRAVITY_SCALE;
+        if(game.isAiming) calculateTrajectory();
+    }
+
     // --- EVENT LISTENERS (Unified) ---
     inputAngle.addEventListener('input', updateAimFromInputs);
     inputPower.addEventListener('input', updateAimFromInputs);
+    inputGravity.addEventListener('input', updateGravity);
     btnFire.addEventListener('click', fire);
 
     // --- HELPER ---
