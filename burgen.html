@@ -305,7 +305,11 @@ window.addEventListener('load', function() {
             else {
                 let enemy = game.players[game.turn === 1 ? 1 : 0];
                 if (checkRectCollide(game.ball.x, game.ball.y, enemy)) {
-                    enemy.hp -= 35;
+                    // Kinetische Energie berechnen: E = 0.5 * m * v^2 (m=1kg)
+                    let v_px = Math.sqrt(game.ball.vx * game.ball.vx + game.ball.vy * game.ball.vy);
+                    let v_ms = v_px * (FPS / PIXELS_PER_METER);
+                    let damage = 0.5 * v_ms * v_ms;
+                    enemy.hp -= damage;
                     createExplosion(game.ball.x, game.ball.y, enemy.color);
                     hit = true;
                     if (enemy.hp <= 0) setTimeout(() => { alert(game.players[game.turn-1].name + " GEWINNT!"); init(); shotHistory=[]; uiLog.innerHTML=""; drawChart(); }, 100);
@@ -517,9 +521,22 @@ window.addEventListener('load', function() {
     function drawAimLine() {
         const activeP = game.players[game.turn - 1];
         const cx = activeP.x + activeP.w / 2; const cy = activeP.y + activeP.h / 2;
-        let intensity = Math.min(1, game.aimVector.power / MAX_DRAG_DIST); 
+        
+        // Visualisierung berechnen (Winkel + VisualPower)
+        let len = game.aimVector.power;
+        let rad = game.aimVector.angle * (Math.PI / 180);
+        let dx = Math.cos(rad) * len;
+        let dy = -Math.sin(rad) * len;
+        if (game.turn === 2) dx = -dx;
+
+        let intensity = Math.min(1, len / MAX_DRAG_DIST); 
         ctx.strokeStyle = `rgb(${255},${Math.floor(255*(1-intensity))},0)`;
-        ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + game.aimVector.x, cy + game.aimVector.y); ctx.stroke();
+        ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + dx, cy + dy); ctx.stroke();
+
+        // Pfeilspitze
+        let headLen = 15; let angleVec = Math.atan2(dy, dx);
+        ctx.beginPath(); ctx.moveTo(cx + dx, cy + dy); ctx.lineTo(cx + dx - headLen * Math.cos(angleVec - Math.PI/6), cy + dy - headLen * Math.sin(angleVec - Math.PI/6)); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx + dx, cy + dy); ctx.lineTo(cx + dx - headLen * Math.cos(angleVec + Math.PI/6), cy + dy - headLen * Math.sin(angleVec + Math.PI/6)); ctx.stroke();
     }
     function drawTrajectory() { ctx.fillStyle = "rgba(255, 255, 255, 0.5)"; game.trajectoryPoints.forEach(pt => { ctx.beginPath(); ctx.arc(pt.x, pt.y, 4, 0, Math.PI*2); ctx.fill(); }); }
     function createExplosion(x, y, color) { for (let i = 0; i < 20; i++) game.particles.push({x:x,y:y,vx:(Math.random()-0.5)*10,vy:(Math.random()-0.5)*10,life:30+Math.random()*20,r:Math.random()*5,color:color}); }
