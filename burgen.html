@@ -177,8 +177,17 @@
                 
                 <div class="status-msg" id="statusText">Lade Spiel...</div>
 
-                <div style="display:flex; justify-content: flex-end;">
-                    <button id="reset-btn" style="background:#e67e22; pointer-events:auto;">Neustart</button>
+                <div id="controls-area" style="display:flex; justify-content: center; align-items: center; gap: 10px; pointer-events: auto; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 10px; flex-wrap: wrap;">
+                    <div style="display:flex; flex-direction:column; align-items:center;">
+                        <label style="font-size:12px; margin-bottom:2px;">Winkel</label>
+                        <input type="number" id="inputAngle" value="45" min="0" max="90" style="width:60px; padding:5px; border-radius:4px; border:none; text-align:center; color:black;">
+                    </div>
+                    <div style="display:flex; flex-direction:column; align-items:center;">
+                        <label style="font-size:12px; margin-bottom:2px;">Pulver</label>
+                        <input type="number" id="inputPower" value="50" min="0" max="100" style="width:60px; padding:5px; border-radius:4px; border:none; text-align:center; color:black;">
+                    </div>
+                    <button id="btnFire" style="background:#c0392b; padding: 10px 20px; font-size: 16px; border: 2px solid white;">FEUER</button>
+                    <button id="reset-btn" style="background:#e67e22; margin-left: 5px;">↺</button>
                 </div>
             </div>
         </div>
@@ -217,6 +226,9 @@ window.addEventListener('load', function() {
     const checkWall = document.getElementById('wallCheck');
     const checkPreview = document.getElementById('previewCheck');
     const btnReset = document.getElementById('reset-btn');
+    const btnFire = document.getElementById('btnFire');
+    const inputAngle = document.getElementById('inputAngle');
+    const inputPower = document.getElementById('inputPower');
 
     // Konstanten
     const GROUND_Y = 450;
@@ -254,7 +266,9 @@ window.addEventListener('load', function() {
         game.turn = 1;
         
         if(game.windEnabled) randomizeWind(); else game.wind = 0;
+        game.isAiming = true;
         updateUI();
+        updateAimFromInputs();
         drawChart();
         requestAnimationFrame(loop);
     }
@@ -347,8 +361,8 @@ window.addEventListener('load', function() {
         let startX = activeP.x + activeP.w/2;
         let distance = Math.abs(finalX - startX);
         let angle = Math.round(game.aimVector.angle);
-        if (game.turn === 2) angle = 180 - angle;
-        angle = Math.abs(angle);
+        // if (game.turn === 2) angle = 180 - angle; // Nicht mehr nötig bei direkter Eingabe
+        // angle = Math.abs(angle);
         let power = Math.round((game.aimVector.power / MAX_DRAG_DIST) * 100);
 
         let dataPoint = {
@@ -419,78 +433,31 @@ window.addEventListener('load', function() {
     // --- UNIFIED INPUT HANDLER (TOUCH & MOUSE) ---
     // Dies ist der Schlüssel für Mobile!
     
-    function getPointerPos(e) {
-        const rect = gameCanvas.getBoundingClientRect();
-        // Skalierung berechnen (Canvas interne Größe vs. Angezeigte Größe)
-        const scaleX = gameCanvas.width / rect.width;
-        const scaleY = gameCanvas.height / rect.height;
-
-        let clientX, clientY;
-
-        if (e.touches && e.touches.length > 0) {
-            clientX = e.touches[0].clientX;
-            clientY = e.touches[0].clientY;
-        } else {
-            clientX = e.clientX;
-            clientY = e.clientY;
-        }
-
-        return {
-            x: (clientX - rect.left) * scaleX,
-            y: (clientY - rect.top) * scaleY
-        };
-    }
-
-    function handleInputStart(e) {
-        if (e.type === 'touchstart') e.preventDefault(); // Kein Scrollen
+    function updateAimFromInputs() {
         if (game.isAnimating) return;
-
-        const pos = getPointerPos(e);
-        const activeP = game.players[game.turn - 1];
         
-        // Prüfen ob nah am Spieler
-        const dist = Math.hypot(pos.x - (activeP.x + 30), pos.y - (activeP.y + 30));
+        let angle = parseFloat(inputAngle.value);
+        let power = parseFloat(inputPower.value);
         
-        if (dist < 150) { // Radius größer für Finger
-            game.isAiming = true;
-            updateAimVector(pos);
-        }
-    }
+        // Clamp values
+        if (angle < 0) angle = 0; if (angle > 90) angle = 90;
+        if (power < 0) power = 0; if (power > 100) power = 100;
 
-    function handleInputMove(e) {
-        if (!game.isAiming) return;
-        if (e.type === 'touchmove') e.preventDefault(); // Kein Scrollen
-        const pos = getPointerPos(e);
-        updateAimVector(pos);
-    }
-
-    function handleInputEnd(e) {
-        if (game.isAiming) {
-            if (e.type === 'touchend') e.preventDefault();
-            fire();
-            game.isAiming = false;
-        }
-    }
-
-    function updateAimVector(pos) {
-        const activeP = game.players[game.turn - 1];
-        const cx = activeP.x + activeP.w / 2;
-        const cy = activeP.y + activeP.h / 2;
+        let dist = (power / 100) * MAX_DRAG_DIST;
+        let rad = angle * (Math.PI / 180);
         
-        let dx = pos.x - cx;
-        let dy = pos.y - cy;
-        let dist = Math.hypot(dx, dy);
-        let rad = Math.atan2(-dy, Math.abs(dx));
-        let deg = rad * (180 / Math.PI);
-        if (deg < 0) deg = 0;
-
-        if (dist > MAX_DRAG_DIST) {
-            dx = (dx / dist) * MAX_DRAG_DIST;
-            dy = (dy / dist) * MAX_DRAG_DIST;
-            dist = MAX_DRAG_DIST;
+        // Player 1 (Left) aims Right. Player 2 (Right) aims Left.
+        // dx must be positive for P1, negative for P2.
+        // dy must be negative (up).
+        
+        let dx = Math.cos(rad) * dist;
+        let dy = -Math.sin(rad) * dist;
+        
+        if (game.turn === 2) {
+            dx = -dx;
         }
         
-        game.aimVector = { x: dx, y: dy, power: dist, angle: deg };
+        game.aimVector = { x: dx, y: dy, power: dist, angle: angle };
         calculateTrajectory();
     }
 
@@ -511,24 +478,21 @@ window.addEventListener('load', function() {
     }
 
     function fire() {
+        if (game.isAnimating) return;
         const activeP = game.players[game.turn - 1];
         game.ball = {
             x: activeP.x + activeP.w / 2, y: activeP.y + activeP.h / 2,
             vx: game.aimVector.x * POWER_SCALE, vy: game.aimVector.y * POWER_SCALE
         };
         game.isAnimating = true;
+        game.isAiming = false;
         uiStatus.innerText = "";
     }
 
     // --- EVENT LISTENERS (Unified) ---
-    gameCanvas.addEventListener('mousedown', handleInputStart);
-    gameCanvas.addEventListener('touchstart', handleInputStart, {passive: false});
-
-    window.addEventListener('mousemove', handleInputMove);
-    window.addEventListener('touchmove', handleInputMove, {passive: false});
-
-    window.addEventListener('mouseup', handleInputEnd);
-    window.addEventListener('touchend', handleInputEnd, {passive: false});
+    inputAngle.addEventListener('input', updateAimFromInputs);
+    inputPower.addEventListener('input', updateAimFromInputs);
+    btnFire.addEventListener('click', fire);
 
     // --- HELPER ---
     function drawAimLine() {
@@ -541,7 +505,15 @@ window.addEventListener('load', function() {
     function drawTrajectory() { ctx.fillStyle = "rgba(255, 255, 255, 0.5)"; game.trajectoryPoints.forEach(pt => { ctx.beginPath(); ctx.arc(pt.x, pt.y, 4, 0, Math.PI*2); ctx.fill(); }); }
     function createExplosion(x, y, color) { for (let i = 0; i < 20; i++) game.particles.push({x:x,y:y,vx:(Math.random()-0.5)*10,vy:(Math.random()-0.5)*10,life:30+Math.random()*20,r:Math.random()*5,color:color}); }
     function checkRectCollide(bx, by, rect) { return bx > rect.x && bx < rect.x + rect.w && by > rect.y && by < rect.y + rect.h; }
-    function endTurn() { game.ball = null; game.isAnimating = false; game.turn = game.turn === 1 ? 2 : 1; if(game.windEnabled) randomizeWind(); else game.wind=0; updateUI(); }
+    function endTurn() { 
+        game.ball = null; 
+        game.isAnimating = false; 
+        game.turn = game.turn === 1 ? 2 : 1; 
+        if(game.windEnabled) randomizeWind(); else game.wind=0; 
+        updateUI(); 
+        game.isAiming = true;
+        updateAimFromInputs();
+    }
     function randomizeWind() { game.wind = (Math.random() * 3) - 1.5; }
     function updateUI() { 
         uiStatus.innerText = game.players[game.turn-1].name + " ZIELT"; 
