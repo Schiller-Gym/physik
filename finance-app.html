@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinanceFlow - Personal Finance Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: #1a1f36;
+            color: white;
+            padding: 24px 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .logo {
+            padding: 0 24px 24px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 24px;
+        }
+
+        .logo h1 {
+            font-size: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo span {
+            color: #6c5ce7;
+        }
+
+        .nav-section {
+            margin-bottom: 24px;
+        }
+
+        .nav-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,0.4);
+            padding: 0 24px;
+            margin-bottom: 8px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 24px;
+            color: rgba(255,255,255,0.7);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: rgba(255,255,255,0.05);
+            color: white;
+            border-left-color: #6c5ce7;
+        }
+
+        .nav-item svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 24px 32px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .header h2 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a1f36;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: white;
+            border-radius: 10px;
+            padding: 10px 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .search-box input {
+            border: none;
+            outline: none;
+            margin-left: 8px;
+            font-size: 14px;
+            width: 200px;
+        }
+
+        .notification-btn {
+            position: relative;
+            background: white;
+            border: none;
+            padding: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 8px;
+            height: 8px;
+            background: #e74c3c;
+            border-radius: 50%;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Cards Grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card-icon.purple { background: rgba(108, 92, 231, 0.1); color: #6c5ce7; }
+        .card-icon.green { background: rgba(0, 184, 148, 0.1); color: #00b894; }
+        .card-icon.orange { background: rgba(225, 112, 85, 0.1); color: #e17055; }
+        .card-icon.blue { background: rgba(84, 160, 255, 0.1); color: #54a0ff; }
+
+        .card-trend {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .card-trend.up { color: #00b894; }
+        .card-trend.down { color: #e74c3c; }
+
+        .card-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1a1f36;
+            margin-bottom: 4px;
+        }
+
+        .card-label {
+            font-size: 14px;
+            color: #888;
+        }
+
+        /* Charts Section */
+        .charts-section {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .chart-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a1f36;
+        }
+
+        .chart-period {
+            display: flex;
+            gap: 8px;
+        }
+
+        .period-btn {
+            padding: 6px 12px;
+            border: none;
+            background: #f5f7fa;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .period-btn.active {
+            background: #6c5ce7;
+            color: white;
+        }
+
+        /* Bar Chart */
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            height: 200px;
+            padding-top: 20px;
+        }
+
+        .bar-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+        }
+
+        .bar {
+            width: 32px;
+            border-radius: 6px 6px 0 0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .bar:hover {
+            opacity: 0.8;
+        }
+
+        .bar.income { background: linear-gradient(180deg, #00b894, #55efc4); }
+        .bar.expense { background: linear-gradient(180deg, #e74c3c, #ff7675); }
+
+        .bar-label {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #888;
+        }
+
+        /* Donut Chart */
+        .donut-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .donut-chart {
+            position: relative;
+            width: 180px;
+            height: 180px;
+        }
+
+        .donut-chart svg {
+            transform: rotate(-90deg);
+        }
+
+        .donut-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .donut-total {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a1f36;
+        }
+
+        .donut-label {
+            font-size: 13px;
+            color: #888;
+        }
+
+        .donut-legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        /* Transactions Section */
+        .transactions-section {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+
+        .transactions-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .view-all {
+            color: #6c5ce7;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .transaction-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .transaction-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            background: #f8f9fc;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .transaction-item:hover {
+            background: #f0f2f8;
+        }
+
+        .transaction-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .transaction-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .transaction-icon.shopping { background: rgba(225, 112, 85, 0.1); }
+        .transaction-icon.food { background: rgba(0, 184, 148, 0.1); }
+        .transaction-icon.transport { background: rgba(84, 160, 255, 0.1); }
+        .transaction-icon.entertainment { background: rgba(108, 92, 231, 0.1); }
+        .transaction-icon.salary { background: rgba(0, 184, 148, 0.1); }
+
+        .transaction-details h4 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1a1f36;
+            margin-bottom: 4px;
+        }
+
+        .transaction-details p {
+            font-size: 13px;
+            color: #888;
+        }
+
+        .transaction-amount {
+            text-align: right;
+        }
+
+        .transaction-amount.positive {
+            color: #00b894;
+        }
+
+        .transaction-amount.negative {
+            color: #1a1f36;
+        }
+
+        .transaction-amount .amount {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .transaction-amount .date {
+            font-size: 12px;
+            color: #888;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .action-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .action-btn.primary {
+            background: #6c5ce7;
+            color: white;
+        }
+
+        .action-btn.primary:hover {
+            background: #5b4cdb;
+        }
+
+        .action-btn.secondary {
+            background: #f5f7fa;
+            color: #1a1f36;
+        }
+
+        .action-btn.secondary:hover {
+            background: #e8ebf2;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .cards-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .charts-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h1>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5"/>
+                        <path d="M2 12l10 5 10-5"/>
+                    </svg>
+                    Finance<span>Flow</span>
+                </h1>
+            </div>
+            
+            <nav>
+                <div class="nav-section">
+                    <div class="nav-title">Main</div>
+                    <div class="nav-item active">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"/>
+                            <rect x="14" y="3" width="7" height="7"/>
+                            <rect x="14" y="14" width="7" height="7"/>
+                            <rect x="3" y="14" width="7" height="7"/>
+                        </svg>
+                        Dashboard
+                    </div>
+                    <div class="nav-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                        Transactions
+                    </div>
+                    <div class="nav-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/>
+                            <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/>
+                            <path d="M18 12a2 2 0 0 0 0 4h4v-4h-4z"/>
+                        </svg>
+                        Accounts
+                    </div>
+                    <div class="nav-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="20" x2="12" y2="10"/>
+                            <line x1="18" y1="20" x2="18" y2="4"/>
+                            <line x1="6" y1="20" x2="6" y2="16"/>
+                        </svg>
+                        Analytics
+                    </div>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-title">Manage</div>
+                    <div class="nav-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                            <line x1="1" y1="10" x2="23" y2="10"/>
+                        </svg>
+                        Cards
+                    </div>
+                    <div class="nav-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                        Settings
+                    </div>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="header">
+                <h2>Welcome back, Alex! 👋</h2>
+                <div class="header-actions">
+                    <div class="search-box">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        <input type="text" placeholder="Search transactions...">
+                    </div>
+                    <button class="notification-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                        </svg>
+                        <span class="notification-badge"></span>
+                    </button>
+                    <div class="user-avatar">A</div>
+                </div>
+            </div>
+
+            <!-- Cards Grid -->
+            <div class="cards-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon purple">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                            </svg>
+                        </div>
+                        <div class="card-trend up">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                                <polyline points="17 6 23 6 23 12"/>
+                            </svg>
+                            +12.5%
+                        </div>
+                    </div>
+                    <div class="card-value">$24,563.00</div>
+                    <div class="card-label">Total Balance</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon green">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="1" x2="12" y2="23"/>
+                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                            </svg>
+                        </div>
+                        <div class="card-trend up">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                                <polyline points="17 6 23 6 23 12"/>
+                            </svg>
+                            +8.2%
+                        </div>
+                    </div>
+                    <div class="card-value">$5,234.00</div>
+                    <div class="card-label">Monthly Income</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon orange">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M16 8l-4 4-4-4"/>
+                            </svg>
+                        </div>
+                        <div class="card-trend down">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/>
+                                <polyline points="17 18 23 18 23 12"/>
+                            </svg>
+                            -3.1%
+                        </div>
+                    </div>
+                    <div class="card-value">$3,892.00</div>
+                    <div class="card-label">Monthly Expenses</div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="charts-section">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">Income vs Expenses</div>
+                        <div class="chart-period">
+                            <button class="period-btn">Week</button>
+                            <button class="period-btn active">Month</button>
+                            <button class="period-btn">Year</button>
+                        </div>
+                    </div>
+                    <div class="bar-chart" id="barChart">
+                        <div class="bar-group">
+                            <div class="bar income" style="height: 120px;"></div>
+                            <span class="bar-label">Jan</span>
+                        </div>
+                        <div class="bar-group">
+                            <div class="bar expense" style="height: 80px;"></div>
+                            <span class="bar-label">Feb</span>
+                        </div>
+                        <div class="bar-group">
+                            <div class="bar income" style="height: 140px;"></div>
+                            <span class="bar-label">Mar</span>
+                        </div>
+                        <div class="bar-group">
+                            <div class="bar expense" style="height: 100px;"></div>
+                            <span class="bar-label">Apr</span>
+                        </div>
+                        <div class="bar-group">
+                            <div class="bar income" style="height: 160px;"></div>
+                            <span class="bar-label">May</span>
+                        </div>
+                        <div class="bar-group">
+                            <div class="bar expense" style="height: 90px;"></div>
+                            <span class="bar-label">Jun</span>
+                        </div>
+                        <div class="bar-group">
+                            <div class="bar income" style="height: 180px;"></div>
+                            <span class="bar-label">Jul</span>
+                        </div>
+                        <div class="bar-group">
+                            <div class="bar expense" style="height: 110px;"></div>
+                            <span class="bar-label">Aug</span>
+                        </div>
+                        <div class="bar-group">
+                            <div class="bar income" style="height: 150px;"></div>
+                            <span class="bar-label">Sep</span>
+                        </div>
+                        <div class="bar-group">
+                            <div class="bar expense" style="height: 85px;"></div>
+                            <span class="bar-label">Oct</span>
+                        </div>
+                        <div class="bar-group">
+                            <div class="bar income" style="height: 170px;"></div>
+                            <span class="bar-label">Nov</span>
+                        </div>
+                        <div class="bar-group">
+                            <div class="bar expense" style="height: 95px;"></div>
+                            <span class="bar-label">Dec</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">Spending by Category</div>
+                    </div>
+                    <div class="donut-container">
+                        <div class="donut-chart">
+                            <svg width="180" height="180" viewBox="0 0 180 180">
+                                <circle cx="90" cy="90" r="70" fill="none" stroke="#f0f0f0" stroke-width="20"/>
+                                <circle cx="90" cy="90" r="70" fill="none" stroke="#6c5ce7" stroke-width="20"
+                                    stroke-dasharray="154 440" stroke-dashoffset="0" class="donut-segment"/>
+                                <circle cx="90" cy="90" r="70" fill="none" stroke="#00b894" stroke-width="20"
+                                    stroke-dasharray="110 440" stroke-dashoffset="-154" class="donut-segment"/>
+                                <circle cx="90" cy="90" r="70" fill="none" stroke="#e17055" stroke-width="20"
+                                    stroke-dasharray="88 440" stroke-dashoffset="-264" class="donut-segment"/>
+                                <circle cx="90" cy="90" r="70" fill="none" stroke="#54a0ff" stroke-width="20"
+                                    stroke-dasharray="88 440" stroke-dashoffset="-352" class="donut-segment"/>
+                            </svg>
+                            <div class="donut-center">
+                                <div class="donut-total">$3.8k</div>
+                                <div class="donut-label">Total</div>
+                            </div>
+                        </div>
+                        <div class="donut-legend">
+                            <div class="legend-item">
+                                <span class="legend-dot" style="background: #6c5ce7;"></span>
+                                Shopping (35%)
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot" style="background: #00b894;"></span>
+                                Food (25%)
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot" style="background: #e17055;"></span>
+                                Transport (20%)
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot" style="background: #54a0ff;"></span>
+                                Other (20%)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="transactions-section">
+                <div class="transactions-header">
+                    <div class="chart-title">Recent Transactions</div>
+                    <span class="view-all">View All →</span>
+                </div>
+                <div class="transaction-list">
+                    <div class="transaction-item">
+                        <div class="transaction-left">
+                            <div class="transaction-icon shopping">🛍️</div>
+                            <div class="transaction-details">
+                                <h4>Amazon Purchase</h4>
+                                <p>Online Shopping</p>
+                            </div>
+                        </div>
+                        <div class="transaction-amount negative">
+                            <div class="amount">-$156.99</div>
+                            <div class="date">Today, 10:30 AM</div>
+                        </div>
+                    </div>
+                    
+                    <div class="transaction-item">
+                        <div class="transaction-left">
+                            <div class="transaction-icon food">🍔</div>
+                            <div class="transaction-details">
+                                <h4>McDonald's</h4>
+                                <p>Food & Dining</p>
+                            </div>
+                        </div>
+                        <div class="transaction-amount negative">
+                            <div class="amount">-$24.50</div>
+                            <div class="date">Today, 2:15 PM</div>
+                        </div>
+                    </div>
+                    
+                    <div class="transaction-item">
+                        <div class="transaction-left">
+                            <div class="transaction-icon transport">🚕</div>
+                            <div class="transaction-details">
+                                <h4>Uber Ride</h4>
+                                <p>Transportation</p>
+                            </div>
+                        </div>
+                        <div class="transaction-amount negative">
+                            <div class="amount">-$32.00</div>
+                            <div class="date">Yesterday</div>
+                        </div>
+                    </div>
+                    
+                    <div class="transaction-item">
+                        <div class="transaction-left">
+                            <div class="transaction-icon entertainment">🎬</div>
+                            <div class="transaction-details">
+                                <h4>Netflix</h4>
+                                <p>Entertainment</p>
+                            </div>
+                        </div>
+                        <div class="transaction-amount negative">
+                            <div class="amount">-$15.99</div>
+                            <div class="date">Jan 28</div>
+                        </div>
+                    </div>
+                    
+                    <div class="transaction-item">
+                        <div class="transaction-left">
+                            <div class="transaction-icon salary">💰</div>
+                            <div class="transaction-details">
+                                <h4>Salary Deposit</h4>
+                                <p>Income</p>
+                            </div>
+                        </div>
+                        <div class="transaction-amount positive">
+                            <div class="amount">+$5,234.00</div>
+                            <div class="date">Jan 25</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <button class="action-btn primary">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Add Transaction
+                    </button>
+                    <button class="action-btn secondary">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                            <line x1="1" y1="10" x2="23" y2="10"/>
+                        </svg>
+                        Manage Cards
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Animate bars on load
+        document.addEventListener('DOMContentLoaded', () => {
+            const bars = document.querySelectorAll('.bar');
+            bars.forEach((bar, index) => {
+                const height = bar.style.height;
+                bar.style.height = '0';
+                setTimeout(() => {
+                    bar.style.height = height;
+                }, 100 + index * 50);
+            });
+
+            // Animate donut chart
+            const segments = document.querySelectorAll('.donut-segment');
+            segments.forEach((segment, index) => {
+                const dashArray = segment.getAttribute('stroke-dasharray');
+                segment.setAttribute('stroke-dasharray', '0 440');
+                setTimeout(() => {
+                    segment.style.transition = 'stroke-dasharray 1s ease';
+                    segment.setAttribute('stroke-dasharray', dashArray);
+                }, 500 + index * 200);
+            });
+
+            // Period button toggle
+            const periodBtns = document.querySelectorAll('.period-btn');
+            periodBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    periodBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                });
+            });
+
+            // Nav item toggle
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    navItems.forEach(i => i.classList.remove('active'));
+                    item.classList.add('active');
+                });
+            });
+
+            // Search functionality
+            const searchInput = document.querySelector('.search-box input');
+            searchInput.addEventListener('focus', () => {
+                searchInput.parentElement.style.boxShadow = '0 4px 12px rgba(108, 92, 231, 0.2)';
+                searchInput.parentElement.style.border = '1px solid #6c5ce7';
+            });
+            searchInput.addEventListener('blur', () => {
+                searchInput.parentElement.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
+                searchInput.parentElement.style.border = 'none';
+            });
+
+            // Card hover effects with data update
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', () => {
+                    card.style.transform = 'translateY(-4px)';
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'translateY(0)';
+                });
+            });
+
+            console.log('FinanceFlow app loaded successfully!');
+            console.log('Features: Dashboard, Analytics, Transactions, Cards management');
+        });
+    </script>
+</body>
+</html>
