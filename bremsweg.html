@@ -160,8 +160,8 @@
                 <h3>Ergebnisse (Live):</h3>
                 <p>Aktuelle Geschwindigkeit: <span id="current-v">0</span> km/h</p>
                 <p>Zurückgelegte Strecke: <span id="current-dist">0.00</span> m</p>
-                <p>Theoretischer Bremsweg: <span id="theoretical-dist">0.00</span> m</p>
             </div>
+            <canvas id="chartCanvas" width="800" height="200" style="margin-top: 15px; background: white; border: 1px solid #ccc; border-radius: 6px;"></canvas>
         </div>
     </div>
 
@@ -169,6 +169,8 @@
         // Canvas Setup
         const canvas = document.getElementById('simCanvas');
         const ctx = canvas.getContext('2d');
+        const chartCanvas = document.getElementById('chartCanvas');
+        const ctxChart = chartCanvas.getContext('2d');
         
         // Inputs
         const velocityInput = document.getElementById('velocity');
@@ -181,7 +183,6 @@
         const valMass = document.getElementById('val-mass');
         const dispV = document.getElementById('current-v');
         const dispDist = document.getElementById('current-dist');
-        const dispTheo = document.getElementById('theoretical-dist');
 
         // Physics Constants
         const g = 9.81; // Erdbeschleunigung m/s²
@@ -196,7 +197,9 @@
             v: 0, // Aktuelle Geschwindigkeit in m/s
             mu: 0, // Reibungskoeffizient
             mass: 0, // Masse in kg
-            lastFrameTime: 0
+            lastFrameTime: 0,
+            history: [],
+            maxT: 0
         };
 
         // Skalierung für die Visualisierung (Pixel pro Meter)
@@ -221,15 +224,10 @@
 
             valMass.innerText = massInput.value + " kg";
 
-            // Theoretischen Wert berechnen (auch wenn Simulation nicht läuft)
-            const v_ms = parseFloat(velocityInput.value) / 3.6;
-            const mu = parseFloat(frictionInput.value);
-            const dist = (v_ms * v_ms) / (2 * mu * g);
-            dispTheo.innerText = dist.toFixed(2);
-            
             // Wenn nicht läuft, Canvas neu zeichnen (Reset Position)
             if (!simState.running && !simState.finished) {
                 drawScene();
+                drawChart();
             }
         }
 
@@ -245,6 +243,10 @@
             simState.running = true;
             simState.finished = false;
             simState.lastFrameTime = performance.now();
+            
+            simState.history = [{t: 0, v: simState.v0}];
+            // Erwartete Zeit bis Stillstand für X-Achse Skalierung: t = v0 / (mu * g)
+            simState.maxT = simState.v0 / (simState.mu * g);
 
             // Zoom anpassen basierend auf erwartetem Weg
             const expectedDist = (simState.v0 * simState.v0) / (2 * simState.mu * g);
@@ -264,6 +266,8 @@
             dispDist.innerText = "0.00";
             cameraOffset = 0;
             drawScene();
+            simState.history = [];
+            drawChart();
         }
 
         function loop(timestamp) {
@@ -271,6 +275,7 @@
 
             const dt = (timestamp - simState.lastFrameTime) / 1000; // Delta Time in Sekunden
             simState.lastFrameTime = timestamp;
+            simState.t += dt;
 
             // Physik Update
             // a = -µ * g
@@ -292,11 +297,14 @@
                 simState.x = (simState.v0 * simState.v0) / (2 * simState.mu * g);
             }
 
+            simState.history.push({t: simState.t, v: simState.v});
+
             // Update UI Stats
             dispV.innerText = (simState.v * 3.6).toFixed(1);
             dispDist.innerText = simState.x.toFixed(2);
 
             drawScene();
+            drawChart();
 
             if (simState.running) {
                 requestAnimationFrame(loop);
@@ -405,8 +413,52 @@
             ctx.restore();
         }
 
+        function drawChart() {
+            const w = chartCanvas.width;
+            const h = chartCanvas.height;
+            ctxChart.clearRect(0, 0, w, h);
+            
+            const padLeft = 50;
+            const padBottom = 30;
+            const padTop = 20;
+            const padRight = 20;
+
+            // Achsen
+            ctxChart.strokeStyle = "#333";
+            ctxChart.lineWidth = 2;
+            ctxChart.beginPath();
+            ctxChart.moveTo(padLeft, padTop);
+            ctxChart.lineTo(padLeft, h - padBottom);
+            ctxChart.lineTo(w - padRight, h - padBottom);
+            ctxChart.stroke();
+            
+            // Labels
+            ctxChart.fillStyle = "#333";
+            ctxChart.font = "12px Arial";
+            ctxChart.fillText("Zeit (s)", w - padRight - 30, h - 5);
+            ctxChart.fillText("v (km/h)", 5, padTop + 10);
+
+            if (!simState.history || simState.history.length === 0) return;
+
+            const maxV = simState.v0 * 3.6; // km/h
+            const maxT = simState.maxT > 0 ? simState.maxT : 1;
+            const graphW = w - padLeft - padRight;
+            const graphH = h - padTop - padBottom;
+
+            ctxChart.beginPath();
+            ctxChart.strokeStyle = "#007bff";
+            ctxChart.lineWidth = 2;
+            simState.history.forEach((p, i) => {
+                const x = padLeft + (p.t / maxT) * graphW;
+                const y = (h - padBottom) - ((p.v * 3.6) / maxV) * graphH;
+                if (i === 0) ctxChart.moveTo(x, y); else ctxChart.lineTo(x, y);
+            });
+            ctxChart.stroke();
+        }
+
         // Init
         updateUIValues();
+        drawChart();
     </script>
 </body>
 </html>
