@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bremsweg Simulation</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        h1 {
+            color: #2c3e50;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            max-width: 1000px;
+            width: 100%;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .controls {
+            flex: 1;
+            min-width: 300px;
+            padding-right: 20px;
+            border-right: 1px solid #eee;
+        }
+
+        .simulation-view {
+            flex: 2;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .value-display {
+            font-weight: normal;
+            color: #007bff;
+            float: right;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button.reset {
+            background-color: #6c757d;
+        }
+
+        button.reset:hover {
+            background-color: #5a6268;
+        }
+
+        canvas {
+            background: linear-gradient(to bottom, #87CEEB 0%, #87CEEB 60%, #808080 60%, #808080 100%);
+            border: 2px solid #333;
+            border-radius: 4px;
+            width: 100%;
+            height: 300px;
+        }
+
+        .stats {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 6px;
+            width: 100%;
+        }
+
+        .info-note {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 10px;
+            background: #fff3cd;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 4px solid #ffc107;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Physik Simulation: Bremsweg</h1>
+
+    <div class="container">
+        <div class="controls">
+            <div class="control-group">
+                <label for="velocity">Geschwindigkeit (v₀): <span id="val-velocity" class="value-display">50 km/h</span></label>
+                <input type="range" id="velocity" min="10" max="150" value="50" step="5">
+            </div>
+
+            <div class="control-group">
+                <label for="friction">Reibungskoeffizient (µ): <span id="val-friction" class="value-display">0.7 (Asphalt trocken)</span></label>
+                <input type="range" id="friction" min="0.1" max="1.0" value="0.7" step="0.1">
+                <div style="font-size: 0.8em; color: #666; margin-top: 2px;">
+                    0.1 = Eis, 0.7 = Asphalt, 1.0 = Reifen klebt
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="mass">Masse (m): <span id="val-mass" class="value-display">1000 kg</span></label>
+                <input type="range" id="mass" min="100" max="3000" value="1000" step="50">
+            </div>
+
+            <div style="margin-top: 30px;">
+                <button onclick="startSimulation()">Start Bremsung</button>
+                <button class="reset" onclick="resetSimulation()">Reset</button>
+            </div>
+
+            <div class="info-note">
+                <strong>Physik-Hinweis:</strong> Sie werden feststellen, dass die Masse den Bremsweg <em>nicht</em> verändert. Schwere Objekte haben mehr Trägheit, aber auch mehr Reibungskraft (F = µ·m·g). Beides kürzt sich in der Formel für den Weg heraus.
+            </div>
+        </div>
+
+        <div class="simulation-view">
+            <canvas id="simCanvas" width="800" height="300"></canvas>
+            
+            <div class="stats">
+                <h3>Ergebnisse (Live):</h3>
+                <p>Aktuelle Geschwindigkeit: <span id="current-v">0</span> km/h</p>
+                <p>Zurückgelegte Strecke: <span id="current-dist">0.00</span> m</p>
+                <p>Theoretischer Bremsweg: <span id="theoretical-dist">0.00</span> m</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Canvas Setup
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Inputs
+        const velocityInput = document.getElementById('velocity');
+        const frictionInput = document.getElementById('friction');
+        const massInput = document.getElementById('mass');
+
+        // Displays
+        const valVel = document.getElementById('val-velocity');
+        const valFric = document.getElementById('val-friction');
+        const valMass = document.getElementById('val-mass');
+        const dispV = document.getElementById('current-v');
+        const dispDist = document.getElementById('current-dist');
+        const dispTheo = document.getElementById('theoretical-dist');
+
+        // Physics Constants
+        const g = 9.81; // Erdbeschleunigung m/s²
+        
+        // Simulation State
+        let simState = {
+            running: false,
+            finished: false,
+            t: 0,
+            x: 0, // Position in Metern
+            v0: 0, // Startgeschwindigkeit in m/s
+            v: 0, // Aktuelle Geschwindigkeit in m/s
+            mu: 0, // Reibungskoeffizient
+            mass: 0, // Masse in kg
+            lastFrameTime: 0
+        };
+
+        // Skalierung für die Visualisierung (Pixel pro Meter)
+        let pixelsPerMeter = 10; 
+        let cameraOffset = 0;
+
+        // Event Listeners für Inputs
+        velocityInput.addEventListener('input', updateUIValues);
+        frictionInput.addEventListener('input', updateUIValues);
+        massInput.addEventListener('input', updateUIValues);
+
+        function updateUIValues() {
+            valVel.innerText = velocityInput.value + " km/h";
+            
+            // Text für Reibung anpassen
+            let fricText = frictionInput.value;
+            if(frictionInput.value <= 0.2) fricText += " (Eis)";
+            else if(frictionInput.value <= 0.4) fricText += " (Nass/Schnee)";
+            else if(frictionInput.value <= 0.8) fricText += " (Asphalt)";
+            else fricText += " (Rennstrecke)";
+            valFric.innerText = fricText;
+
+            valMass.innerText = massInput.value + " kg";
+
+            // Theoretischen Wert berechnen (auch wenn Simulation nicht läuft)
+            const v_ms = parseFloat(velocityInput.value) / 3.6;
+            const mu = parseFloat(frictionInput.value);
+            const dist = (v_ms * v_ms) / (2 * mu * g);
+            dispTheo.innerText = dist.toFixed(2);
+            
+            // Wenn nicht läuft, Canvas neu zeichnen (Reset Position)
+            if (!simState.running && !simState.finished) {
+                drawScene();
+            }
+        }
+
+        function startSimulation() {
+            if (simState.running || simState.finished) resetSimulation();
+            
+            simState.v0 = parseFloat(velocityInput.value) / 3.6; // km/h in m/s
+            simState.v = simState.v0;
+            simState.mu = parseFloat(frictionInput.value);
+            simState.mass = parseFloat(massInput.value);
+            simState.x = 0;
+            simState.t = 0;
+            simState.running = true;
+            simState.finished = false;
+            simState.lastFrameTime = performance.now();
+
+            // Zoom anpassen basierend auf erwartetem Weg
+            const expectedDist = (simState.v0 * simState.v0) / (2 * simState.mu * g);
+            // Wir wollen, dass der Weg ca. 80% des Bildschirms füllt, min 10px/m
+            pixelsPerMeter = Math.min(20, (canvas.width * 0.8) / expectedDist);
+            if(pixelsPerMeter < 1) pixelsPerMeter = 1; // Limit
+
+            requestAnimationFrame(loop);
+        }
+
+        function resetSimulation() {
+            simState.running = false;
+            simState.finished = false;
+            simState.x = 0;
+            simState.v = parseFloat(velocityInput.value) / 3.6;
+            dispV.innerText = "0";
+            dispDist.innerText = "0.00";
+            cameraOffset = 0;
+            drawScene();
+        }
+
+        function loop(timestamp) {
+            if (!simState.running) return;
+
+            const dt = (timestamp - simState.lastFrameTime) / 1000; // Delta Time in Sekunden
+            simState.lastFrameTime = timestamp;
+
+            // Physik Update
+            // a = -µ * g
+            const a = -simState.mu * g;
+            
+            // v = v0 + a*t (aber hier inkrementell)
+            simState.v += a * dt;
+            
+            // x = x + v*dt
+            if (simState.v > 0) {
+                simState.x += simState.v * dt;
+            } else {
+                // Objekt hat gestoppt
+                simState.v = 0;
+                simState.running = false;
+                simState.finished = true;
+                
+                // Exakte Berechnung für Endposition (um Rundungsfehler der Animation zu korrigieren)
+                simState.x = (simState.v0 * simState.v0) / (2 * simState.mu * g);
+            }
+
+            // Update UI Stats
+            dispV.innerText = (simState.v * 3.6).toFixed(1);
+            dispDist.innerText = simState.x.toFixed(2);
+
+            drawScene();
+
+            if (simState.running) {
+                requestAnimationFrame(loop);
+            }
+        }
+
+        function drawScene() {
+            // Clear
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const floorY = 200;
+            
+            // Kamera-Logik: Auto immer im Bild halten
+            // Wir schieben die Welt nach links, wenn das Auto zu weit rechts wäre
+            let carScreenX = 50 + simState.x * pixelsPerMeter;
+            
+            // Wenn Auto über die Mitte hinausfährt, scrolle mit
+            if (carScreenX > canvas.width / 2) {
+                cameraOffset = carScreenX - canvas.width / 2;
+            } else {
+                cameraOffset = 0;
+            }
+
+            ctx.save();
+            ctx.translate(-cameraOffset, 0);
+
+            // 1. Straße zeichnen
+            ctx.fillStyle = "#555";
+            ctx.fillRect(0, floorY, canvas.width + cameraOffset + 10000, 100); // Unendlich lang
+            
+            // Markierungen auf der Straße (alle 10 Meter)
+            ctx.strokeStyle = "#fff";
+            ctx.lineWidth = 2;
+            ctx.fillStyle = "#fff";
+            ctx.font = "12px Arial";
+            
+            // Wir zeichnen Linien basierend auf der sichtbaren Fläche
+            const startMeter = Math.floor(cameraOffset / pixelsPerMeter);
+            const endMeter = startMeter + Math.floor(canvas.width / pixelsPerMeter) + 5;
+
+            for(let m = 0; m <= endMeter + 50; m+=10) { // Zeichne weit genug
+                let xPos = 50 + m * pixelsPerMeter;
+                
+                // Großer Strich bei 10m
+                ctx.beginPath();
+                ctx.moveTo(xPos, floorY);
+                ctx.lineTo(xPos, floorY + 20);
+                ctx.stroke();
+                
+                // Text
+                ctx.fillText(m + "m", xPos - 10, floorY + 40);
+            }
+
+            // Startlinie
+            ctx.strokeStyle = "#00ff00";
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(50, floorY - 50);
+            ctx.lineTo(50, floorY + 10);
+            ctx.stroke();
+            ctx.fillStyle = "#00ff00";
+            ctx.fillText("START", 30, floorY - 60);
+
+            // 2. Objekt (Auto/Box) zeichnen
+            const boxSize = 40; // Pixel
+            // Masse visuell darstellen: Größere Masse = Größere Box (leicht)
+            const scaleFactor = 0.8 + (parseFloat(massInput.value) / 3000) * 0.4;
+            const currentSize = boxSize * scaleFactor;
+
+            const carX = 50 + simState.x * pixelsPerMeter;
+            const carY = floorY - currentSize;
+
+            // Schatten
+            ctx.fillStyle = "rgba(0,0,0,0.3)";
+            ctx.fillRect(carX + 5, floorY - 5, currentSize, 5);
+
+            // Körper
+            ctx.fillStyle = simState.finished ? "#dc3545" : "#e74c3c"; // Rot wenn fertig, heller rot wenn läuft
+            ctx.fillRect(carX, carY, currentSize, currentSize);
+            
+            // Räder / Details
+            ctx.fillStyle = "#333";
+            ctx.beginPath();
+            ctx.arc(carX + currentSize*0.2, carY + currentSize, currentSize*0.2, 0, Math.PI*2);
+            ctx.arc(carX + currentSize*0.8, carY + currentSize, currentSize*0.2, 0, Math.PI*2);
+            ctx.fill();
+
+            // Beschriftung am Objekt
+            ctx.fillStyle = "#fff";
+            ctx.font = "10px Arial";
+            ctx.fillText(massInput.value + "kg", carX + 5, carY + currentSize/2);
+
+            // Wenn gestoppt: Bremsweg-Marker zeichnen
+            if(simState.finished) {
+                ctx.strokeStyle = "#dc3545";
+                ctx.beginPath();
+                ctx.moveTo(carX + currentSize, floorY);
+                ctx.lineTo(carX + currentSize, floorY - currentSize - 20);
+                ctx.stroke();
+                
+                ctx.fillStyle = "#dc3545";
+                ctx.font = "bold 14px Arial";
+                ctx.fillText(simState.x.toFixed(2) + " m", carX + currentSize + 5, carY);
+            }
+
+            ctx.restore();
+        }
+
+        // Init
+        updateUIValues();
+    </script>
+</body>
+</html>
