@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Newtons Erstes Gesetz - Schüler-Experiment</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2rem;
+            color: #4cc9f0;
+        }
+
+        .subtitle {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #a0a0a0;
+            font-size: 1.1rem;
+        }
+
+        .theory-box {
+            max-width: 800px;
+            margin: 0 auto 30px;
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #4cc9f0;
+        }
+
+        .theory-box h2 {
+            color: #4cc9f0;
+            margin-bottom: 10px;
+            font-size: 1.3rem;
+        }
+
+        .formula {
+            font-family: 'Times New Roman', serif;
+            font-size: 1.5rem;
+            background: rgba(0,0,0,0.3);
+            padding: 10px 20px;
+            border-radius: 8px;
+            display: inline-block;
+            margin: 10px 0;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .tab-btn {
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+
+        .tab-btn.active {
+            background: #4cc9f0;
+            color: #1a1a2e;
+            font-weight: bold;
+        }
+
+        .tab-btn:hover:not(.active) {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .simulation {
+            display: none;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .simulation.active {
+            display: block;
+        }
+
+        .sim-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .canvas-container {
+            flex: 2;
+            min-width: 300px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 300px;
+            background: linear-gradient(to bottom, #87CEEB 0%, #87CEEB 70%, #8B4513 70%, #8B4513 100%);
+            border-radius: 12px;
+            border: 3px solid #333;
+        }
+
+        .controls {
+            flex: 1;
+            min-width: 280px;
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #333;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4cc9f0;
+            cursor: pointer;
+        }
+
+        .value-display {
+            float: right;
+            color: #4cc9f0;
+            font-weight: bold;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+
+        .btn-start {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .btn-start:hover {
+            background: #27ae60;
+        }
+
+        .btn-reset {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-reset:hover {
+            background: #c0392b;
+        }
+
+        .data-display {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .data-row:last-child {
+            border-bottom: none;
+        }
+
+        .data-label {
+            color: #a0a0a0;
+        }
+
+        .data-value {
+            color: #4cc9f0;
+            font-weight: bold;
+        }
+
+        .task-box {
+            background: rgba(255,193,7,0.2);
+            border: 2px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .task-box h3 {
+            color: #ffc107;
+            margin-bottom: 10px;
+        }
+
+        .task-box ul {
+            margin-left: 20px;
+        }
+
+        .task-box li {
+            margin-bottom: 5px;
+        }
+
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(46,204,113,0.2);
+            border: 2px solid #2ecc71;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result-box.visible {
+            display: block;
+        }
+
+        .result-box h3 {
+            color: #2ecc71;
+            margin-bottom: 10px;
+        }
+
+        .object-info {
+            position: absolute;
+            color: #333;
+            font-weight: bold;
+            font-size: 14px;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .force-arrow {
+            position: absolute;
+            height: 4px;
+            background: #e74c3c;
+            border-radius: 2px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+
+        .force-arrow::after {
+            content: '';
+            position: absolute;
+            right: -10px;
+            top: -6px;
+            border: 8px solid transparent;
+            border-left: 12px solid #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <h1>Newtons Erstes Gesetz</h1>
+    <p class="subtitle">Interaktive Schüler-Experimente zur Beschleunigung</p>
+
+    <div class="theory-box">
+        <h2>Das Grundgesetz der Mechanik</h2>
+        <p>Die Kraft F, die Masse m und die Beschleunigung a hängen zusammen:</p>
+        <div class="formula">F = m × a</div>
+        <p>Bei konstanter Kraft gilt: Je größer die Masse, desto kleiner die Beschleunigung.</p>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="showSim(1)">Experiment 1: Masse ändern</button>
+        <button class="tab-btn" onclick="showSim(2)">Experiment 2: Kraft ändern</button>
+    </div>
+
+    <!-- Simulation 1: Masse variieren -->
+    <div class="simulation active" id="sim1">
+        <div class="task-box">
+            <h3>Aufgabe:</h3>
+            <ul>
+                <li>Halte die Kraft konstant (z.B. 10 N)</li>
+                <li>Ändere die Masse des Wagens</li>
+                <li>Beobachte, wie sich die Beschleunigung ändert</li>
+                <li>Trage deine Messwerte in die Tabelle ein</li>
+            </ul>
+        </div>
+
+        <div class="sim-container">
+            <div class="canvas-container">
+                <canvas id="canvas1"></canvas>
+            </div>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Kraft F (konstant): <span class="value-display" id="force1-val">10 N</span></label>
+                    <input type="range" id="force1" min="5" max="20" value="10" step="1">
+                </div>
+                <div class="control-group">
+                    <label>Masse m: <span class="value-display" id="mass1-val">2 kg</span></label>
+                    <input type="range" id="mass1" min="1" max="10" value="2" step="0.5">
+                </div>
+                <button class="btn btn-start" onclick="startSim1()">Start</button>
+                <button class="btn btn-reset" onclick="resetSim1()">Zurücksetzen</button>
+
+                <div class="data-display">
+                    <div class="data-row">
+                        <span class="data-label">Masse m:</span>
+                        <span class="data-value" id="disp-mass1">2 kg</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Kraft F:</span>
+                        <span class="data-value" id="disp-force1">10 N</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Beschleunigung a:</span>
+                        <span class="data-value" id="disp-acc1">5.00 m/s²</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Simulation 2: Kraft variieren -->
+    <div class="simulation" id="sim2">
+        <div class="task-box">
+            <h3>Aufgabe:</h3>
+            <ul>
+                <li>Halte die Masse konstant (z.B. 5 kg)</li>
+                <li>Ändere die Kraft auf den Wagen</li>
+                <li>Beobachte, wie sich die Beschleunigung ändert</li>
+                <li>Trage deine Messwerte in die Tabelle ein</li>
+            </ul>
+        </div>
+
+        <div class="sim-container">
+            <div class="canvas-container">
+                <canvas id="canvas2"></canvas>
+            </div>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Masse m (konstant): <span class="value-display" id="mass2-val">5 kg</span></label>
+                    <input type="range" id="mass2" min="1" max="10" value="5" step="0.5">
+                </div>
+                <div class="control-group">
+                    <label>Kraft F: <span class="value-display" id="force2-val">10 N</span></label>
+                    <input type="range" id="force2" min="5" max="30" value="10" step="1">
+                </div>
+                <button class="btn btn-start" onclick="startSim2()">Start</button>
+                <button class="btn btn-reset" onclick="resetSim2()">Zurücksetzen</button>
+
+                <div class="data-display">
+                    <div class="data-row">
+                        <span class="data-label">Masse m:</span>
+                        <span class="data-value" id="disp-mass2">5 kg</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Kraft F:</span>
+                        <span class="data-value" id="disp-force2">10 N</span>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-label">Beschleunigung a:</span>
+                        <span class="data-value" id="disp-acc2">2.00 m/s²</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Canvas setup
+        const canvas1 = document.getElementById('canvas1');
+        const ctx1 = canvas1.getContext('2d');
+        const canvas2 = document.getElementById('canvas2');
+        const ctx2 = canvas2.getContext('2d');
+
+        // Set canvas resolution
+        function setupCanvas(canvas) {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            canvas.getContext('2d').scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+
+        setupCanvas(canvas1);
+        setupCanvas(canvas2);
+
+        // Simulation state
+        let sim1Running = false;
+        let sim2Running = false;
+        let sim1Data = { x: 0, v: 0, time: 0 };
+        let sim2Data = { x: 0, v: 0, time: 0 };
+
+        // Control elements
+        const force1Slider = document.getElementById('force1');
+        const mass1Slider = document.getElementById('mass1');
+        const force2Slider = document.getElementById('force2');
+        const mass2Slider = document.getElementById('mass2');
+
+        // Update displays
+        function updateDisplays() {
+            const force1 = parseFloat(force1Slider.value);
+            const mass1 = parseFloat(mass1Slider.value);
+            const force2 = parseFloat(force2Slider.value);
+            const mass2 = parseFloat(mass2Slider.value);
+
+            document.getElementById('force1-val').textContent = force1 + ' N';
+            document.getElementById('mass1-val').textContent = mass1 + ' kg';
+            document.getElementById('force2-val').textContent = force2 + ' N';
+            document.getElementById('mass2-val').textContent = mass2 + ' kg';
+
+            document.getElementById('disp-mass1').textContent = mass1 + ' kg';
+            document.getElementById('disp-force1').textContent = force1 + ' N';
+            document.getElementById('disp-acc1').textContent = (force1 / mass1).toFixed(2) + ' m/s²';
+
+            document.getElementById('disp-mass2').textContent = mass2 + ' kg';
+            document.getElementById('disp-force2').textContent = force2 + ' N';
+            document.getElementById('disp-acc2').textContent = (force2 / mass2).toFixed(2) + ' m/s²';
+        }
+
+        force1Slider.addEventListener('input', updateDisplays);
+        mass1Slider.addEventListener('input', updateDisplays);
+        force2Slider.addEventListener('input', updateDisplays);
+        mass2Slider.addEventListener('input', updateDisplays);
+
+        // Tab switching
+        function showSim(num) {
+            document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === num - 1);
+            });
+            document.querySelectorAll('.simulation').forEach((sim, i) => {
+                sim.classList.toggle('active', i === num - 1);
+            });
+        }
+
+        // Draw cart
+        function drawCart(ctx, x, mass, width, height, force, isMoving) {
+            const canvasWidth = ctx.canvas.width / window.devicePixelRatio;
+            const canvasHeight = ctx.canvas.height / window.devicePixelRatio;
+            const groundY = canvasHeight * 0.7;
+            const scale = 4; // pixels per meter
+
+            const cartX = 50 + x * scale;
+            const cartWidth = 30 + mass * 5;
+            const cartHeight = 20 + mass * 2;
+
+            // Draw ground
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(0, groundY, canvasWidth, canvasHeight - groundY);
+
+            // Draw grass line
+            ctx.fillStyle = '#228B22';
+            ctx.fillRect(0, groundY - 5, canvasWidth, 5);
+
+            // Draw wheels
+            ctx.fillStyle = '#333';
+            ctx.beginPath();
+            ctx.arc(cartX + cartWidth * 0.25, groundY, 8, 0, Math.PI * 2);
+            ctx.arc(cartX + cartWidth * 0.75, groundY, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw cart body
+            const gradient = ctx.createLinearGradient(cartX, groundY - cartHeight - 10, cartX, groundY);
+            gradient.addColorStop(0, '#e74c3c');
+            gradient.addColorStop(1, '#c0392b');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(cartX, groundY - cartHeight - 10, cartWidth, cartHeight);
+
+            // Draw mass label
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(mass + ' kg', cartX + cartWidth / 2, groundY - cartHeight / 2 - 5);
+
+            // Draw force arrow (if force > 0)
+            if (force > 0) {
+                const arrowLength = force * 3;
+                ctx.fillStyle = '#e74c3c';
+                ctx.beginPath();
+                ctx.moveTo(cartX - 10, groundY - cartHeight / 2 - 5);
+                ctx.lineTo(cartX - 10 - arrowLength, groundY - cartHeight / 2 - 5);
+                ctx.lineTo(cartX - 10 - arrowLength + 10, groundY - cartHeight / 2 - 12);
+                ctx.moveTo(cartX - 10, groundY - cartHeight / 2 - 5);
+                ctx.lineTo(cartX - 10 - arrowLength + 10, groundY - cartHeight / 2 + 2);
+                ctx.strokeStyle = '#e74c3c';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Arrow head
+                ctx.beginPath();
+                ctx.moveTo(cartX - 10 - arrowLength, groundY - cartHeight / 2 - 12);
+                ctx.lineTo(cartX - 10 - arrowLength - 8, groundY - cartHeight / 2 - 5);
+                ctx.lineTo(cartX - 10 - arrowLength, groundY - cartHeight / 2 + 2);
+                ctx.closePath();
+                ctx.fillStyle = '#e74c3c';
+                ctx.fill();
+
+                // Force label
+                ctx.fillStyle = '#e74c3c';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText(force + ' N', cartX - 10 - arrowLength / 2, groundY - cartHeight - 20);
+            }
+
+            // Draw velocity indicator when moving
+            if (isMoving) {
+                ctx.fillStyle = '#4cc9f0';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText('v = ' + (x * 0.5).toFixed(1) + ' m/s', cartX + cartWidth / 2, groundY - cartHeight - 25);
+            }
+
+            // Draw distance markers
+            ctx.fillStyle = '#666';
+            ctx.font = '12px Arial';
+            for (let i = 0; i <= 10; i++) {
+                const markerX = 50 + i * 40;
+                if (markerX < canvasWidth - 20) {
+                    ctx.fillRect(markerX, groundY, 2, 10);
+                    ctx.fillText(i + 'm', markerX - 8, groundY + 22);
+                }
+            }
+        }
+
+        // Animation loop
+        function animateSim1() {
+            if (!sim1Running) return;
+
+            const canvasWidth = canvas1.width / window.devicePixelRatio;
+            const force = parseFloat(force1Slider.value);
+            const mass = parseFloat(mass1Slider.value);
+            const dt = 0.016; // ~60fps
+
+            // Physics: a = F/m
+            const acc = force / mass;
+            sim1Data.v += acc * dt;
+            sim1Data.x += sim1Data.v * dt;
+            sim1Data.time += dt;
+
+            // Clear canvas
+            ctx1.clearRect(0, 0, canvasWidth, canvas1.height / window.devicePixelRatio);
+
+            // Draw
+            drawCart(ctx1, sim1Data.x, mass, 50, 30, force, true);
+
+            // Stop if off screen
+            if (sim1Data.x > 15) {
+                sim1Running = false;
+            }
+
+            requestAnimationFrame(animateSim1);
+        }
+
+        function animateSim2() {
+            if (!sim2Running) return;
+
+            const canvasWidth = canvas2.width / window.devicePixelRatio;
+            const force = parseFloat(force2Slider.value);
+            const mass = parseFloat(mass2Slider.value);
+            const dt = 0.016;
+
+            const acc = force / mass;
+            sim2Data.v += acc * dt;
+            sim2Data.x += sim2Data.v * dt;
+            sim2Data.time += dt;
+
+            ctx2.clearRect(0, 0, canvasWidth, canvas2.height / window.devicePixelRatio);
+            drawCart(ctx2, sim2Data.x, mass, 50, 30, force, true);
+
+            if (sim2Data.x > 15) {
+                sim2Running = false;
+            }
+
+            requestAnimationFrame(animateSim2);
+        }
+
+        // Start/Reset functions
+        function startSim1() {
+            sim1Data = { x: 0, v: 0, time: 0 };
+            sim1Running = true;
+            animateSim1();
+        }
+
+        function resetSim1() {
+            sim1Running = false;
+            sim1Data = { x: 0, v: 0, time: 0 };
+            ctx1.clearRect(0, 0, canvas1.width / window.devicePixelRatio, canvas1.height / window.devicePixelRatio);
+            drawCart(ctx1, 0, parseFloat(mass1Slider.value), 50, 30, 0, false);
+        }
+
+        function startSim2() {
+            sim2Data = { x: 0, v: 0, time: 0 };
+            sim2Running = true;
+            animateSim2();
+        }
+
+        function resetSim2() {
+            sim2Running = false;
+            sim2Data = { x: 0, v: 0, time: 0 };
+            ctx2.clearRect(0, 0, canvas2.width / window.devicePixelRatio, canvas2.height / window.devicePixelRatio);
+            drawCart(ctx2, 0, parseFloat(mass2Slider.value), 50, 30, 0, false);
+        }
+
+        // Initial draw
+        updateDisplays();
+        drawCart(ctx1, 0, 2, 50, 30, 0, false);
+        drawCart(ctx2, 0, 5, 50, 30, 0, false);
+
+        // Handle resize
+        window.addEventListener('resize', () => {
+            setupCanvas(canvas1);
+            setupCanvas(canvas2);
+            if (!sim1Running) drawCart(ctx1, 0, parseFloat(mass1Slider.value), 50, 30, 0, false);
+            if (!sim2Running) drawCart(ctx2, 0, parseFloat(mass2Slider.value), 50, 30, 0, false);
+        });
+    </script>
+</body>
+</html>
