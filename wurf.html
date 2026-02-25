@@ -1,1 +1,118 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kniffel Wahrscheinlichkeits-Simulator</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; line-height: 1.6; background-color: #f4f4f9; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        input { padding: 8px; width: 150px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 8px 15px; cursor: pointer; background: #28a745; color: white; border: none; border-radius: 4px; }
+        button:hover { background: #218838; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f9fa; }
+        .bar-container { background: #eee; width: 100%; height: 20px; border-radius: 10px; overflow: hidden; }
+        .bar { background: #007bff; height: 100%; transition: width 0.5s; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Kniffel-Simulator (5 Würfel)</h2>
+    <p>Simuliere $n$ Würfe, um die empirische Wahrscheinlichkeit zu berechnen.</p>
+    
+    <label for="iterations">Anzahl der Würfe (n):</label>
+    <input type="number" id="iterations" value="10000" min="1" max="1000000">
+    <button onclick="simulate()">Simulieren</button>
+
+    <div id="resultsArea" style="display:none;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Kombination</th>
+                    <th>Häufigkeit</th>
+                    <th>Empirische Quote</th>
+                    <th>Visualisierung</th>
+                </tr>
+            </thead>
+            <tbody id="resultsTable">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function simulate() {
+    const n = parseInt(document.getElementById('iterations').value);
+    const stats = {
+        kniffel: 0,
+        grosseStrasse: 0,
+        kleineStrasse: 0,
+        viererPasch: 0
+    };
+
+    for (let i = 0; i < n; i++) {
+        let hand = Array.from({ length: 5 }, () => Math.floor(Math.random() * 6) + 1);
+        checkHand(hand, stats);
+    }
+
+    displayResults(n, stats);
+}
+
+function checkHand(hand, stats) {
+    const counts = {};
+    hand.forEach(x => counts[x] = (counts[x] || 0) + 1);
+    const valCounts = Object.values(counts);
+    const uniqueValues = Object.keys(counts).map(Number).sort((a, b) => a - b);
+    
+    // Kniffel
+    if (valCounts.includes(5)) stats.kniffel++;
+    
+    // 4er Pasch (Ein Kniffel zählt logischerweise auch als 4er Pasch)
+    if (valCounts.some(c => c >= 4)) stats.viererPasch++;
+
+    // Straßen-Logik
+    const uniqueStr = uniqueValues.join('');
+    
+    // Große Straße
+    if (uniqueStr === "12345" || uniqueStr === "23456") {
+        stats.grosseStrasse++;
+    }
+    
+    // Kleine Straße
+    const patterns = ["1234", "2345", "3456"];
+    if (patterns.some(p => uniqueStr.includes(p))) {
+        stats.kleineStrasse++;
+    }
+}
+
+function displayResults(n, stats) {
+    const tableBody = document.getElementById('resultsTable');
+    tableBody.innerHTML = '';
+    document.getElementById('resultsArea').style.display = 'block';
+
+    const labels = {
+        kniffel: "Kniffel (5 Gleiche)",
+        viererPasch: "4er Pasch",
+        kleineStrasse: "Kleine Straße",
+        grosseStrasse: "Große Straße"
+    };
+
+    for (let key in stats) {
+        let percent = ((stats[key] / n) * 100).toFixed(4);
+        let row = `<tr>
+            <td>${labels[key]}</td>
+            <td>${stats[key].toLocaleString()}</td>
+            <td>${percent}%</td>
+            <td><div class="bar-container"><div class="bar" style="width: ${Math.min(percent * 5, 100)}%"></div></div></td>
+        </tr>`;
+        tableBody.innerHTML += row;
+    }
+}
+</script>
+
+</body>
+</html>
 
