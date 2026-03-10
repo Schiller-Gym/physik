@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulation: Grundgleichung der Mechanik</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 800px; }
+        h1 { color: #333; font-size: 1.5rem; }
+        .controls { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px; background: #eef2f7; padding: 15px; border-radius: 8px; }
+        .control-group { display: flex; flex-direction: column; }
+        .track { width: 100%; height: 80px; border-bottom: 2px solid #333; position: relative; margin-bottom: 30px; background: #fafafa; overflow: hidden; }
+        .mass { position: absolute; bottom: 0; left: 0; height: 40px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; border-radius: 4px; z-index: 10; }
+        #mass1 { background: #3498db; }
+        #mass2 { background: #e74c3c; }
+        .marker { position: absolute; bottom: 0; font-size: 10px; color: #999; border-left: 1px solid #ccc; height: 15px; padding-left: 2px; z-index: 0; }
+        .finish-line { position: absolute; left: 750px; top: 0; bottom: 0; border-left: 2px dashed #e74c3c; opacity: 0.5; z-index: 0; }
+        .finish-line::after { content: 'Ziel'; position: absolute; top: 5px; left: 5px; color: #e74c3c; font-size: 10px; }
+        .label { font-size: 0.9rem; margin-bottom: 5px; color: #555; }
+        .stats { font-family: monospace; font-size: 0.85rem; margin-top: 5px; }
+        button { padding: 10px 20px; cursor: pointer; background: #27ae60; color: white; border: none; border-radius: 4px; font-size: 1rem; }
+        button:hover { background: #219150; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Grundgleichung der Mechanik: <i>F</i> = <i>m</i> · <i>a</i></h1>
+    
+    <div class="controls">
+        <div class="control-group">
+            <span class="label">Gemeinsame Kraft <i>F</i> (N)</span>
+            <input type="range" id="forceInput" min="5" max="50" value="20">
+            <span id="forceVal">20 N</span>
+        </div>
+        <div class="control-group">
+            <span class="label">Masse 1 (kg)</span>
+            <input type="range" id="m1Input" min="1" max="10" value="2">
+            <span id="m1Val">2 kg</span>
+        </div>
+        <div class="control-group">
+            <span class="label">Masse 2 (kg)</span>
+            <input type="range" id="m2Input" min="1" max="10" value="5">
+            <span id="m2Val">5 kg</span>
+        </div>
+        <div class="control-group">
+            <span class="label">Anzeige</span>
+            <div style="margin-top: 5px;"><input type="checkbox" id="showCharts"> <label for="showCharts" style="font-weight:normal; cursor:pointer;">Diagramme</label></div>
+        </div>
+    </div>
+
+    <button onclick="startSimulation()">Start Simulation</button>
+
+    <div style="margin-top: 30px;">
+        <div class="track">
+            <div id="mass1" class="mass">m1</div>
+        </div>
+        <div class="stats" id="stats1">Beschleunigung <i>a</i><sub>1</sub>: -</div>
+
+        <div class="track">
+            <div id="mass2" class="mass">m2</div>
+        </div>
+        <div class="stats" id="stats2">Beschleunigung <i>a</i><sub>2</sub>: -</div>
+    </div>
+
+    <div id="chartsContainer" style="display:none; margin-top: 30px; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div style="background: #fafafa; padding: 10px; border-radius: 8px; border: 1px solid #eee;">
+            <h3 style="text-align:center; margin: 0 0 10px 0; font-size: 1rem; color: #555;">t-s-Diagramm (Weg)</h3>
+            <canvas id="chartS" width="350" height="200" style="width:100%;"></canvas>
+        </div>
+        <div style="background: #fafafa; padding: 10px; border-radius: 8px; border: 1px solid #eee;">
+            <h3 style="text-align:center; margin: 0 0 10px 0; font-size: 1rem; color: #555;">t-v-Diagramm (Geschwindigkeit)</h3>
+            <canvas id="chartV" width="350" height="200" style="width:100%;"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+    const forceInput = document.getElementById('forceInput');
+    const m1Input = document.getElementById('m1Input');
+    const m2Input = document.getElementById('m2Input');
+    
+    const mass1El = document.getElementById('mass1');
+    const mass2El = document.getElementById('mass2');
+    
+    const showChartsCheckbox = document.getElementById('showCharts');
+    const chartsContainer = document.getElementById('chartsContainer');
+    const ctxS = document.getElementById('chartS').getContext('2d');
+    const ctxV = document.getElementById('chartV').getContext('2d');
+
+    let animationId;
+    let history = [];
+
+    showChartsCheckbox.addEventListener('change', () => {
+        chartsContainer.style.display = showChartsCheckbox.checked ? 'grid' : 'none';
+        if(showChartsCheckbox.checked && history.length > 0) drawCharts();
+    });
+
+    function updateLabels() {
+        document.getElementById('forceVal').innerText = forceInput.value + " N";
+        document.getElementById('m1Val').innerText = m1Input.value + " kg";
+        document.getElementById('m2Val').innerText = m2Input.value + " kg";
+        
+        // Breite der Blöcke proportional zur Masse visualisieren
+        mass1El.style.width = (m1Input.value * 15) + "px";
+        mass2El.style.width = (m2Input.value * 15) + "px";
+    }
+
+    [forceInput, m1Input, m2Input].forEach(input => input.oninput = updateLabels);
+    updateLabels();
+
+    // Streckenmarkierungen initialisieren
+    function initTrackMarkers() {
+        document.querySelectorAll('.track').forEach(track => {
+            // Ziel-Linie
+            const finish = document.createElement('div');
+            finish.className = 'finish-line';
+            track.appendChild(finish);
+            // Meter-Markierungen (alle 5m, 1m = 20px)
+            for(let m=0; m<=35; m+=5) {
+                const marker = document.createElement('div');
+                marker.className = 'marker';
+                marker.style.left = (m * 20) + 'px';
+                marker.innerText = m + 'm';
+                track.appendChild(marker);
+            }
+        });
+    }
+    initTrackMarkers();
+
+    function startSimulation() {
+        cancelAnimationFrame(animationId);
+        
+        const F = parseFloat(forceInput.value);
+        const m1 = parseFloat(m1Input.value);
+        const m2 = parseFloat(m2Input.value);
+
+        const a1 = F / m1;
+        const a2 = F / m2;
+
+        document.getElementById('stats1').innerHTML = `Beschleunigung <i>a</i><sub>1</sub> = <i>F</i> / <i>m</i><sub>1</sub> = ${a1.toFixed(2)} m/s² <span id="time1" style="color:#2980b9; font-weight:bold; margin-left:15px;"></span>`;
+        document.getElementById('stats2').innerHTML = `Beschleunigung <i>a</i><sub>2</sub> = <i>F</i> / <i>m</i><sub>2</sub> = ${a2.toFixed(2)} m/s² <span id="time2" style="color:#c0392b; font-weight:bold; margin-left:15px;"></span>`;
+
+        let startTime = null;
+        let finished1 = false;
+        let finished2 = false;
+        history = [];
+
+        function animate(timestamp) {
+            if (!startTime) startTime = timestamp;
+            let t = (timestamp - startTime) / 1000; // Zeit in Sekunden
+
+            // Weg-Zeit-Gesetz: s = 0.5 * a * t^2
+            // Faktor 20 zur Skalierung der Pixel
+            let s1 = 0.5 * a1 * Math.pow(t, 2) * 20;
+            let s2 = 0.5 * a2 * Math.pow(t, 2) * 20;
+
+            let v1 = a1 * t;
+            let v2 = a2 * t;
+
+            // Begrenzung auf das Ende der Bahn (750px), damit schnelle Objekte nicht rausfliegen
+            if (s1 >= 750) { 
+                s1 = 750; v1 = 0; 
+                if(!finished1) { finished1 = true; document.getElementById('time1').innerText = `Zeit: ${t.toFixed(2)} s`; }
+            }
+            if (s2 >= 750) { 
+                s2 = 750; v2 = 0; 
+                if(!finished2) { finished2 = true; document.getElementById('time2').innerText = `Zeit: ${t.toFixed(2)} s`; }
+            }
+
+            mass1El.style.transform = `translateX(${s1}px)`;
+            mass2El.style.transform = `translateX(${s2}px)`;
+            
+            // Daten speichern (s in Meter umrechnen: 20px = 1m)
+            history.push({
+                t: t,
+                s1: s1 / 20, v1: v1,
+                s2: s2 / 20, v2: v2
+            });
+
+            if (showChartsCheckbox.checked) drawCharts();
+
+            if (s1 < 750 || s2 < 750) {
+                animationId = requestAnimationFrame(animate);
+            }
+        }
+        
+        mass1El.style.transform = `translateX(0px)`;
+        mass2El.style.transform = `translateX(0px)`;
+        requestAnimationFrame(animate);
+    }
+
+    function drawCharts() {
+        if (history.length === 0) return;
+        const w = ctxS.canvas.width;
+        const h = ctxS.canvas.height;
+        const pad = 30;
+        
+        const maxT = history[history.length-1].t;
+        const maxS = 750 / 20; // 37.5m
+        let maxV = 0;
+        history.forEach(p => { maxV = Math.max(maxV, p.v1, p.v2); });
+        if(maxV === 0) maxV = 1;
+
+        function drawGraph(ctx, key1, key2, maxY, labelY) {
+            ctx.clearRect(0, 0, w, h);
+            ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(pad, pad); ctx.lineTo(pad, h-pad); ctx.lineTo(w-pad, h-pad); ctx.stroke();
+            
+            ctx.fillStyle = '#555'; ctx.font = '10px Arial';
+            ctx.fillText(maxT.toFixed(1)+'s', w-pad, h-10);
+            ctx.fillText(maxY.toFixed(1)+labelY, 0, pad);
+
+            [key1, key2].forEach((key, idx) => {
+                ctx.beginPath();
+                ctx.strokeStyle = idx === 0 ? '#3498db' : '#e74c3c';
+                ctx.lineWidth = 2;
+                history.forEach((p, i) => {
+                    const x = pad + (p.t / maxT) * (w - 2*pad);
+                    const y = (h - pad) - (p[key] / maxY) * (h - 2*pad);
+                    if (i===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+            });
+        }
+        drawGraph(ctxS, 's1', 's2', maxS, 'm');
+        drawGraph(ctxV, 'v1', 'v2', maxV, 'm/s');
+    }
+</script>
+
+</body>
+</html>
