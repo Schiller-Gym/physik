@@ -28,8 +28,8 @@
 
   /* ---------- Sidebar ---------- */
   #sidebar{
-    width:330px;
-    min-width:330px;
+    width:340px;
+    min-width:340px;
     height:100%;
     background:var(--panel);
     border-right:1px solid var(--line);
@@ -39,9 +39,7 @@
   #sidebar::-webkit-scrollbar{width:9px;}
   #sidebar::-webkit-scrollbar-thumb{background:#2a3550;border-radius:5px;}
 
-  h1{
-    font-size:17px;margin:0 0 2px;letter-spacing:.2px;
-  }
+  h1{font-size:17px;margin:0 0 2px;letter-spacing:.2px;}
   .sub{font-size:12px;color:var(--muted);margin-bottom:16px;}
 
   .group{
@@ -52,20 +50,15 @@
     margin-bottom:12px;
   }
   .group > h2{
-    font-size:11px;
-    text-transform:uppercase;
-    letter-spacing:1.1px;
-    color:var(--muted);
-    margin:0 0 10px;
-    font-weight:600;
+    font-size:11px;text-transform:uppercase;letter-spacing:1.1px;
+    color:var(--muted);margin:0 0 10px;font-weight:600;
   }
 
-  .tools{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;}
+  .tools{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
   .tool{
     background:#212c42;border:1px solid #2f3b58;color:var(--text);
     border-radius:8px;padding:9px 4px;cursor:pointer;
-    font-size:11px;text-align:center;line-height:1.35;
-    transition:.13s;
+    font-size:11px;text-align:center;line-height:1.35;transition:.13s;
   }
   .tool:hover{background:#2a3855;}
   .tool.active{background:#2f4a7a;border-color:#4d7fd0;box-shadow:0 0 0 1px #4d7fd055;}
@@ -99,6 +92,12 @@
   .check:last-child{margin-bottom:0;}
   .check input{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;}
 
+  .facts{
+    font-size:11.5px;color:var(--muted);line-height:1.75;
+    border-top:1px solid var(--line);margin-top:10px;padding-top:9px;
+  }
+  .facts b{color:var(--accent);font-weight:600;font-variant-numeric:tabular-nums;}
+
   #objlist{display:flex;flex-direction:column;gap:6px;}
   .item{
     display:flex;align-items:center;gap:9px;
@@ -110,9 +109,8 @@
   .dot{width:11px;height:11px;border-radius:50%;flex:none;}
   .item .nm{flex:1;}
   .item .qq{font-variant-numeric:tabular-nums;color:var(--muted);}
-  .item .del{
-    color:#6f7c96;font-size:15px;line-height:1;padding:0 2px;border-radius:4px;
-  }
+  .item .lt{font-size:10px;color:#6f7c96;border:1px solid #3a4763;border-radius:4px;padding:0 3px;}
+  .item .del{color:#6f7c96;font-size:15px;line-height:1;padding:0 2px;border-radius:4px;}
   .item .del:hover{color:var(--pos);background:#3a2430;}
   .empty{font-size:11.5px;color:var(--muted);font-style:italic;}
 
@@ -127,6 +125,10 @@
   .legend{font-size:11.5px;color:var(--muted);line-height:1.65;}
   .legend b{color:#c3cde0;font-weight:600;}
   .sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px;}
+  .warn{
+    background:#3a2f18;border:1px solid #7a5f24;color:#ffd98a;
+    border-radius:7px;padding:7px 9px;font-size:11.5px;line-height:1.5;margin-top:9px;
+  }
 
   /* ---------- Canvas ---------- */
   #stage{flex:1;position:relative;height:100%;min-width:0;}
@@ -159,60 +161,75 @@
 
 <div id="sidebar">
   <h1>Elektrische Feldlinien</h1>
-  <div class="sub">Superposition von Coulomb-Feldern &middot; E = k&middot;q/r&sup2;</div>
+  <div class="sub">Coulomb-Superposition &middot; Influenz in Leitern</div>
 
   <div class="group">
     <h2>Ladung hinzufügen</h2>
     <div class="tools">
-      <div class="tool" data-tool="point"><span class="ic">&#9679;</span>Punkt&shy;ladung</div>
-      <div class="tool" data-tool="plate"><span class="ic">&#9646;</span>Flächen&shy;ladung</div>
-      <div class="tool" data-tool="ring"><span class="ic">&#9711;</span>Ring&shy;ladung</div>
+      <div class="tool" data-tool="point"><span class="ic">&#9679;</span>Punktladung</div>
+      <div class="tool" data-tool="plate"><span class="ic">&#9646;</span>Flächenladung<br>(Platte)</div>
+      <div class="tool" data-tool="ring"><span class="ic">&#9711;</span>Ring<br>(Drahtschleife)</div>
+      <div class="tool" data-tool="shell"><span class="ic">&#9673;</span>Hohlkugel<br>(Schnitt)</div>
     </div>
     <div class="hint" id="toolhint">Werkzeug wählen, dann in die Zeichenfläche klicken. Körper anklicken = auswählen, ziehen = verschieben.</div>
   </div>
 
   <div class="group">
-    <h2>Objekte</h2>
-    <div id="objlist"></div>
-    <div class="btnrow" style="margin-top:10px">
-      <button class="btn" id="btnDipol">Dipol laden</button>
-      <button class="btn danger" id="btnClear">Alles löschen</button>
+    <h2>Aufbauten</h2>
+    <div class="btnrow">
+      <button class="btn" data-preset="punkt" style="grid-column:1/-1">Einzelne Punktladung</button>
+      <button class="btn" data-preset="dipol">Dipol</button>
+      <button class="btn" data-preset="faraday">Faraday-Käfig</button>
+      <button class="btn" data-preset="kondensator">Kondensator</button>
+      <button class="btn" data-preset="influenz">Influenz</button>
     </div>
   </div>
 
-  <div class="group" id="propBox">
+  <div class="group">
+    <h2>Objekte</h2>
+    <div id="objlist"></div>
+    <button class="btn danger" id="btnClear" style="margin-top:10px">Alles löschen</button>
+    <div id="capwarn" class="warn" style="display:none"></div>
+  </div>
+
+  <div class="group">
     <h2>Ausgewählter Körper</h2>
     <div id="propNone" class="empty">Kein Körper ausgewählt.</div>
     <div id="propBody" style="display:none">
-      <div class="row"><label>Ladung Q</label>
+      <div class="row"><label>Gesamtladung Q</label>
         <span><input type="number" id="qNum" step="0.5" min="-40" max="40"> <span style="font-size:11px;color:var(--muted)">nC</span></span>
       </div>
       <input type="range" id="qRange" min="-40" max="40" step="0.5">
 
+      <label class="check" id="condWrap"><input type="checkbox" id="cbCond">
+        Leiter – Ladung verschiebt sich (Influenz)</label>
+
       <div id="geoPlate" style="display:none">
-        <div class="row"><label>Länge</label><span class="val" id="lenVal"></span></div>
+        <div class="row"><label>Länge (in der Ebene)</label><span class="val" id="lenVal"></span></div>
         <input type="range" id="lenRange" min="0.4" max="9" step="0.1">
+        <div class="row"><label>Tiefe (&perp; zur Ebene)</label><span class="val" id="depVal"></span></div>
+        <input type="range" id="depRange" min="0.2" max="9" step="0.1">
         <div class="row"><label>Drehwinkel</label><span class="val" id="angVal"></span></div>
         <input type="range" id="angRange" min="0" max="360" step="1">
       </div>
 
-      <div id="geoRing" style="display:none">
+      <div id="geoRad" style="display:none">
         <div class="row"><label>Radius</label><span class="val" id="radVal"></span></div>
         <input type="range" id="radRange" min="0.3" max="6" step="0.05">
       </div>
 
-      <div class="row" style="margin-top:4px"><label>Feldlinien</label><span class="val" id="nLines"></span></div>
-      <div class="row"><label>Ladungsdichte</label><span class="val" id="densVal"></span></div>
-      <button class="btn danger" id="btnDel" style="margin-top:8px">Körper löschen (Entf)</button>
+      <div class="facts" id="facts"></div>
+      <button class="btn danger" id="btnDel" style="margin-top:10px">Körper löschen (Entf)</button>
     </div>
   </div>
 
   <div class="group">
     <h2>Darstellung</h2>
-    <div class="row"><label>Linien pro nC</label><span class="val" id="lpcVal">2,0</span></div>
-    <input type="range" id="lpc" min="0.5" max="6" step="0.25" value="2">
+    <div class="row"><label>Linien pro nC</label><span class="val" id="lpcVal">3,00</span></div>
+    <input type="range" id="lpc" min="0.5" max="6" step="0.25" value="3">
     <label class="check"><input type="checkbox" id="cbLines" checked> Feldlinien</label>
     <label class="check"><input type="checkbox" id="cbArrows" checked> Richtungspfeile</label>
+    <label class="check"><input type="checkbox" id="cbSigma" checked> Ladungsverteilung auf den Körpern färben</label>
     <label class="check"><input type="checkbox" id="cbHeat"> Feldstärke als Farbfläche |E|</label>
     <label class="check"><input type="checkbox" id="cbEqui"> Äquipotentiallinien</label>
     <label class="check"><input type="checkbox" id="cbVec"> Feldvektoren (Raster)</label>
@@ -224,10 +241,18 @@
     <div class="legend">
       <span class="sw" style="background:var(--pos)"></span><b>positiv</b> – Linien starten&nbsp;&nbsp;
       <span class="sw" style="background:var(--neg)"></span><b>negativ</b> – Linien enden<br><br>
-      Die <b>Anzahl der Linien</b> ist proportional zur Ladungsmenge&nbsp;|Q|. Dadurch ist die <b>Liniendichte</b> ein Maß für die Feldstärke |E| (Gauß'scher Satz).<br><br>
-      Feld: <b>E&nbsp;=&nbsp;k&middot;q/r&sup2;</b>, Potential <b>V&nbsp;=&nbsp;k&middot;q/r</b>, k&nbsp;=&nbsp;8,99&middot;10<sup>9</sup>&nbsp;Vm/C.<br><br>
-      Flächen- und Ringladungen werden als <b>homogen geladene Körper</b> aus vielen Teilladungen aufgebaut; das Feld ist deren Superposition.<br><br>
-      <b>Maus:</b> Ziehen im leeren Raum = Ansicht verschieben, Mausrad = Zoom, Pfeiltasten = Auswahl bewegen.
+
+      <b>Feld:</b> E&nbsp;=&nbsp;k&middot;q/r&sup2;, V&nbsp;=&nbsp;k&middot;q/r, k&nbsp;=&nbsp;8,99&middot;10<sup>9</sup>&nbsp;Vm/C. Ausgedehnte Körper werden in Teilladungen zerlegt; das Feld ist deren Superposition.<br><br>
+
+      <b>Liniendichte:</b> die Startpunkte werden mit der örtlichen Ladungsdichte gewichtet und die Linienzahl ist proportional zu&nbsp;&Sigma;|q|. Die Dichte der Linien ist damit ein Maß für |E|.<br><br>
+
+      <b>Influenz:</b> Bei „Leiter" wird die Ladungsverteilung so berechnet, dass die Oberfläche eine <b>Äquipotentialfläche</b> ist (Randelementmethode) – bei vorgegebener Gesamtladung. Innen ist ein Leiter feldfrei.<br><br>
+
+      <b>Ring vs. Hohlkugel:</b> Eine Drahtschleife ist keine geschlossene Hülle und schirmt deshalb <b>nicht</b> ab. Nur die Hohlkugel (Kreis = Schnitt durch die Kugelschale) ist ein Faraday-Käfig: innen E&nbsp;=&nbsp;0.<br><br>
+
+      <b>Platte:</b> Rechteck der Größe Länge&nbsp;&times;&nbsp;Tiefe; die Tiefe steht senkrecht auf der Zeichenebene. Tiefe&nbsp;&asymp;&nbsp;0 ergibt einen geladenen Stab.<br><br>
+
+      <b>Maus:</b> Ziehen im leeren Raum = Ansicht verschieben, Mausrad = Zoom, Pfeiltasten = Auswahl bewegen, Entf = löschen.
     </div>
   </div>
 </div>
@@ -242,103 +267,314 @@
 "use strict";
 
 /* =====================================================================
-   Physikalische Konstanten & Einheiten
-   Längen in Metern, Ladungen in Nanocoulomb (nC).
-   k*1nC = 8.9875e9 * 1e-9 = 8.9875 V*m   ->  E[V/m] = K*q[nC]/r[m]^2
+   Einheiten: Längen in Metern, Ladungen in Nanocoulomb (nC).
+   k * 1 nC = 8,9875e9 * 1e-9 = 8,9875 V*m
+       ->  E[V/m] = K*q[nC]/r[m]^2 ,  V[V] = K*q[nC]/r[m]
+   Die Zeichenebene ist die Ebene z = 0. Alle Körper sind so aufgebaut,
+   dass sie unter z -> -z symmetrisch sind; damit ist E_z in der
+   Zeichenebene exakt null und die Feldlinien bleiben in der Ebene.
    ===================================================================== */
-const K = 8.9875;                 // V*m pro nC
-const BODY = { point:0.22, plate:0.10, ring:0.10 };   // "Dicke"/Radius der Körper (m)
+const K = 8.9875;
+const BODY = { point:0.22, plate:0.10, ring:0.10, shell:0.10 };
+const SEED_GAP = 0.09;                 // Abstand der Startpunkte von der Oberfläche
+const SHELL_TARGET = 61;               // Knoten der Kugelschale
+const PLATE_TARGET = 45;               // Knoten der Platte
+const MAX_UNKNOWNS = 380;              // Obergrenze für das Gleichungssystem
+const LINE_BUDGET  = 420;
 
 /* ---------------------------- Zustand ---------------------------- */
 const cv  = document.getElementById('cv');
 const ctx = cv.getContext('2d');
 let W = 0, H = 0, DPR = 1;
 
-const cam = { cx:0, cy:0, ppm:58 };      // Pixel pro Meter
+const cam = { cx:0, cy:0, ppm:58 };
 
 let objects = [];
 let nextId  = 1;
 let selId   = null;
 let tool    = null;
 
-let subs   = [];      // Teilladungen für die Feldberechnung
-let lines  = [];      // berechnete Feldlinien
-let heat   = null;    // Offscreen-Canvas für |E|
-let equi   = [];      // Segmente der Äquipotentiallinien
+/* Knoten (Teilladungen) als flache Arrays – deutlich schneller als Objekte */
+let N = 0;
+let nX, nY, nZ, nQ, nE2, nInvE, nS, nBody;
+let solverNote = '';
 
+let lines = [], heat = null, equi = [];
 let dirtyField = true, dirtyRender = true;
 let dragObj = null, dragOff = [0,0], panning = false, panStart = null;
-let moved = false;
-let mouseW = null;
+let moved = false, mouseW = null;
+
+const $ = id => document.getElementById(id);
 
 /* =========================== Geometrie =========================== */
 function w2sx(x){ return W/2 + (x - cam.cx) * cam.ppm; }
 function w2sy(y){ return H/2 - (y - cam.cy) * cam.ppm; }
 function s2wx(sx){ return cam.cx + (sx - W/2) / cam.ppm; }
 function s2wy(sy){ return cam.cy - (sy - H/2) / cam.ppm; }
-
 function viewRect(pad){
-  const hw = W/2/cam.ppm * (1+pad), hh = H/2/cam.ppm * (1+pad);
+  const hw = W/2/cam.ppm*(1+pad), hh = H/2/cam.ppm*(1+pad);
   return { x0:cam.cx-hw, x1:cam.cx+hw, y0:cam.cy-hh, y1:cam.cy+hh };
 }
 
-/* ===================== Teilladungen aufbauen ===================== */
-function buildSubs(){
-  subs = [];
-  for(const o of objects){
-    if(Math.abs(o.q) < 1e-6) continue;
-    if(o.type === 'point'){
-      subs.push({ x:o.x, y:o.y, q:o.q, eps2:0.11*0.11 });
-    } else if(o.type === 'plate'){
-      const n = 31, c = Math.cos(o.angle), s = Math.sin(o.angle);
-      const sp = o.len / n, eps = Math.max(sp*0.62, 0.05);
-      for(let i=0;i<n;i++){
-        const t = ((i+0.5)/n - 0.5) * o.len;
-        subs.push({ x:o.x + c*t, y:o.y + s*t, q:o.q/n, eps2:eps*eps });
+/* ===================================================================
+   1. Diskretisierung der Körper in Teilladungen
+   Jeder Knoten trägt: Ort (x,y,z), Fläche/Länge S (für die Dichte) und
+   eine Glättungslänge eps. eps ist so gewählt, dass K/eps genau dem
+   Selbstpotential des Flächen- bzw. Leitungselements entspricht:
+     Scheibe  (Radius a):   V = 2Kq/a          -> eps = a/2
+     Draht    (Länge h, Radius rho): V = (2Kq/h)*arsinh(h/2rho)
+   =================================================================== */
+function oddClamp(v, lo, hi){          // nächstgelegene ungerade Zahl in [lo,hi]
+  v = 2*Math.round((v-1)/2) + 1;
+  if(v > hi) v = hi % 2 === 0 ? hi-1 : hi;
+  if(v < lo) v = lo % 2 === 0 ? lo+1 : lo;
+  return v;
+}
+
+function genNodes(o, push){
+  if(o.type === 'point'){
+    push(o.x, o.y, 0, 0.11, 1);
+    o._outline = [0];
+    return;
+  }
+
+  if(o.type === 'plate'){
+    const L = o.len, D = o.depth;
+    const h  = Math.sqrt(L*D/PLATE_TARGET);
+    const nx = Math.max(3, Math.min(13, Math.round(L/h)));
+    const nz = oddClamp(D/h, 1, 9);
+    const hx = L/nx, hz = D/nz, S = hx*hz;
+    // Selbstterm: flaches Patch, bei nz==1 entartet die Platte zum Draht
+    let eps;
+    if(nz === 1){
+      const rho = Math.max(D/2, 0.04);
+      eps = hx / (2*Math.asinh(hx/(2*rho)));
+    } else {
+      eps = Math.sqrt(S/Math.PI)/2;
+    }
+    const c = Math.cos(o.angle), s = Math.sin(o.angle);
+    const zRow = (nz-1)/2;
+    o._outline = [];
+    let idx = 0;
+    for(let i=0;i<nx;i++){
+      const t = ((i+0.5)/nx - 0.5)*L;
+      for(let k=0;k<nz;k++){
+        const zz = ((k+0.5)/nz - 0.5)*D;
+        push(o.x + c*t, o.y + s*t, zz, eps, S);
+        if(k === zRow) o._outline.push(idx);
+        idx++;
       }
-    } else {                       // ring
-      const n = 44, sp = 2*Math.PI*o.radius/n, eps = Math.max(sp*0.62, 0.05);
-      for(let i=0;i<n;i++){
-        const a = 2*Math.PI*i/n;
-        subs.push({ x:o.x + o.radius*Math.cos(a), y:o.y + o.radius*Math.sin(a),
-                    q:o.q/n, eps2:eps*eps });
-      }
+    }
+    o._nx = nx; o._nz = nz;
+    return;
+  }
+
+  if(o.type === 'ring'){
+    const R = o.radius, rho = BODY.ring;
+    const n = Math.max(8, Math.min(48, Math.round(2*Math.PI*R/(2.2*rho))));
+    const h = 2*Math.PI*R/n;
+    const eps = h / (2*Math.asinh(h/(2*rho)));
+    o._outline = [];
+    for(let i=0;i<n;i++){
+      const a = 2*Math.PI*i/n;
+      push(o.x + R*Math.cos(a), o.y + R*Math.sin(a), 0, eps, h);
+      o._outline.push(i);
+    }
+    return;
+  }
+
+  /* Hohlkugel: Bänder gleicher Höhe = gleicher Fläche (Archimedes).
+     Ungerade Bandzahl -> ein Band liegt exakt in der Zeichenebene.  */
+  const R = o.radius;
+  let M = Math.max(5, Math.round(Math.sqrt(SHELL_TARGET*Math.PI/4)));
+  if(M % 2 === 0) M++;
+  const zs = [], rs = [];
+  let tot = 0;
+  for(let k=0;k<M;k++){
+    const z = -1 + (k+0.5)*2/M;
+    zs.push(z);
+    const r = Math.sqrt(Math.max(1e-9, 1 - z*z));
+    rs.push(r); tot += r;
+  }
+  o._outline = [];
+  const eqBand = (M-1)/2;
+  let idx = 0;
+  for(let k=0;k<M;k++){
+    const km = Math.min(k, M-1-k);                 // Spiegelsymmetrie erzwingen
+    const nk = Math.max(1, Math.round(SHELL_TARGET*rs[km]/tot));
+    const off = (Math.PI/nk) * (km % 2);
+    const S = 2*Math.PI*R*R*(2/M)/nk;
+    const eps = Math.sqrt(S/Math.PI)/2;
+    for(let i=0;i<nk;i++){
+      const ph = 2*Math.PI*i/nk + off;
+      push(o.x + R*rs[k]*Math.cos(ph), o.y + R*rs[k]*Math.sin(ph), R*zs[k], eps, S);
+      if(k === eqBand) o._outline.push(idx);
+      idx++;
     }
   }
 }
 
-/* ========================= Feldberechnung ========================= */
+function buildNodes(){
+  const X=[], Y=[], Z=[], E=[], S=[], B=[];
+  for(let bi=0; bi<objects.length; bi++){
+    const o = objects[bi];
+    o._n0 = X.length;
+    genNodes(o, (x,y,z,eps,s) => { X.push(x); Y.push(y); Z.push(z); E.push(eps); S.push(s); B.push(bi); });
+    o._n1 = X.length;
+    o._outline = o._outline.map(i => i + o._n0);   // in globale Indizes umrechnen
+  }
+  N = X.length;
+  nX = Float64Array.from(X); nY = Float64Array.from(Y); nZ = Float64Array.from(Z);
+  nS = Float64Array.from(S); nBody = Int32Array.from(B);
+  nQ = new Float64Array(N);
+  nE2 = new Float64Array(N); nInvE = new Float64Array(N);
+  for(let i=0;i<N;i++){ nE2[i] = E[i]*E[i]; nInvE[i] = 1/E[i]; }
+}
+
+/* ===================================================================
+   2. Influenz: Randelementmethode
+   Für jeden Leiterkörper b gilt auf allen seinen Knoten i
+        sum_j A_ij q_j  -  V_b  =  -V_fest(x_i)
+   zusammen mit der Nebenbedingung   sum_{i in b} q_i = Q_b .
+   A_ij = K/r_ij (Punkt-Kollokation), A_ii = K/eps_i (Selbstpotential).
+   =================================================================== */
+function isConductor(o){ return o.type !== 'point' && o.conductor; }
+
+function solveCharges(){
+  solverNote = '';
+  const cond = objects.filter(isConductor);
+
+  // feste (nicht influenzierbare) Verteilungen: homogen
+  for(const o of objects){
+    if(isConductor(o)) continue;
+    const n = o._n1 - o._n0;
+    let sSum = 0;
+    for(let i=o._n0;i<o._n1;i++) sSum += nS[i];
+    for(let i=o._n0;i<o._n1;i++) nQ[i] = o.q * (sSum > 0 ? nS[i]/sSum : 1/n);
+  }
+  if(!cond.length) return;
+
+  const ci = [];
+  for(const o of cond) for(let i=o._n0;i<o._n1;i++) ci.push(i);
+  const nc = ci.length, B = cond.length, m = nc + B;
+
+  if(m > MAX_UNKNOWNS){
+    solverNote = 'Zu viele Leiterknoten (' + nc + ') – Influenz ist für diese Szene ' +
+                 'abgeschaltet, die Ladung ist homogen verteilt. Weniger oder kleinere Leiter wählen.';
+    for(const o of cond){
+      const n = o._n1 - o._n0;
+      let sSum = 0;
+      for(let i=o._n0;i<o._n1;i++) sSum += nS[i];
+      for(let i=o._n0;i<o._n1;i++) nQ[i] = o.q * (sSum > 0 ? nS[i]/sSum : 1/n);
+    }
+    return;
+  }
+
+  const W1 = m + 1;
+  const A = new Float64Array(m*W1);
+
+  // Potential der festen Ladungen an den Leiterknoten
+  for(let a=0;a<nc;a++){
+    const i = ci[a];
+    let vf = 0;
+    for(const o of objects){
+      if(isConductor(o)) continue;
+      for(let j=o._n0;j<o._n1;j++){
+        const dx = nX[i]-nX[j], dy = nY[i]-nY[j], dz = nZ[i]-nZ[j];
+        let r2 = dx*dx + dy*dy + dz*dz;
+        if(r2 < nE2[j]) r2 = nE2[j];
+        vf += K*nQ[j]/Math.sqrt(r2);
+      }
+    }
+    A[a*W1 + m] = -vf;
+  }
+
+  // Koppelmatrix
+  for(let a=0;a<nc;a++){
+    const i = ci[a], row = a*W1;
+    for(let b=0;b<nc;b++){
+      if(a === b){ A[row+b] = K*nInvE[i]; continue; }
+      const j = ci[b];
+      const dx = nX[i]-nX[j], dy = nY[i]-nY[j], dz = nZ[i]-nZ[j];
+      let r2 = dx*dx + dy*dy + dz*dz;
+      if(r2 < nE2[j]) r2 = nE2[j];
+      A[row+b] = K/Math.sqrt(r2);
+    }
+  }
+
+  // Leiterpotentiale als Unbekannte + Ladungserhaltung als Zusatzgleichung
+  let base = 0;
+  for(let k=0;k<B;k++){
+    const o = cond[k], cnt = o._n1 - o._n0;
+    for(let a=base; a<base+cnt; a++){
+      A[a*W1 + nc + k] = -1;
+      A[(nc+k)*W1 + a] = 1;
+    }
+    A[(nc+k)*W1 + m] = o.q;
+    base += cnt;
+  }
+
+  gaussJordan(A, m);
+
+  for(let a=0;a<nc;a++) nQ[ci[a]] = A[a*W1 + m];
+  for(let k=0;k<B;k++) cond[k]._V = A[(nc+k)*W1 + m];
+}
+
+function gaussJordan(A, m){
+  const W1 = m + 1;
+  for(let c=0;c<m;c++){
+    let p = c, best = Math.abs(A[c*W1+c]);
+    for(let r=c+1;r<m;r++){
+      const v = Math.abs(A[r*W1+c]);
+      if(v > best){ best = v; p = r; }
+    }
+    if(best < 1e-12){                    // entartet: Unbekannte auf 0 setzen
+      A[c*W1+c] = 1; A[c*W1+m] = 0;
+      continue;
+    }
+    if(p !== c){
+      for(let j=c;j<=m;j++){ const t = A[c*W1+j]; A[c*W1+j] = A[p*W1+j]; A[p*W1+j] = t; }
+    }
+    const piv = A[c*W1+c];
+    for(let j=c;j<=m;j++) A[c*W1+j] /= piv;
+    for(let r=0;r<m;r++){
+      if(r === c) continue;
+      const f = A[r*W1+c];
+      if(f === 0) continue;
+      for(let j=c;j<=m;j++) A[r*W1+j] -= f*A[c*W1+j];
+    }
+  }
+}
+
+/* ===================== 3. Feld und Potential ====================== */
 let _ex = 0, _ey = 0, _dmin = 1e9;
 
-function fieldAt(x, y){
+function fieldAt(x, y){                 // ausgewertet in der Ebene z = 0
   let ex = 0, ey = 0, dmin = 1e9;
-  for(let i=0;i<subs.length;i++){
-    const s = subs[i];
-    const dx = x - s.x, dy = y - s.y;
-    let r2 = dx*dx + dy*dy;
+  for(let i=0;i<N;i++){
+    const dx = x - nX[i], dy = y - nY[i], dz = -nZ[i];
+    let r2 = dx*dx + dy*dy + dz*dz;
     if(r2 < dmin) dmin = r2;
-    if(r2 < s.eps2) r2 = s.eps2;
+    if(r2 < nE2[i]) r2 = nE2[i];
     const r = Math.sqrt(r2);
-    const f = K * s.q / (r2 * r);
-    ex += f*dx; ey += f*dy;
+    const f = K*nQ[i]/(r2*r);
+    ex += f*dx; ey += f*dy;             // E_z hebt sich durch die z-Symmetrie auf
   }
   _ex = ex; _ey = ey; _dmin = Math.sqrt(dmin);
-  return ex;
 }
 
 function potentialAt(x, y){
   let v = 0;
-  for(let i=0;i<subs.length;i++){
-    const s = subs[i];
-    const dx = x - s.x, dy = y - s.y;
-    let r2 = dx*dx + dy*dy;
-    if(r2 < s.eps2) r2 = s.eps2;
-    v += K * s.q / Math.sqrt(r2);
+  for(let i=0;i<N;i++){
+    const dx = x - nX[i], dy = y - nY[i], dz = -nZ[i];
+    let r2 = dx*dx + dy*dy + dz*dz;
+    if(r2 < nE2[i]) r2 = nE2[i];
+    v += K*nQ[i]/Math.sqrt(r2);
   }
   return v;
 }
 
-/* ===================== Treffer-/Auswahltest ====================== */
+/* ==================== 4. Trefferabfrage / Auswahl ================= */
 function hitObj(o, x, y, m){
   if(o.type === 'point') return Math.hypot(x-o.x, y-o.y) <= BODY.point + m;
   if(o.type === 'plate'){
@@ -347,7 +583,7 @@ function hitObj(o, x, y, m){
     const a =  dx*c + dy*s, b = -dx*s + dy*c;
     return Math.abs(a) <= o.len/2 + BODY.plate + m && Math.abs(b) <= BODY.plate + m;
   }
-  return Math.abs(Math.hypot(x-o.x, y-o.y) - o.radius) <= BODY.ring + m;
+  return Math.abs(Math.hypot(x-o.x, y-o.y) - o.radius) <= BODY[o.type] + m;
 }
 function pickObj(x, y, m){
   for(let i=objects.length-1;i>=0;i--) if(hitObj(objects[i], x, y, m)) return objects[i];
@@ -356,74 +592,115 @@ function pickObj(x, y, m){
 function insideAny(x, y){
   for(let i=0;i<objects.length;i++){
     const o = objects[i];
-    if(Math.abs(o.q) < 1e-6) continue;
+    if(o._sumAbs < 1e-9) continue;
     if(hitObj(o, x, y, 0)) return true;
   }
   return false;
 }
 
-/* ====================== Startpunkte der Linien ==================== */
-function seedPoints(o, n){
-  const out = [];
+/* ===================================================================
+   5. Startpunkte: entlang der Umrisslinie, gewichtet mit der örtlichen
+   Ladungsdichte. Nur so bekommt ein neutraler Leiter überhaupt Linien –
+   seine Influenzladungen sind Quellen bzw. Senken.
+   =================================================================== */
+function localNode(o, x, y){
+  let best = -1, bd = Infinity;
+  for(const i of o._outline){
+    const d = (x-nX[i])**2 + (y-nY[i])**2;
+    if(d < bd){ bd = d; best = i; }
+  }
+  return best;
+}
+
+function outlineSites(o, count){
+  const sites = [];
+  const add = (x,y) => sites.push([x,y]);
   if(o.type === 'point'){
-    const R = BODY.point + 0.09;
-    for(let i=0;i<n;i++){
-      const a = 2*Math.PI*i/n;
-      out.push([o.x + R*Math.cos(a), o.y + R*Math.sin(a)]);
+    const R = BODY.point + SEED_GAP;
+    for(let i=0;i<count;i++){
+      const a = 2*Math.PI*i/count;
+      add(o.x + R*Math.cos(a), o.y + R*Math.sin(a));
     }
   } else if(o.type === 'plate'){
-    // gleichmäßig auf der Offset-Kurve (Stadionform) um das Liniensegment
-    const d = BODY.plate + 0.08, L = o.len;
+    const d = BODY.plate + SEED_GAP, L = o.len;
     const c = Math.cos(o.angle), s = Math.sin(o.angle);
-    const ux = c, uy = s, nx = -s, ny = c;
+    const ux = c, uy = s, vx = -s, vy = c;
     const Ax = o.x - ux*L/2, Ay = o.y - uy*L/2;
     const Bx = o.x + ux*L/2, By = o.y + uy*L/2;
     const arc = Math.PI*d, P = 2*L + 2*arc;
-    for(let i=0;i<n;i++){
-      let t = (i+0.5)/n * P;
-      if(t < L){                                   // Oberseite A -> B
-        out.push([Ax + ux*t + nx*d, Ay + uy*t + ny*d]);
-      } else if(t < L + arc){                      // Halbkreis um B
-        const p = (t - L)/arc, ph = o.angle + Math.PI/2 - Math.PI*p;
-        out.push([Bx + d*Math.cos(ph), By + d*Math.sin(ph)]);
-      } else if(t < 2*L + arc){                    // Unterseite B -> A
+    for(let i=0;i<count;i++){
+      const t = (i+0.5)/count * P;
+      if(t < L)               add(Ax + ux*t + vx*d, Ay + uy*t + vy*d);
+      else if(t < L+arc){
+        const ph = o.angle + Math.PI/2 - Math.PI*(t-L)/arc;
+        add(Bx + d*Math.cos(ph), By + d*Math.sin(ph));
+      } else if(t < 2*L+arc){
         const u2 = t - L - arc;
-        out.push([Bx - ux*u2 - nx*d, By - uy*u2 - ny*d]);
-      } else {                                     // Halbkreis um A
-        const p = (t - 2*L - arc)/arc, ph = o.angle - Math.PI/2 - Math.PI*p;
-        out.push([Ax + d*Math.cos(ph), Ay + d*Math.sin(ph)]);
+        add(Bx - ux*u2 - vx*d, By - uy*u2 - vy*d);
+      } else {
+        const ph = o.angle - Math.PI/2 - Math.PI*(t-2*L-arc)/arc;
+        add(Ax + d*Math.cos(ph), Ay + d*Math.sin(ph));
       }
     }
-  } else {                                          // ring
-    const d = BODY.ring + 0.08;
+  } else if(o.type === 'ring'){
+    const d = BODY.ring + SEED_GAP;
     const Ro = o.radius + d, Ri = o.radius - d;
-    let nOut = n, nIn = 0;
-    if(Ri > 0.18){ nOut = Math.ceil(n*0.6); nIn = n - nOut; }
+    let nOut = count, nIn = 0;
+    if(Ri > 0.18){ nOut = Math.ceil(count*0.6); nIn = count - nOut; }
     for(let i=0;i<nOut;i++){
       const a = 2*Math.PI*i/nOut;
-      out.push([o.x + Ro*Math.cos(a), o.y + Ro*Math.sin(a)]);
+      add(o.x + Ro*Math.cos(a), o.y + Ro*Math.sin(a));
     }
     for(let i=0;i<nIn;i++){
       const a = 2*Math.PI*(i+0.5)/nIn;
-      out.push([o.x + Ri*Math.cos(a), o.y + Ri*Math.sin(a)]);
+      add(o.x + Ri*Math.cos(a), o.y + Ri*Math.sin(a));
     }
+  } else {                    // Hohlkugel: innen ist es feldfrei -> nur außen
+    const Ro = o.radius + BODY.shell + SEED_GAP;
+    for(let i=0;i<count;i++){
+      const a = 2*Math.PI*i/count;
+      add(o.x + Ro*Math.cos(a), o.y + Ro*Math.sin(a));
+    }
+  }
+  return sites;
+}
+
+function seedsFor(o, nWanted){
+  const cand = Math.max(72, Math.min(600, nWanted*6));
+  const sites = outlineSites(o, cand);
+  const w = new Float64Array(sites.length);
+  const sg = new Int8Array(sites.length);
+  let tot = 0;
+  for(let i=0;i<sites.length;i++){
+    const k = localNode(o, sites[i][0], sites[i][1]);
+    const dens = k < 0 ? 0 : nQ[k]/nS[k];
+    w[i] = Math.abs(dens);
+    sg[i] = dens >= 0 ? 1 : -1;
+    tot += w[i];
+  }
+  const out = [];
+  if(tot <= 0) return out;
+  let acc = 0, si = 0;
+  for(let k=0;k<nWanted;k++){
+    const target = (k+0.5)/nWanted * tot;
+    while(si < sites.length-1 && acc + w[si] < target){ acc += w[si]; si++; }
+    out.push([sites[si][0], sites[si][1], sg[si]]);
   }
   return out;
 }
 
-/* ====================== Feldlinie integrieren ===================== */
+/* ===================== 6. Feldlinie integrieren =================== */
 function trace(x, y, sign, maxSteps, box){
   const pts = [x, y];
   let len = 0;
-  const maxLen = (box.x1-box.x0) * 3.2;
+  const maxLen = (box.x1-box.x0)*3.2;
   for(let k=0;k<maxSteps;k++){
     fieldAt(x, y);
     let ex = _ex*sign, ey = _ey*sign;
     let m = Math.hypot(ex, ey);
-    if(!isFinite(m) || m < 1e-7) break;                     // Feldfreier Punkt
-    const h = Math.min(Math.max(0.32*_dmin, 0.022), 0.30);  // adaptive Schrittweite
-    // Mittelpunktverfahren (RK2)
-    const mx = x + ex/m*h*0.5, my = y + ey/m*h*0.5;
+    if(!isFinite(m) || m < 1e-6) break;                     // feldfreier Punkt
+    const h = Math.min(Math.max(0.32*_dmin, 0.022), 0.30);
+    const mx = x + ex/m*h*0.5, my = y + ey/m*h*0.5;         // Mittelpunktverfahren
     fieldAt(mx, my);
     let e2x = _ex*sign, e2y = _ey*sign;
     let m2 = Math.hypot(e2x, e2y);
@@ -433,50 +710,44 @@ function trace(x, y, sign, maxSteps, box){
     len += h;
     if(x < box.x0 || x > box.x1 || y < box.y0 || y > box.y1) break;
     if(len > maxLen) break;
-    if(insideAny(x, y)) break;                              // trifft eine Ladung
+    if(insideAny(x, y)) break;
   }
   return pts;
 }
 
-function lineCount(o){
-  const lpc = parseFloat(document.getElementById('lpc').value);
-  return Math.min(160, Math.round(Math.abs(o.q) * lpc));
-}
-
-const LINE_BUDGET = 420;          // Obergrenze der Gesamtlinienzahl (Rechenzeit)
+function lpcVal(){ return parseFloat($('lpc').value); }
 
 function computeLines(){
   lines = [];
-  if(!document.getElementById('cbLines').checked) return;
+  if(!$('cbLines').checked) return;
   const box = viewRect(0.6);
+  const lpc = lpcVal();
 
-  // Wunsch-Linienzahl je Körper (proportional zu |Q|)
-  const want = objects.map(o => Math.abs(o.q) < 1e-6 ? 0 : lineCount(o));
+  const want = objects.map(o => Math.min(200, Math.round(o._sumAbs * lpc)));
   const total = want.reduce((a,b) => a+b, 0);
   if(total < 1) return;
 
-  // Bei Überschreitung des Budgets alle Körper gleichmäßig herunterskalieren,
-  // damit das Verhältnis der Liniendichten (= Feldstärkeverhältnis) erhalten bleibt.
-  let scale = Math.min(1, LINE_BUDGET / total);
+  let scale = Math.min(1, LINE_BUDGET/total);
   if(dragObj) scale *= 0.55;
+  // bei vielen Knoten zusätzlich drosseln, damit die Neuberechnung flüssig bleibt
+  if(N > 120) scale *= Math.max(0.35, 120/N);
 
-  const maxSteps = dragObj ? 700 : (subs.length > 120 ? 1400 : 2400);
+  const maxSteps = dragObj ? 700 : (N > 140 ? 1500 : 2400);
 
   objects.forEach((o, i) => {
     if(want[i] < 1) return;
-    const n = Math.max(1, Math.round(want[i] * scale));
-    const dir = o.q > 0 ? 1 : -1;
-    for(const s of seedPoints(o, n)){
-      const pts = trace(s[0], s[1], dir, maxSteps, box);
-      if(pts.length >= 4) lines.push({ pts, dir });
+    const n = Math.max(1, Math.round(want[i]*scale));
+    for(const s of seedsFor(o, n)){
+      const pts = trace(s[0], s[1], s[2], maxSteps, box);
+      if(pts.length >= 4) lines.push({ pts, dir:s[2] });
     }
   });
 }
 
-/* ==================== |E| als Farbfläche (Heatmap) ================ */
+/* ==================== 7. |E| als Farbfläche ======================= */
 function computeHeat(){
   heat = null;
-  if(!document.getElementById('cbHeat').checked || subs.length === 0) return;
+  if(!$('cbHeat').checked || N === 0) return;
   const cell = dragObj ? 8 : 5;
   const nx = Math.ceil(W/cell), ny = Math.ceil(H/cell);
   const off = document.createElement('canvas');
@@ -487,29 +758,26 @@ function computeHeat(){
   for(let j=0;j<ny;j++){
     const wy = s2wy(j*cell + cell/2);
     for(let i=0;i<nx;i++){
-      const wx = s2wx(i*cell + cell/2);
-      fieldAt(wx, wy);
+      fieldAt(s2wx(i*cell + cell/2), wy);
       const E = Math.hypot(_ex, _ey);
-      // logarithmische Skala: 0.5 .. 500 V/m
-      let t = (Math.log10(E + 1e-3) + 0.3) / 3.0;
+      let t = (Math.log10(E + 1e-3) + 0.3)/3.0;
       t = t < 0 ? 0 : t > 1 ? 1 : t;
       const p = (j*nx + i)*4;
-      // dunkelblau -> violett -> orange
-      d[p]   = Math.round(255 * Math.min(1, Math.max(0, t*2.1 - 0.55)));
-      d[p+1] = Math.round(255 * Math.min(1, Math.max(0, t*1.75 - 0.95)));
-      d[p+2] = Math.round(255 * Math.min(1, Math.max(0, 0.85*t + 0.12 - t*t*0.75)));
-      d[p+3] = Math.round(215 * t);
+      d[p]   = Math.round(255*Math.min(1, Math.max(0, t*2.1 - 0.55)));
+      d[p+1] = Math.round(255*Math.min(1, Math.max(0, t*1.75 - 0.95)));
+      d[p+2] = Math.round(255*Math.min(1, Math.max(0, 0.85*t + 0.12 - t*t*0.75)));
+      d[p+3] = Math.round(215*t);
     }
   }
   octx.putImageData(img, 0, 0);
   heat = off;
 }
 
-/* ===================== Äquipotentiallinien ======================== */
+/* ================== 8. Äquipotentiallinien ======================== */
 const V_LEVELS = [1,2,4,8,16,32,64,128,256];
 function computeEqui(){
   equi = [];
-  if(!document.getElementById('cbEqui').checked || subs.length === 0) return;
+  if(!$('cbEqui').checked || N === 0) return;
   const cell = 7;
   const nx = Math.ceil(W/cell)+1, ny = Math.ceil(H/cell)+1;
   const g = new Float32Array(nx*ny);
@@ -517,78 +785,73 @@ function computeEqui(){
     const wy = s2wy(j*cell);
     for(let i=0;i<nx;i++) g[j*nx+i] = potentialAt(s2wx(i*cell), wy);
   }
-  const levels = [];
-  for(const v of V_LEVELS){ levels.push(v, -v); }
-  const ip = (v1,v2,L)=> (L - v1) / (v2 - v1);
-  for(const L of levels){
-    const seg = [];
-    for(let j=0;j<ny-1;j++){
-      for(let i=0;i<nx-1;i++){
-        const a = g[j*nx+i], b = g[j*nx+i+1], c = g[(j+1)*nx+i+1], dd = g[(j+1)*nx+i];
-        let idx = 0;
-        if(a > L) idx |= 1;
-        if(b > L) idx |= 2;
-        if(c > L) idx |= 4;
-        if(dd> L) idx |= 8;
-        if(idx === 0 || idx === 15) continue;
-        const x0 = i*cell, y0 = j*cell;
-        const e0 = [x0 + cell*ip(a,b,L), y0];
-        const e1 = [x0 + cell,           y0 + cell*ip(b,c,L)];
-        const e2 = [x0 + cell*ip(dd,c,L),y0 + cell];
-        const e3 = [x0,                  y0 + cell*ip(a,dd,L)];
-        const push = (p,q)=>{ seg.push(p[0],p[1],q[0],q[1]); };
-        switch(idx){
-          case 1: case 14: push(e3,e0); break;
-          case 2: case 13: push(e0,e1); break;
-          case 3: case 12: push(e3,e1); break;
-          case 4: case 11: push(e1,e2); break;
-          case 6: case 9:  push(e0,e2); break;
-          case 7: case 8:  push(e2,e3); break;
-          case 5:  push(e3,e0); push(e1,e2); break;
-          case 10: push(e0,e1); push(e2,e3); break;
+  const ip = (v1,v2,L) => (L - v1)/(v2 - v1);
+  for(const base of V_LEVELS){
+    for(const L of [base, -base]){
+      const seg = [];
+      for(let j=0;j<ny-1;j++){
+        for(let i=0;i<nx-1;i++){
+          const a = g[j*nx+i], b = g[j*nx+i+1], c = g[(j+1)*nx+i+1], dd = g[(j+1)*nx+i];
+          let idx = 0;
+          if(a > L) idx |= 1;
+          if(b > L) idx |= 2;
+          if(c > L) idx |= 4;
+          if(dd> L) idx |= 8;
+          if(idx === 0 || idx === 15) continue;
+          const x0 = i*cell, y0 = j*cell;
+          const e0 = [x0 + cell*ip(a,b,L),  y0];
+          const e1 = [x0 + cell,            y0 + cell*ip(b,c,L)];
+          const e2 = [x0 + cell*ip(dd,c,L), y0 + cell];
+          const e3 = [x0,                   y0 + cell*ip(a,dd,L)];
+          const push = (p,q) => seg.push(p[0],p[1],q[0],q[1]);
+          switch(idx){
+            case 1: case 14: push(e3,e0); break;
+            case 2: case 13: push(e0,e1); break;
+            case 3: case 12: push(e3,e1); break;
+            case 4: case 11: push(e1,e2); break;
+            case 6: case 9:  push(e0,e2); break;
+            case 7: case 8:  push(e2,e3); break;
+            case 5:  push(e3,e0); push(e1,e2); break;
+            case 10: push(e0,e1); push(e2,e3); break;
+          }
         }
       }
+      if(seg.length) equi.push({ level:L, seg });
     }
-    if(seg.length) equi.push({ level:L, seg });
   }
 }
 
-/* ============================ Zeichnen ============================ */
+/* ============================ 9. Zeichnen ========================= */
 function draw(){
   ctx.clearRect(0,0,W,H);
   ctx.fillStyle = '#0b0f18';
   ctx.fillRect(0,0,W,H);
-
-  if(heat) { ctx.imageSmoothingEnabled = true; ctx.drawImage(heat, 0, 0, W, H); }
-  if(document.getElementById('cbGrid').checked) drawGrid();
+  if(heat){ ctx.imageSmoothingEnabled = true; ctx.drawImage(heat, 0, 0, W, H); }
+  if($('cbGrid').checked) drawGrid();
   if(equi.length) drawEqui();
-  if(document.getElementById('cbVec').checked) drawVectors();
+  if($('cbVec').checked) drawVectors();
   drawLines();
   for(const o of objects) drawBody(o);
 }
 
 function drawGrid(){
-  const step = cam.ppm >= 34 ? 1 : cam.ppm >= 17 ? 2 : 5;   // Meter
+  const step = cam.ppm >= 34 ? 1 : cam.ppm >= 17 ? 2 : 5;
   const r = viewRect(0);
   ctx.lineWidth = 1;
   ctx.strokeStyle = 'rgba(255,255,255,0.045)';
   ctx.beginPath();
   for(let x = Math.ceil(r.x0/step)*step; x <= r.x1; x += step){
-    const sx = Math.round(w2sx(x)) + .5;
-    ctx.moveTo(sx, 0); ctx.lineTo(sx, H);
+    const sx = Math.round(w2sx(x))+.5; ctx.moveTo(sx,0); ctx.lineTo(sx,H);
   }
   for(let y = Math.ceil(r.y0/step)*step; y <= r.y1; y += step){
-    const sy = Math.round(w2sy(y)) + .5;
-    ctx.moveTo(0, sy); ctx.lineTo(W, sy);
+    const sy = Math.round(w2sy(y))+.5; ctx.moveTo(0,sy); ctx.lineTo(W,sy);
   }
   ctx.stroke();
-  // Achsen
   ctx.strokeStyle = 'rgba(255,255,255,0.11)';
   ctx.beginPath();
   ctx.moveTo(0, Math.round(w2sy(0))+.5); ctx.lineTo(W, Math.round(w2sy(0))+.5);
   ctx.moveTo(Math.round(w2sx(0))+.5, 0); ctx.lineTo(Math.round(w2sx(0))+.5, H);
   ctx.stroke();
-  // Maßstab
   ctx.fillStyle = 'rgba(139,152,179,.75)';
   ctx.font = '11px system-ui';
   ctx.textAlign = 'right';
@@ -606,9 +869,7 @@ function drawEqui(){
     ctx.strokeStyle = c.level > 0 ? 'rgba(255,150,160,0.30)' : 'rgba(140,190,255,0.30)';
     ctx.beginPath();
     const s = c.seg;
-    for(let i=0;i<s.length;i+=4){
-      ctx.moveTo(s[i], s[i+1]); ctx.lineTo(s[i+2], s[i+3]);
-    }
+    for(let i=0;i<s.length;i+=4){ ctx.moveTo(s[i],s[i+1]); ctx.lineTo(s[i+2],s[i+3]); }
     ctx.stroke();
   }
 }
@@ -625,19 +886,18 @@ function drawVectors(){
       if(E < 1e-4) continue;
       const t = Math.min(1, Math.max(0, (Math.log10(E+1e-3)+0.3)/3));
       const L = 7 + 12*t;
-      const ux = _ex/E, uy = -_ey/E;             // Bildschirm-y invertiert
+      const ux = _ex/E, uy = -_ey/E;
       const x2 = sx + ux*L, y2 = sy + uy*L;
-      ctx.strokeStyle = 'rgba(255,255,255,' + (0.16 + 0.4*t).toFixed(3) + ')';
+      ctx.strokeStyle = 'rgba(255,255,255,' + (0.16+0.4*t).toFixed(3) + ')';
       ctx.beginPath();
-      ctx.moveTo(sx - ux*L*0.5, sy - uy*L*0.5);
-      ctx.lineTo(x2, y2);
+      ctx.moveTo(sx - ux*L*0.5, sy - uy*L*0.5); ctx.lineTo(x2, y2);
       ctx.stroke();
       ctx.beginPath();
       ctx.moveTo(x2, y2);
       ctx.lineTo(x2 - ux*4 + uy*2.4, y2 - uy*4 - ux*2.4);
       ctx.lineTo(x2 - ux*4 - uy*2.4, y2 - uy*4 + ux*2.4);
       ctx.closePath();
-      ctx.fillStyle = 'rgba(255,255,255,' + (0.2 + 0.45*t).toFixed(3) + ')';
+      ctx.fillStyle = 'rgba(255,255,255,' + (0.2+0.45*t).toFixed(3) + ')';
       ctx.fill();
     }
   }
@@ -645,10 +905,8 @@ function drawVectors(){
 
 function drawLines(){
   if(!lines.length) return;
-  const arrows = document.getElementById('cbArrows').checked;
   ctx.lineWidth = 1.25;
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
   ctx.strokeStyle = 'rgba(230,238,255,0.62)';
   ctx.beginPath();
   for(const l of lines){
@@ -657,7 +915,7 @@ function drawLines(){
     for(let i=2;i<p.length;i+=2) ctx.lineTo(w2sx(p[i]), w2sy(p[i+1]));
   }
   ctx.stroke();
-  if(!arrows) return;
+  if(!$('cbArrows').checked) return;
   ctx.fillStyle = 'rgba(230,238,255,0.85)';
   for(const l of lines){
     const p = l.pts, n = p.length/2;
@@ -670,10 +928,7 @@ function drawLines(){
       const m = Math.hypot(dx,dy);
       if(m < 0.4) continue;
       dx /= m; dy /= m;
-      // Richtung: dir=1 -> vom Startpunkt weg (von +), dir=-1 -> zum Objekt hin
-      const s = l.dir;
-      const ax = dx*s, ay = dy*s;
-      const L = 5.4, Wd = 2.9;
+      const ax = dx*l.dir, ay = dy*l.dir, L = 5.4, Wd = 2.9;
       ctx.beginPath();
       ctx.moveTo(x1 + ax*L, y1 + ay*L);
       ctx.lineTo(x1 - ay*Wd, y1 + ax*Wd);
@@ -686,19 +941,45 @@ function drawLines(){
 
 function signColor(q){ return q > 0 ? '#ff5c6c' : q < 0 ? '#4da3ff' : '#8b98b3'; }
 
+/* Farbe aus der örtlichen Ladungsdichte: blau (−) … grau (0) … rot (+) */
+/* Ladungsdichte zwischen den Umrissknoten interpolieren – die Knoten liegen
+   auf Kreisen bzw. Strecken äquidistant, deshalb genügt lineare Interpolation. */
+function sigmaAt(o, i){ const k = o._outline[i]; return nQ[k]/nS[k]; }
+
+function sigmaAtAngle(o, a){
+  const idx = o._outline, n = idx.length;
+  if(!n) return 0;
+  if(n === 1) return sigmaAt(o, 0);
+  const a0 = Math.atan2(nY[idx[0]] - o.y, nX[idx[0]] - o.x);
+  let p = ((a - a0)/(2*Math.PI/n)) % n;
+  if(p < 0) p += n;
+  const i0 = Math.floor(p), f = p - i0, i1 = (i0+1) % n;
+  return sigmaAt(o, i0) + (sigmaAt(o, i1) - sigmaAt(o, i0))*f;
+}
+
+function densColor(sig, sigMax, alpha){
+  if(sigMax <= 0) return 'rgba(139,152,179,' + alpha + ')';
+  let t = Math.max(-1, Math.min(1, sig/sigMax));
+  t = Math.sign(t)*Math.pow(Math.abs(t), 0.6);          // schwache Influenz sichtbar machen
+  const r = Math.round(139 + (t > 0 ?  t*(255-139) : -t*(77-139)));
+  const g = Math.round(152 + (t > 0 ?  t*(92-152)  : -t*(163-152)));
+  const b = Math.round(179 + (t > 0 ?  t*(108-179) : -t*(255-179)));
+  return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+}
+
 function drawBody(o){
-  const sel = o.id === selId;
-  const col = signColor(o.q);
+  const useSig = $('cbSigma').checked && o._outline && o._outline.length > 1;
   const px = w2sx(o.x), py = w2sy(o.y);
+  const flat = signColor(o.q);
   ctx.save();
 
   if(o.type === 'point'){
-    const R = BODY.point * cam.ppm;
+    const R = BODY.point*cam.ppm;
     const g = ctx.createRadialGradient(px, py, 1, px, py, R*2.6);
-    g.addColorStop(0, col + 'cc'); g.addColorStop(1, col + '00');
+    g.addColorStop(0, flat + 'cc'); g.addColorStop(1, flat + '00');
     ctx.fillStyle = g;
     ctx.beginPath(); ctx.arc(px, py, R*2.6, 0, 7); ctx.fill();
-    ctx.fillStyle = col;
+    ctx.fillStyle = flat;
     ctx.beginPath(); ctx.arc(px, py, R, 0, 7); ctx.fill();
     ctx.strokeStyle = '#0b0f18'; ctx.lineWidth = 1.6; ctx.stroke();
     drawSign(px, py, o.q, Math.min(R*1.15, 15));
@@ -708,55 +989,94 @@ function drawBody(o){
     ctx.translate(px, py); ctx.rotate(-o.angle);
     const L = o.len*cam.ppm, T = BODY.plate*2*cam.ppm;
     const g = ctx.createLinearGradient(0, -T, 0, T);
-    g.addColorStop(0, col + '00'); g.addColorStop(.5, col + 'cc'); g.addColorStop(1, col + '00');
+    g.addColorStop(0, flat + '00'); g.addColorStop(.5, flat + 'aa'); g.addColorStop(1, flat + '00');
     ctx.fillStyle = g;
     ctx.fillRect(-L/2, -T*1.9, L, T*3.8);
-    ctx.fillStyle = col;
+    const n = o._outline.length;
+    if(useSig){
+      const grad = ctx.createLinearGradient(-L/2, 0, L/2, 0);
+      grad.addColorStop(0, densColor(sigmaAt(o, 0), o._sigMax, 1));
+      for(let i=0;i<n;i++)
+        grad.addColorStop((i+0.5)/n, densColor(sigmaAt(o, i), o._sigMax, 1));
+      grad.addColorStop(1, densColor(sigmaAt(o, n-1), o._sigMax, 1));
+      ctx.fillStyle = grad;
+    } else {
+      ctx.fillStyle = flat;
+    }
     roundRect(-L/2, -T/2, L, T, Math.min(T/2, 6)); ctx.fill();
-    ctx.strokeStyle = '#0b0f18'; ctx.lineWidth = 1.4; ctx.stroke();
+    ctx.strokeStyle = '#0b0f18'; ctx.lineWidth = 1.4;
+    roundRect(-L/2, -T/2, L, T, Math.min(T/2, 6)); ctx.stroke();
     const cnt = Math.max(2, Math.min(16, Math.round(o.len*2.2)));
     for(let i=0;i<cnt;i++){
-      const t = (-0.5 + (i+0.5)/cnt) * L;
-      drawSign(t, 0, o.q, Math.min(T*0.75, 9));
+      const t = (-0.5 + (i+0.5)/cnt)*L;
+      const k = localNode(o, o.x + Math.cos(o.angle)*t/cam.ppm, o.y + Math.sin(o.angle)*t/cam.ppm);
+      const s = k >= 0 ? nQ[k] : o.q;
+      if(Math.abs(s) > 1e-4*Math.max(1e-9, o._sumAbs)) drawSign(t, 0, s, Math.min(T*0.75, 9));
     }
   }
 
-  else {
-    const R = o.radius*cam.ppm, T = BODY.ring*2*cam.ppm;
-    ctx.strokeStyle = col + '55'; ctx.lineWidth = T*3.2;
+  else {                                  // Ring oder Hohlkugel
+    const R = o.radius*cam.ppm, T = BODY[o.type]*2*cam.ppm;
+    if(o.type === 'shell'){               // angedeuteter Hohlraum
+      ctx.fillStyle = 'rgba(255,255,255,0.028)';
+      ctx.beginPath(); ctx.arc(px, py, R, 0, 7); ctx.fill();
+    }
+    ctx.strokeStyle = flat + '44'; ctx.lineWidth = T*3.2;
     ctx.beginPath(); ctx.arc(px, py, R, 0, 7); ctx.stroke();
-    ctx.strokeStyle = col; ctx.lineWidth = T;
-    ctx.beginPath(); ctx.arc(px, py, R, 0, 7); ctx.stroke();
-    const cnt = Math.max(4, Math.min(22, Math.round(o.radius*5)));
+    ctx.lineWidth = T;
+    if(useSig){
+      const seg = 96;                    // fein genug für einen weichen Verlauf
+      for(let i=0;i<seg;i++){
+        const a0 = 2*Math.PI*i/seg, a1 = 2*Math.PI*(i+1.0001)/seg;
+        ctx.strokeStyle = densColor(sigmaAtAngle(o, (a0+a1)/2), o._sigMax, 1);
+        ctx.beginPath(); ctx.arc(px, py, R, -a1, -a0); ctx.stroke();
+      }
+    } else {
+      ctx.strokeStyle = flat;
+      ctx.beginPath(); ctx.arc(px, py, R, 0, 7); ctx.stroke();
+    }
+    if(o.type === 'shell'){               // gestrichelte Innenkante als Schnittsymbol
+      ctx.strokeStyle = 'rgba(230,238,255,0.22)';
+      ctx.lineWidth = 1; ctx.setLineDash([4,5]);
+      ctx.beginPath(); ctx.arc(px, py, Math.max(1, R - T*0.75), 0, 7); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    const cnt = Math.max(4, Math.min(24, Math.round(o.radius*5)));
     for(let i=0;i<cnt;i++){
       const a = 2*Math.PI*i/cnt;
-      drawSign(px + R*Math.cos(a), py + R*Math.sin(a), o.q, Math.min(T*0.7, 8));
+      const k = localNode(o, o.x + o.radius*Math.cos(a), o.y + o.radius*Math.sin(a));
+      const s = k >= 0 ? nQ[k] : o.q;
+      if(Math.abs(s) > 1e-4*Math.max(1e-9, o._sumAbs))
+        drawSign(px + R*Math.cos(a), py - R*Math.sin(a), s, Math.min(T*0.7, 8));
     }
   }
   ctx.restore();
 
-  if(sel){
-    ctx.save();
-    ctx.strokeStyle = '#ffc857';
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([5,4]);
-    ctx.beginPath();
-    if(o.type === 'point'){
-      ctx.arc(px, py, BODY.point*cam.ppm + 8, 0, 7);
-    } else if(o.type === 'plate'){
-      ctx.save(); ctx.translate(px, py); ctx.rotate(-o.angle);
-      const L = o.len*cam.ppm + 16, T = BODY.plate*2*cam.ppm + 16;
-      ctx.rect(-L/2, -T/2, L, T);
-      ctx.restore();
-    } else {
-      ctx.arc(px, py, o.radius*cam.ppm + BODY.ring*cam.ppm + 8, 0, 7);
-      ctx.moveTo(px + Math.max(0, o.radius*cam.ppm - BODY.ring*cam.ppm - 8), py);
-      ctx.arc(px, py, Math.max(0, o.radius*cam.ppm - BODY.ring*cam.ppm - 8), 0, 7);
-    }
-    ctx.stroke();
-    ctx.setLineDash([]);
+  if(o.id === selId) drawSelection(o, px, py);
+}
+
+function drawSelection(o, px, py){
+  ctx.save();
+  ctx.strokeStyle = '#ffc857';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([5,4]);
+  ctx.beginPath();
+  if(o.type === 'point'){
+    ctx.arc(px, py, BODY.point*cam.ppm + 8, 0, 7);
+  } else if(o.type === 'plate'){
+    ctx.save(); ctx.translate(px, py); ctx.rotate(-o.angle);
+    const L = o.len*cam.ppm + 16, T = BODY.plate*2*cam.ppm + 16;
+    ctx.rect(-L/2, -T/2, L, T);
     ctx.restore();
+  } else {
+    const rr = BODY[o.type]*cam.ppm;
+    ctx.arc(px, py, o.radius*cam.ppm + rr + 8, 0, 7);
+    const ri = Math.max(0, o.radius*cam.ppm - rr - 8);
+    ctx.moveTo(px + ri, py); ctx.arc(px, py, ri, 0, 7);
   }
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
 }
 
 function roundRect(x,y,w,h,r){
@@ -770,7 +1090,7 @@ function roundRect(x,y,w,h,r){
 }
 
 function drawSign(x, y, q, s){
-  if(Math.abs(q) < 1e-6 || s < 3) return;
+  if(Math.abs(q) < 1e-12 || s < 3) return;
   ctx.save();
   ctx.strokeStyle = '#0b0f18';
   ctx.lineWidth = Math.max(1.4, s*0.22);
@@ -782,33 +1102,50 @@ function drawSign(x, y, q, s){
   ctx.restore();
 }
 
-/* ======================= Ablauf / Scheduling ====================== */
+/* ======================= 10. Ablaufsteuerung ====================== */
 function invalidate(){ dirtyField = true; dirtyRender = true; }
 function repaint(){ dirtyRender = true; }
 
-function frame(){
-  if(dirtyField){
-    buildSubs();
-    computeLines();
-    computeHeat();
-    computeEqui();
-    dirtyField = false;
-    dirtyRender = true;
-    updatePropInfo();
+function recompute(){
+  buildNodes();
+  solveCharges();
+  for(const o of objects){
+    let sum = 0, sm = 0;
+    for(let i=o._n0;i<o._n1;i++){
+      sum += Math.abs(nQ[i]);
+      const s = Math.abs(nQ[i]/nS[i]);
+      if(s > sm) sm = s;
+    }
+    o._sumAbs = sum;
+    o._sigMax = sm;
+    if(!isConductor(o)) o._V = null;
   }
+  computeLines();
+  computeHeat();
+  computeEqui();
+  syncFacts();
+  const wb = $('capwarn');
+  wb.style.display = solverNote ? 'block' : 'none';
+  wb.textContent = solverNote;
+}
+
+function frame(){
+  if(dirtyField){ recompute(); dirtyField = false; dirtyRender = true; }
   if(dirtyRender){ draw(); dirtyRender = false; }
   requestAnimationFrame(frame);
 }
 
-/* ============================= Objekte ============================ */
-function addObject(type, x, y){
-  const o = { id:nextId++, type, x, y, q:10 };
-  if(type === 'plate'){ o.len = 3; o.angle = 0; o.q = 12; }
-  if(type === 'ring') { o.radius = 1.8; o.q = 12; }
+/* ============================ 11. Objekte ========================= */
+function addObject(type, x, y, opts){
+  const o = { id:nextId++, type, x, y, q:10, conductor:true,
+              _n0:0, _n1:0, _outline:[], _sumAbs:0, _sigMax:0, _V:null };
+  if(type === 'plate'){ o.len = 3; o.depth = 3; o.angle = 0; o.q = 12; }
+  if(type === 'ring' || type === 'shell'){ o.radius = 1.8; o.q = 12; }
+  Object.assign(o, opts || {});
   objects.push(o);
   selId = o.id;
-  syncUI();
-  invalidate();
+  syncUI(); invalidate();
+  return o;
 }
 function delObject(id){
   objects = objects.filter(o => o.id !== id);
@@ -817,34 +1154,51 @@ function delObject(id){
 }
 function getSel(){ return objects.find(o => o.id === selId) || null; }
 
-function loadDipol(){
-  objects = [];
-  nextId = 1;
-  addObject('point', -1.8, 0);
-  objects[0].q = 12;
-  addObject('point',  1.8, 0);
-  objects[1].q = -12;
+const PRESETS = {
+  punkt(){
+    addObject('point', 0, 0, { q: 10 });
+  },
+  dipol(){
+    addObject('point', -1.8, 0, { q: 12 });
+    addObject('point',  1.8, 0, { q:-12 });
+  },
+  faraday(){
+    addObject('point', -2.6, 0, { q: 20 });
+    addObject('shell',  1.0, 0, { q: 0, radius: 2.2, conductor: true });
+  },
+  kondensator(){
+    addObject('plate', 0,  0.9, { q: 10, len: 5, depth: 5, angle: 0, conductor: true });
+    addObject('plate', 0, -0.9, { q:-10, len: 5, depth: 5, angle: 0, conductor: true });
+  },
+  influenz(){
+    addObject('point', -1.8, 0, { q: 30 });
+    addObject('plate',  0.4, 0, { q: 0, len: 5, depth: 5, angle: Math.PI/2, conductor: true });
+  }
+};
+function loadPreset(name){
+  objects = []; nextId = 1; selId = null;
+  PRESETS[name]();
   selId = null;
+  cam.cx = 0; cam.cy = 0;
   syncUI(); invalidate();
 }
 
-/* =============================== UI =============================== */
-const $ = id => document.getElementById(id);
-
+/* ============================== 12. UI ============================ */
 document.querySelectorAll('.tool').forEach(el => {
   el.addEventListener('click', () => {
     const t = el.dataset.tool;
     tool = (tool === t) ? null : t;
     document.querySelectorAll('.tool').forEach(x => x.classList.toggle('active', x.dataset.tool === tool));
     $('toolhint').textContent = tool
-      ? 'Jetzt in die Zeichenfläche klicken, um die Ladung zu platzieren.'
+      ? 'Jetzt in die Zeichenfläche klicken, um den Körper zu platzieren.'
       : 'Werkzeug wählen, dann in die Zeichenfläche klicken. Körper anklicken = auswählen, ziehen = verschieben.';
     cv.style.cursor = tool ? 'copy' : 'crosshair';
   });
 });
+document.querySelectorAll('[data-preset]').forEach(b =>
+  b.addEventListener('click', () => loadPreset(b.dataset.preset)));
 
 $('btnClear').addEventListener('click', () => { objects = []; selId = null; syncUI(); invalidate(); });
-$('btnDipol').addEventListener('click', loadDipol);
 $('btnDel').addEventListener('click', () => { if(selId !== null) delObject(selId); });
 
 $('qRange').addEventListener('input', e => {
@@ -860,39 +1214,51 @@ $('qNum').addEventListener('input', e => {
   o.q = v; $('qRange').value = v;
   syncList(); invalidate();
 });
+$('cbCond').addEventListener('change', e => {
+  const o = getSel(); if(!o) return;
+  o.conductor = e.target.checked;
+  syncList(); invalidate();
+});
 $('lenRange').addEventListener('input', e => {
   const o = getSel(); if(!o) return;
   o.len = parseFloat(e.target.value); $('lenVal').textContent = fmt(o.len,2)+' m'; invalidate();
 });
+$('depRange').addEventListener('input', e => {
+  const o = getSel(); if(!o) return;
+  o.depth = parseFloat(e.target.value); $('depVal').textContent = fmt(o.depth,2)+' m'; invalidate();
+});
 $('angRange').addEventListener('input', e => {
   const o = getSel(); if(!o) return;
-  o.angle = parseFloat(e.target.value) * Math.PI/180;
-  $('angVal').textContent = Math.round(parseFloat(e.target.value))+'°'; invalidate();
+  const d = parseFloat(e.target.value);
+  o.angle = d*Math.PI/180; $('angVal').textContent = Math.round(d)+'°'; invalidate();
 });
 $('radRange').addEventListener('input', e => {
   const o = getSel(); if(!o) return;
   o.radius = parseFloat(e.target.value); $('radVal').textContent = fmt(o.radius,2)+' m'; invalidate();
 });
 $('lpc').addEventListener('input', e => {
-  $('lpcVal').textContent = fmt(parseFloat(e.target.value),2);
-  invalidate();
+  $('lpcVal').textContent = fmt(parseFloat(e.target.value),2); invalidate();
 });
 ['cbLines','cbArrows','cbHeat','cbEqui','cbVec'].forEach(id => $(id).addEventListener('change', invalidate));
-$('cbGrid').addEventListener('change', repaint);
+['cbGrid','cbSigma'].forEach(id => $(id).addEventListener('change', repaint));
 
 function fmt(v, d){ return v.toFixed(d).replace('.', ','); }
 
-const TYPE_NAME = { point:'Punktladung', plate:'Flächenladung', ring:'Ringladung' };
+const TYPE_NAME = { point:'Punktladung', plate:'Flächenladung', ring:'Ring', shell:'Hohlkugel' };
 
 function syncList(){
   const box = $('objlist');
-  if(!objects.length){ box.innerHTML = '<div class="empty">Noch keine Ladungen. Oben ein Werkzeug wählen.</div>'; return; }
+  if(!objects.length){
+    box.innerHTML = '<div class="empty">Noch keine Ladungen. Werkzeug wählen oder einen Aufbau laden.</div>';
+    return;
+  }
   box.innerHTML = '';
   for(const o of objects){
     const d = document.createElement('div');
     d.className = 'item' + (o.id === selId ? ' sel' : '');
     d.innerHTML = '<span class="dot" style="background:'+signColor(o.q)+'"></span>'
                 + '<span class="nm">'+TYPE_NAME[o.type]+'</span>'
+                + (isConductor(o) ? '<span class="lt">Leiter</span>' : '')
                 + '<span class="qq">'+(o.q>0?'+':'')+fmt(o.q,1)+' nC</span>'
                 + '<span class="del" title="löschen">&times;</span>';
     d.addEventListener('click', ev => {
@@ -910,33 +1276,55 @@ function syncProps(){
   if(!o) return;
   $('qRange').value = o.q;
   $('qNum').value   = o.q;
+  $('condWrap').style.display = o.type === 'point' ? 'none' : 'flex';
+  $('cbCond').checked = !!o.conductor;
   $('geoPlate').style.display = o.type === 'plate' ? 'block' : 'none';
-  $('geoRing').style.display  = o.type === 'ring'  ? 'block' : 'none';
+  $('geoRad').style.display   = (o.type === 'ring' || o.type === 'shell') ? 'block' : 'none';
   if(o.type === 'plate'){
-    $('lenRange').value = o.len; $('lenVal').textContent = fmt(o.len,2)+' m';
+    $('lenRange').value = o.len;   $('lenVal').textContent = fmt(o.len,2)+' m';
+    $('depRange').value = o.depth; $('depVal').textContent = fmt(o.depth,2)+' m';
     const deg = (o.angle*180/Math.PI + 360) % 360;
-    $('angRange').value = deg;   $('angVal').textContent = Math.round(deg)+'°';
+    $('angRange').value = deg;     $('angVal').textContent = Math.round(deg)+'°';
   }
-  if(o.type === 'ring'){
+  if(o.type === 'ring' || o.type === 'shell'){
     $('radRange').value = o.radius; $('radVal').textContent = fmt(o.radius,2)+' m';
   }
-  updatePropInfo();
+  syncFacts();
 }
 
-function updatePropInfo(){
+function syncFacts(){
   const o = getSel();
-  if(!o) return;
-  $('nLines').textContent = lineCount(o);
-  let s = '–';
-  if(o.type === 'point')  s = fmt(o.q,1) + ' nC';
-  if(o.type === 'plate')  s = fmt(o.q/o.len, 2) + ' nC/m';
-  if(o.type === 'ring')   s = fmt(o.q/(2*Math.PI*o.radius), 2) + ' nC/m';
-  $('densVal').textContent = s;
+  if(!o){ return; }
+  const el = $('facts');
+  const rows = [];
+  const nCount = o._n1 - o._n0;
+  rows.push('Feldlinien: <b>' + Math.min(200, Math.round(o._sumAbs*lpcVal())) + '</b>');
+  if(o.type !== 'point') rows.push('Teilladungen: <b>' + nCount + '</b>');
+
+  if(o.type === 'plate'){
+    rows.push('Fläche: <b>' + fmt(o.len*o.depth,2) + ' m²</b>');
+    if(o._sigMax > 0) rows.push('|&sigma;|<sub>max</sub>: <b>' + fmt(o._sigMax,3) + ' nC/m²</b>');
+    if(o.len*o.depth > 0) rows.push('&sigma;<sub>mittel</sub>: <b>' + fmt(o.q/(o.len*o.depth),3) + ' nC/m²</b>');
+  } else if(o.type === 'shell'){
+    const A = 4*Math.PI*o.radius*o.radius;
+    rows.push('Kugelfläche: <b>' + fmt(A,2) + ' m²</b>');
+    rows.push('&sigma;<sub>mittel</sub>: <b>' + fmt(o.q/A,3) + ' nC/m²</b>');
+  } else if(o.type === 'ring'){
+    rows.push('Umfang: <b>' + fmt(2*Math.PI*o.radius,2) + ' m</b>');
+    rows.push('&lambda;<sub>mittel</sub>: <b>' + fmt(o.q/(2*Math.PI*o.radius),3) + ' nC/m</b>');
+  }
+  if(isConductor(o)){
+    if(o._V !== null && o._V !== undefined)
+      rows.push('Leiterpotential: <b>' + sci(o._V) + ' V</b>');
+    const ind = (o._sumAbs - Math.abs(o.q))/2;
+    if(ind > 1e-4) rows.push('getrennte Influenzladung: <b>&plusmn;' + fmt(ind,2) + ' nC</b>');
+  }
+  el.innerHTML = rows.join('<br>');
 }
 
 function syncUI(){ syncList(); syncProps(); }
 
-/* ========================= Maus / Zeiger ========================== */
+/* ======================= 13. Maus / Zeiger ======================== */
 function evPos(e){
   const r = cv.getBoundingClientRect();
   return [e.clientX - r.left, e.clientY - r.top];
@@ -948,13 +1336,14 @@ cv.addEventListener('pointerdown', e => {
   moved = false;
   cv.setPointerCapture(e.pointerId);
 
-  if(tool){                                     // Platzieren
+  if(tool){
     addObject(tool, wx, wy);
+    const t = tool;
     tool = null;
     document.querySelectorAll('.tool').forEach(x => x.classList.remove('active'));
     $('toolhint').textContent = 'Werkzeug wählen, dann in die Zeichenfläche klicken. Körper anklicken = auswählen, ziehen = verschieben.';
     cv.style.cursor = 'crosshair';
-    toast('Ladung platziert – jetzt Q einstellen oder verschieben.');
+    toast(TYPE_NAME[t] + ' platziert – Q einstellen, verschieben oder Leiter umschalten.');
     return;
   }
   const hit = pickObj(wx, wy, 0.10);
@@ -974,7 +1363,6 @@ cv.addEventListener('pointerdown', e => {
 cv.addEventListener('pointermove', e => {
   const [sx, sy] = evPos(e);
   mouseW = [s2wx(sx), s2wy(sy)];
-
   if(dragObj){
     moved = true;
     dragObj.x = mouseW[0] - dragOff[0];
@@ -982,8 +1370,8 @@ cv.addEventListener('pointermove', e => {
     invalidate();
   } else if(panning){
     moved = true;
-    cam.cx = panStart[2] - (sx - panStart[0]) / cam.ppm;
-    cam.cy = panStart[3] + (sy - panStart[1]) / cam.ppm;
+    cam.cx = panStart[2] - (sx - panStart[0])/cam.ppm;
+    cam.cy = panStart[3] + (sy - panStart[1])/cam.ppm;
     invalidate();
   } else if(!tool){
     cv.style.cursor = pickObj(mouseW[0], mouseW[1], 0.10) ? 'grab' : 'crosshair';
@@ -996,11 +1384,9 @@ function endDrag(e){
   if(dragObj || panning){
     dragObj = null; panning = false;
     cv.style.cursor = tool ? 'copy' : 'crosshair';
-    if(wasDrag) invalidate();        // volle Qualität neu berechnen
-    else invalidate();
+    invalidate();                       // in voller Qualität neu rechnen
   }
-  if(!moved && !wasDrag && !tool){
-    // Klick ins Leere -> Auswahl aufheben
+  if(!moved && !wasDrag && !tool && e && e.clientX !== undefined){
     const [sx, sy] = evPos(e);
     if(!pickObj(s2wx(sx), s2wy(sy), 0.10)){ selId = null; syncUI(); repaint(); }
   }
@@ -1013,8 +1399,7 @@ cv.addEventListener('wheel', e => {
   e.preventDefault();
   const [sx, sy] = evPos(e);
   const bx = s2wx(sx), by = s2wy(sy);
-  const f = e.deltaY < 0 ? 1.12 : 1/1.12;
-  cam.ppm = Math.max(10, Math.min(300, cam.ppm * f));
+  cam.ppm = Math.max(10, Math.min(300, cam.ppm * (e.deltaY < 0 ? 1.12 : 1/1.12)));
   cam.cx = bx - (sx - W/2)/cam.ppm;
   cam.cy = by + (sy - H/2)/cam.ppm;
   invalidate();
@@ -1032,10 +1417,10 @@ window.addEventListener('keydown', e => {
   else if(e.key === 'ArrowDown'){  o.y -= st; invalidate(); e.preventDefault(); }
 });
 
-/* ============================ Anzeige ============================= */
+/* ============================ 14. Anzeige ========================= */
 function updateReadout(){
   const el = $('readout');
-  if(!mouseW || !subs.length){
+  if(!mouseW || N === 0){
     el.innerHTML = '<span class="k">Messsonde:</span> Maus über die Zeichenfläche bewegen';
     return;
   }
@@ -1043,7 +1428,7 @@ function updateReadout(){
   fieldAt(x, y);
   const E = Math.hypot(_ex, _ey);
   const V = potentialAt(x, y);
-  const ang = (Math.atan2(_ey, _ex) * 180/Math.PI + 360) % 360;
+  const ang = (Math.atan2(_ey, _ex)*180/Math.PI + 360) % 360;
   el.innerHTML =
     '<span class="k">Position</span> <span class="v">x = ' + fmt(x,2) + ' m, y = ' + fmt(y,2) + ' m</span><br>' +
     '<span class="k">Feldstärke</span> <span class="v">|E| = ' + sci(E) + ' V/m</span> <span class="k">bei</span> <span class="v">' + Math.round(ang) + '°</span><br>' +
@@ -1070,10 +1455,10 @@ function toast(msg){
   t.textContent = msg;
   t.classList.add('show');
   clearTimeout(toastT);
-  toastT = setTimeout(() => t.classList.remove('show'), 2200);
+  toastT = setTimeout(() => t.classList.remove('show'), 2400);
 }
 
-/* ============================= Start ============================== */
+/* ============================= 15. Start ========================== */
 function resize(){
   const r = cv.parentElement.getBoundingClientRect();
   DPR = Math.min(window.devicePixelRatio || 1, 2);
@@ -1089,7 +1474,7 @@ function resize(){
 window.addEventListener('resize', resize);
 
 resize();
-loadDipol();
+loadPreset('punkt');
 updateReadout();
 requestAnimationFrame(frame);
 </script>
