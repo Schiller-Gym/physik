@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Influenz und Polarisation</title>
+<style>
+  :root{
+    --bg:#0b0f18;
+    --panel:#131a27;
+    --panel2:#1a2233;
+    --line:#26314a;
+    --text:#e6ecf7;
+    --muted:#8b98b3;
+    --pos:#ff5c6c;
+    --neg:#4da3ff;
+    --accent:#ffc857;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+    display:flex;overflow:hidden;
+  }
+
+  #sidebar{
+    width:330px;min-width:330px;height:100%;
+    background:var(--panel);border-right:1px solid var(--line);
+    overflow-y:auto;padding:16px 16px 40px;
+  }
+  #sidebar::-webkit-scrollbar{width:9px;}
+  #sidebar::-webkit-scrollbar-thumb{background:#2a3550;border-radius:5px;}
+
+  h1{font-size:17px;margin:0 0 2px;letter-spacing:.2px;}
+  .sub{font-size:12px;color:var(--muted);margin-bottom:16px;}
+
+  .group{
+    background:var(--panel2);border:1px solid var(--line);
+    border-radius:10px;padding:12px;margin-bottom:12px;
+  }
+  .group > h2{
+    font-size:11px;text-transform:uppercase;letter-spacing:1.1px;
+    color:var(--muted);margin:0 0 10px;font-weight:600;
+  }
+
+  .seg{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+  .seg button{
+    background:#212c42;border:1px solid #2f3b58;color:var(--text);
+    border-radius:8px;padding:8px 4px;cursor:pointer;font-size:12px;transition:.13s;
+  }
+  .seg button:hover{background:#2a3855;}
+  .seg button.on{background:#2f4a7a;border-color:#4d7fd0;box-shadow:0 0 0 1px #4d7fd055;}
+
+  .btn{
+    width:100%;background:#212c42;border:1px solid #2f3b58;color:var(--text);
+    border-radius:8px;padding:9px;cursor:pointer;font-size:12.5px;transition:.13s;
+  }
+  .btn:hover{background:#2a3855;}
+  .btn.on{background:#2c4a35;border-color:#4d9d6a;color:#c9f0d8;}
+
+  .row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}
+  .row label{font-size:12.5px;color:#c3cde0;}
+  .val{font-size:12px;color:var(--accent);font-variant-numeric:tabular-nums;}
+
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:4px;
+    background:#2c3752;border-radius:3px;outline:none;margin:4px 0 10px;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+    background:var(--accent);cursor:pointer;border:2px solid #1a2233;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:13px;height:13px;border-radius:50%;background:var(--accent);
+    cursor:pointer;border:2px solid #1a2233;
+  }
+  input[type=range]:disabled::-webkit-slider-thumb{background:#4a556e;}
+  input[type=range]:disabled{opacity:.45;}
+
+  .check{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12.5px;color:#c3cde0;cursor:pointer;}
+  .check:last-child{margin-bottom:0;}
+  .check input{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;}
+
+  .legend{font-size:11.5px;color:var(--muted);line-height:1.7;}
+  .legend b{color:#c3cde0;font-weight:600;}
+  .legend .f{color:var(--accent);font-variant-numeric:tabular-nums;}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px;}
+  .note{
+    background:#22283a;border-left:3px solid #4d7fd0;
+    padding:7px 9px;border-radius:0 6px 6px 0;margin-top:9px;
+    font-size:11.5px;line-height:1.6;color:#a9b6cf;
+  }
+
+  #stage{flex:1;position:relative;height:100%;min-width:0;}
+  canvas{display:block;position:absolute;inset:0;touch-action:none;}
+  #probe{
+    position:absolute;left:12px;bottom:12px;
+    background:rgba(11,15,24,.85);border:1px solid var(--line);
+    border-radius:8px;padding:8px 11px;font-size:11.5px;
+    color:#c3cde0;font-variant-numeric:tabular-nums;
+    pointer-events:none;line-height:1.6;
+  }
+  #probe .k{color:var(--muted);}
+  #probe .v{color:var(--accent);}
+
+  @media (max-width:900px){
+    body{flex-direction:column;overflow:auto;}
+    #sidebar{width:100%;min-width:0;height:auto;max-height:46vh;border-right:none;border-bottom:1px solid var(--line);}
+    #stage{height:54vh;flex:none;}
+  }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <h1>Influenz und Polarisation</h1>
+  <div class="sub">Kugel im homogenen Außenfeld &middot; exakte Lösung</div>
+
+  <div class="group">
+    <h2>Ansicht</h2>
+    <div class="seg" id="modeSeg">
+      <button data-mode="compare" class="on">Vergleich</button>
+      <button data-mode="single">Einzeln</button>
+    </div>
+    <div class="seg" id="matSeg" style="margin-top:7px;display:none">
+      <button data-mat="metal" class="on">Leiter</button>
+      <button data-mat="diel">Nichtleiter</button>
+    </div>
+  </div>
+
+  <div class="group">
+    <h2>Äußeres Feld</h2>
+    <div class="row"><label>Feldstärke E₀</label><span class="val" id="e0Val">800 V/m</span></div>
+    <input type="range" id="e0" min="0" max="2000" step="25" value="800">
+    <div class="note">E₀ zeigt nach rechts, von der positiven zur negativen Platte.</div>
+  </div>
+
+  <div class="group">
+    <h2>Ladungsverschiebung</h2>
+    <button class="btn on" id="btnField">Zustand: Gleichgewicht</button>
+    <div class="note" id="stateNote">Umschalten zeigt den <b>Anfangszustand</b> unmittelbar nach dem Einschalten des Feldes – die Ladungen sind noch unverschoben und das Feld geht ungestört durch den Körper. Der Übergang läuft als Animation ab, im <b>Leiter deutlich schneller</b>: dort sind die Ladungsträger frei beweglich.</div>
+  </div>
+
+  <div class="group">
+    <h2>Material</h2>
+    <div class="row"><label>Permittivitätszahl ε<sub>r</sub></label><span class="val" id="erVal">5,0</span></div>
+    <input type="range" id="er" min="1" max="20" step="0.1" value="5">
+    <div class="legend" id="matInfo"></div>
+  </div>
+
+  <div class="group">
+    <h2>Darstellung</h2>
+    <label class="check"><input type="checkbox" id="cbAtoms" checked> Atome / Ladungsträger im Körper</label>
+    <label class="check"><input type="checkbox" id="cbDipole" checked> Dipolmomente als Pfeile</label>
+    <label class="check"><input type="checkbox" id="cbSurf" checked> Oberflächenladung einfärben</label>
+    <label class="check"><input type="checkbox" id="cbLines" checked> Feldlinien</label>
+    <label class="check"><input type="checkbox" id="cbEqui"> Äquipotentiallinien</label>
+    <label class="check"><input type="checkbox" id="cbLabels" checked> Beschriftung und Messwerte</label>
+    <div class="row" style="margin-top:10px"><label>Gitterdichte</label><span class="val" id="gridVal">7 Reihen</span></div>
+    <input type="range" id="grid" min="5" max="11" step="2" value="7">
+    <div class="row"><label>Kugelradius R</label><span class="val" id="radVal">1,50 m</span></div>
+    <input type="range" id="rad" min="0.8" max="2.2" step="0.05" value="1.5">
+  </div>
+
+  <div class="group">
+    <h2>Der Unterschied</h2>
+    <div class="legend">
+      <b style="color:#ff9aa4">Leiter</b> – die Elektronen sind <b>frei beweglich</b>. Sie verlassen ihr Atom und wandern bis an die Oberfläche. Dort bleiben sie liegen, bis ihr eigenes Feld das äußere im Inneren <b>vollständig aufhebt</b>: E<sub>innen</sub>&nbsp;=&nbsp;0.<br><br>
+
+      <b style="color:#9ad0ff">Nichtleiter</b> – die Elektronen bleiben an ihr Atom <b>gebunden</b>. Die Elektronenhülle verschiebt sich nur ein Stück gegen den Kern: jedes Atom wird zum <b>Dipol</b>. Das Feld wird dadurch nur <b>geschwächt</b>, nicht aufgehoben.<br><br>
+
+      In beiden Fällen heben sich die Ladungen im Inneren gegenseitig auf – übrig bleibt nur eine <b>Ladung an der Oberfläche</b>:
+      <span class="sw" style="background:var(--neg)"></span>negativ dort, wo das Feld eintritt,
+      <span class="sw" style="background:var(--pos)"></span>positiv dort, wo es austritt.
+    </div>
+    <div class="note" id="physNote"></div>
+  </div>
+
+  <div class="group">
+    <h2>Physik</h2>
+    <div class="legend">
+      Für die Kugel im homogenen Feld gilt exakt mit
+      <span class="f">&beta; = (ε<sub>r</sub>−1)/(ε<sub>r</sub>+2)</span>:<br><br>
+      innen homogen: <span class="f">E<sub>i</sub> = (1−&beta;)·E₀ = 3E₀/(ε<sub>r</sub>+2)</span><br>
+      außen: E₀ plus ein <b>Dipolfeld</b> mit
+      <span class="f">p = 4πε₀R³&beta;E₀</span><br>
+      Oberfläche: <span class="f">σ = 3ε₀&beta;E₀·cos&thinsp;θ</span><br><br>
+      Der Leiter ist der Grenzfall <span class="f">ε<sub>r</sub> → ∞</span>, also &beta;&nbsp;=&nbsp;1 und E<sub>i</sub>&nbsp;=&nbsp;0. Beide Fälle folgen damit <b>derselben Formel</b>.<br><br>
+      Der Faktor 3 im Nenner ist der Entelektrisierungsfaktor 1/3 der Kugel – bei einer Platte senkrecht zum Feld stünde dort E₀/ε<sub>r</sub>.
+    </div>
+    <div class="note">Die gezeichnete <b>Verschiebung der Ladungsträger ist stark überhöht</b>, damit sie sichtbar wird. Alle angezeigten Messwerte (E<sub>i</sub>, σ, p) sind dagegen exakt.</div>
+  </div>
+</div>
+
+<div id="stage">
+  <canvas id="cv"></canvas>
+  <div id="probe"></div>
+</div>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   Kugel (Radius R) im homogenen Außenfeld E0 = E0*x̂.
+   Mit beta = (er-1)/(er+2), Leiter: beta = 1
+       innen : E = (1-beta)*E0*x̂                      (homogen!)
+       außen : E = E0*x̂ + beta*R³*[3(E0·r̂)r̂ - E0*x̂]/r³   (reines Dipolfeld)
+       V     : innen -(1-beta)E0*x ,  außen -E0*x*(1 - beta*R³/r³)
+       Fläche: sigma = 3*eps0*beta*E0*cos(theta)
+   ===================================================================== */
+const EPS0 = 8.8541878128e-12;
+const SIG_UNIT = 3*EPS0*1e9;            // sigma in nC/m² je (beta*E0)
+
+const cv  = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1;
+
+const state = {
+  mode:'compare', mat:'metal',
+  e0:800, er:5, R:1.5,
+  rows:7, fieldOn:true
+};
+
+const panels = [
+  { key:'metal', anim:1, label:'Leiter (Metall)',        tau:0.28 },
+  { key:'diel',  anim:1, label:'Nichtleiter (Dielektrikum)', tau:0.75 }
+];
+
+let probeInfo = null;
+const $ = id => document.getElementById(id);
+
+/* ------------------------- Physik der Panels --------------------- */
+function betaMax(p){
+  return p.key === 'metal' ? 1 : (state.er - 1)/(state.er + 2);
+}
+function beta(p){ return betaMax(p)*p.anim; }
+function Ein(p){ return (1 - beta(p))*state.e0; }
+function sigma0(p){ return SIG_UNIT*beta(p)*state.e0; }          // nC/m²
+function dipoleP(p){ return 4*Math.PI*EPS0*Math.pow(state.R,3)*beta(p)*state.e0; }  // C*m
+
+function fieldAt(p, x, y){
+  const b = beta(p), E0 = state.e0, R = state.R;
+  const r2 = x*x + y*y;
+  if(r2 <= R*R) return [(1-b)*E0, 0];
+  const r = Math.sqrt(r2);
+  const k = b*R*R*R;
+  const r3 = r2*r, r5 = r2*r2*r;
+  return [ E0*(1 - k/r3 + 3*k*x*x/r5), E0*(3*k*x*y/r5) ];
+}
+
+function potAt(p, x, y){
+  const b = beta(p), E0 = state.e0, R = state.R;
+  const r2 = x*x + y*y;
+  if(r2 <= R*R) return -(1-b)*E0*x;
+  const r = Math.sqrt(r2);
+  return -E0*x*(1 - b*R*R*R/(r2*r));
+}
+
+/* --------------------------- Geometrie --------------------------- */
+const VIEW_W = 8.4, VIEW_H = 6.2;       // dargestellter Weltausschnitt (m)
+const PLATE_X = 3.7;                    // Position der Kondensatorplatten
+
+function layout(){
+  const list = [];
+  if(state.mode === 'compare'){
+    const w = W/2;
+    list.push(mkView(panels[0], 0, 0, w, H));
+    list.push(mkView(panels[1], w, 0, W-w, H));
+  } else {
+    const p = state.mat === 'metal' ? panels[0] : panels[1];
+    list.push(mkView(p, 0, 0, W, H));
+  }
+  return list;
+}
+function mkView(p, x, y, w, h){
+  const ppm = Math.min(w/VIEW_W, h/VIEW_H);
+  return { p, x, y, w, h, ppm, cx:x + w/2, cy:y + h/2 };
+}
+const sx = (v,wx) => v.cx + wx*v.ppm;
+const sy = (v,wy) => v.cy - wy*v.ppm;
+const wx = (v,px) => (px - v.cx)/v.ppm;
+const wy = (v,py) => (v.cy - py)/v.ppm;
+
+/* ===================== Feldlinien konstruieren ====================
+   Außen wird integriert, innen ist das Feld homogen -> waagerechte
+   Sehnen. Der Linienabstand innen ist s/(1-beta): dadurch stellt die
+   Liniendichte die geschwächte Feldstärke richtig dar, und beim Leiter
+   (beta = 1) verschwinden die inneren Linien ganz.
+   Beide Raster haben denselben Ursprung y = 0, deshalb gehen die Linien
+   bei beta = 0 stufenlos ineinander über.                          */
+const LINE_STEP = 0.40;
+
+/* Erster Schnittpunkt der Strecke mit dem Kreis r = R, sonst -1 */
+function segCircle(x0, y0, x1, y1, R){
+  const dx = x1-x0, dy = y1-y0;
+  const a = dx*dx + dy*dy;
+  if(a < 1e-18) return -1;
+  const c = x0*x0 + y0*y0 - R*R;
+  if(c <= 0) return 0;                       // Startpunkt liegt schon im Körper
+  const b = 2*(x0*dx + y0*dy);
+  const disc = b*b - 4*a*c;
+  if(disc < 0) return -1;
+  const t = (-b - Math.sqrt(disc))/(2*a);
+  return (t > 0 && t <= 1) ? t : -1;
+}
+
+function traceOut(v, x0, y0, dir){
+  const p = v.p, R = state.R, h = 0.05;
+  const pts = [x0, y0];
+  let x = x0, y = y0, hitBody = false;
+  for(let i=0;i<1400;i++){
+    const [ex, ey] = fieldAt(p, x, y);
+    const m = Math.hypot(ex, ey);
+    if(!isFinite(m) || m < 1e-9) break;
+    let nx, ny;
+    const mx = x + dir*ex/m*h*0.5, my = y + dir*ey/m*h*0.5;
+    if(mx*mx + my*my <= R*R){
+      // Der Halbschritt liegt bereits im Körper. Dort ist das Feld im Leiter
+      // exakt null – mit dem Mittelpunktwert würde die Linie hier abbrechen,
+      // statt die Oberfläche zu erreichen. Deshalb der einfache Euler-Schritt.
+      nx = x + dir*ex/m*h;  ny = y + dir*ey/m*h;
+    } else {
+      const [e2x, e2y] = fieldAt(p, mx, my);
+      const m2 = Math.hypot(e2x, e2y);
+      if(!isFinite(m2) || m2 < 1e-9) break;
+      nx = x + dir*e2x/m2*h;  ny = y + dir*e2y/m2*h;
+    }
+    const t = segCircle(x, y, nx, ny, R);
+    if(t >= 0){                                       // endet exakt auf der Oberfläche
+      pts.push(x + (nx-x)*t, y + (ny-y)*t);
+      hitBody = true;
+      break;
+    }
+    x = nx; y = ny;
+    pts.push(x, y);
+    if(x < -PLATE_X || x > PLATE_X) break;
+    if(Math.abs(y) > VIEW_H) break;
+  }
+  return { pts, hitBody };
+}
+
+function computeLines(v){
+  const out = [];
+  const R = state.R, b = beta(v.p);
+  const jmax = Math.floor(VIEW_H/2/LINE_STEP);
+  for(let j=-jmax;j<=jmax;j++){
+    const y = j*LINE_STEP;
+    // vorwärts von der positiven Platte: Punktreihenfolge = Feldrichtung
+    out.push({ pts: traceOut(v, -PLATE_X + 0.03, y, +1).pts, dir:+1 });
+    // rückwärts von der negativen Platte, damit die Linie sauber auf der
+    // Oberfläche endet. Die Punkte laufen dabei dem Feld entgegen -> dir = -1.
+    const back = traceOut(v, +PLATE_X - 0.03, y, -1);
+    // Erreicht sie die andere Platte, ist sie mit der Vorwärtslinie identisch
+    // und würde nur doppelt gezeichnet.
+    if(back.hitBody) out.push({ pts: back.pts, dir:-1 });
+  }
+  if(b < 0.999){
+    const sIn = LINE_STEP/(1 - b);
+    const kmax = Math.floor(R/sIn);
+    for(let k=-kmax;k<=kmax;k++){
+      const y = k*sIn;
+      const xh = Math.sqrt(Math.max(0, R*R - y*y));
+      if(xh < 0.02) continue;
+      out.push({ pts:[-xh, y, xh, y], dir:+1, inner:true });
+    }
+  }
+  return out;
+}
+
+/* ===================== Atomgitter im Körper ======================= */
+function lattice(){
+  const R = state.R, rows = state.rows;
+  const a = 2*R/rows;                                  // Gitterkonstante
+  const dy = a*Math.sqrt(3)/2;
+  const sites = [];
+  const jm = Math.ceil(R/dy) + 1;
+  for(let j=-jm;j<=jm;j++){
+    const y = j*dy;
+    const off = (j % 2 === 0) ? 0 : a/2;
+    const im = Math.ceil(R/a) + 1;
+    for(let i=-im;i<=im;i++){
+      const x = i*a + off;
+      if(x*x + y*y <= (R - 0.16*a)*(R - 0.16*a)) sites.push([x, y]);
+    }
+  }
+  return { sites, a };
+}
+
+/* ============================ Zeichnen ============================ */
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#0b0f18';
+  ctx.fillRect(0,0,W,H);
+  const views = layout();
+  for(const v of views) drawView(v);
+  if(views.length === 2){
+    ctx.strokeStyle = '#26314a';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(W/2+.5, 0); ctx.lineTo(W/2+.5, H); ctx.stroke();
+  }
+}
+
+function drawView(v){
+  ctx.save();
+  ctx.beginPath(); ctx.rect(v.x, v.y, v.w, v.h); ctx.clip();
+
+  drawPlates(v);
+  if($('cbEqui').checked) drawEqui(v);
+  if($('cbLines').checked) drawLines(v);
+  drawBody(v);
+  if($('cbAtoms').checked) drawMatter(v);
+  if($('cbLabels').checked) drawLabels(v);
+
+  ctx.restore();
+}
+
+function drawPlates(v){
+  const on = state.e0 > 0;
+  for(const s of [-1, 1]){
+    const px = sx(v, s*PLATE_X);
+    const g = ctx.createLinearGradient(px, 0, px - s*46, 0);
+    const col = s < 0 ? '255,92,108' : '77,163,255';
+    g.addColorStop(0, 'rgba('+col+','+(on?0.30:0.06)+')');
+    g.addColorStop(1, 'rgba('+col+',0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(s < 0 ? px : px-46, v.y, 46, v.h);
+    ctx.fillStyle = s < 0 ? '#ff5c6c' : '#4da3ff';
+    ctx.globalAlpha = on ? 1 : 0.35;
+    ctx.fillRect(s < 0 ? px : px - 3, v.y + 10, 3, v.h - 20);
+    // Ladungszeichen auf der Platte
+    ctx.globalAlpha = on ? 0.9 : 0.3;
+    const n = Math.max(3, Math.floor((v.h-40)/44));
+    for(let i=0;i<n;i++){
+      const yy = v.y + 24 + (v.h-48)*(i+0.5)/n;
+      sign(px + (s<0 ? 12 : -12), yy, s < 0 ? +1 : -1, 9, s < 0 ? '#ff5c6c' : '#4da3ff');
+    }
+    ctx.globalAlpha = 1;
+  }
+  // E0-Pfeil
+  if(on){
+    const yy = v.y + v.h - 26;
+    const x1 = sx(v, -1.1), x2 = sx(v, 1.1);
+    ctx.strokeStyle = 'rgba(255,200,87,.55)';
+    ctx.fillStyle = 'rgba(255,200,87,.55)';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(x1, yy); ctx.lineTo(x2-7, yy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x2, yy); ctx.lineTo(x2-9, yy-4.5); ctx.lineTo(x2-9, yy+4.5);
+    ctx.closePath(); ctx.fill();
+    ctx.font = '12px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText('E₀', (x1+x2)/2, yy - 8);
+    ctx.textAlign = 'left';
+  }
+}
+
+function drawEqui(v){
+  if(state.e0 <= 0) return;
+  const step = 9;
+  const nx = Math.ceil(v.w/step)+1, ny = Math.ceil(v.h/step)+1;
+  const g = new Float32Array(nx*ny);
+  for(let j=0;j<ny;j++)
+    for(let i=0;i<nx;i++)
+      g[j*nx+i] = potAt(v.p, wx(v, v.x + i*step), wy(v, v.y + j*step));
+  const Vmax = state.e0*PLATE_X;
+  const levels = [];
+  for(let k=-9;k<=9;k++) levels.push(k*Vmax/10);
+  const ip = (a,b,L) => (L-a)/(b-a);
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(160,180,215,0.22)';
+  ctx.beginPath();
+  for(const L of levels){
+    for(let j=0;j<ny-1;j++){
+      for(let i=0;i<nx-1;i++){
+        const a = g[j*nx+i], b2 = g[j*nx+i+1], c = g[(j+1)*nx+i+1], d = g[(j+1)*nx+i];
+        let idx = 0;
+        if(a > L) idx |= 1;
+        if(b2> L) idx |= 2;
+        if(c > L) idx |= 4;
+        if(d > L) idx |= 8;
+        if(idx === 0 || idx === 15) continue;
+        const x0 = v.x + i*step, y0 = v.y + j*step;
+        const e0 = [x0 + step*ip(a,b2,L), y0];
+        const e1 = [x0 + step,            y0 + step*ip(b2,c,L)];
+        const e2 = [x0 + step*ip(d,c,L),  y0 + step];
+        const e3 = [x0,                   y0 + step*ip(a,d,L)];
+        const seg = (m,n) => { ctx.moveTo(m[0],m[1]); ctx.lineTo(n[0],n[1]); };
+        switch(idx){
+          case 1: case 14: seg(e3,e0); break;
+          case 2: case 13: seg(e0,e1); break;
+          case 3: case 12: seg(e3,e1); break;
+          case 4: case 11: seg(e1,e2); break;
+          case 6: case 9:  seg(e0,e2); break;
+          case 7: case 8:  seg(e2,e3); break;
+          case 5:  seg(e3,e0); seg(e1,e2); break;
+          case 10: seg(e0,e1); seg(e2,e3); break;
+        }
+      }
+    }
+  }
+  ctx.stroke();
+}
+
+function drawLines(v){
+  const ls = computeLines(v);
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  ctx.lineWidth = 1.2;
+  ctx.strokeStyle = 'rgba(230,238,255,0.55)';
+  ctx.beginPath();
+  for(const l of ls){
+    const p = l.pts;
+    ctx.moveTo(sx(v,p[0]), sy(v,p[1]));
+    for(let i=2;i<p.length;i+=2) ctx.lineTo(sx(v,p[i]), sy(v,p[i+1]));
+  }
+  ctx.stroke();
+  // Richtungspfeile
+  ctx.fillStyle = 'rgba(230,238,255,0.8)';
+  for(const l of ls){
+    const p = l.pts, n = p.length/2;
+    if(n < 3) continue;
+    const idx = l.inner ? [0] : [Math.round(n*0.3), Math.round(n*0.7)];
+    for(const i0 of idx){
+      const i = Math.max(0, Math.min(n-2, i0));
+      const x1 = sx(v,p[2*i]),   y1 = sy(v,p[2*i+1]);
+      const x2 = sx(v,p[2*i+2]), y2 = sy(v,p[2*i+3]);
+      let dx = x2-x1, dy = y2-y1;
+      const m = Math.hypot(dx,dy);
+      if(m < 0.5) continue;
+      // Punktreihenfolge ist nicht immer die Feldrichtung: dir korrigiert das
+      dx = dx/m*l.dir; dy = dy/m*l.dir;
+      const cxp = l.inner ? (x1+x2)/2 : x1, cyp = l.inner ? (y1+y2)/2 : y1;
+      ctx.beginPath();
+      ctx.moveTo(cxp + dx*5.2, cyp + dy*5.2);
+      ctx.lineTo(cxp - dy*2.8, cyp + dx*2.8);
+      ctx.lineTo(cxp + dy*2.8, cyp - dx*2.8);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+}
+
+function surfColor(t, alpha){        // t in [-1,1]
+  const s = Math.sign(t)*Math.pow(Math.abs(t), 0.65);
+  const r = Math.round(139 + (s > 0 ?  s*(255-139) : -s*(77-139)));
+  const g = Math.round(152 + (s > 0 ?  s*(92-152)  : -s*(163-152)));
+  const b = Math.round(179 + (s > 0 ?  s*(108-179) : -s*(255-179)));
+  return 'rgba('+r+','+g+','+b+','+alpha+')';
+}
+
+function drawBody(v){
+  const R = state.R*v.ppm;
+  const cx = sx(v,0), cy = sy(v,0);
+  const metal = v.p.key === 'metal';
+
+  ctx.fillStyle = metal ? 'rgba(150,170,200,0.10)' : 'rgba(120,150,210,0.07)';
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.fill();
+
+  const b = beta(v.p);
+  if($('cbSurf').checked && b > 1e-4){
+    const T = Math.max(4, R*0.075);
+    ctx.lineWidth = T;
+    const seg = 120;
+    for(let i=0;i<seg;i++){
+      const a0 = 2*Math.PI*i/seg, a1 = 2*Math.PI*(i+1.0001)/seg;
+      const th = (a0+a1)/2;                       // Weltwinkel
+      // Intensität skaliert mit beta: schwache Polarisation sieht auch schwach aus
+      ctx.strokeStyle = surfColor(b*Math.cos(th), 0.95);
+      ctx.beginPath(); ctx.arc(cx, cy, R - T/2, -a1, -a0); ctx.stroke();
+    }
+    // unkompensierte Randladungen als Zeichen
+    const m = 9;
+    for(let i=0;i<m;i++){
+      const th = -Math.PI/2 + Math.PI*(i+0.5)/m;
+      for(const s of [+1,-1]){
+        const t = b*Math.cos(th)*s;
+        if(Math.abs(t) < 0.14) continue;
+        const ang = s > 0 ? th : Math.PI - th;
+        sign(cx + (R+13)*Math.cos(ang), cy - (R+13)*Math.sin(ang),
+             Math.sign(t), 8, t > 0 ? '#ff5c6c' : '#4da3ff');
+      }
+    }
+  }
+
+  ctx.strokeStyle = metal ? 'rgba(210,225,250,0.55)' : 'rgba(170,195,235,0.40)';
+  ctx.lineWidth = 1.4;
+  if(!metal) ctx.setLineDash([7,5]);
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+/* -------- Ladungsträger: der eigentliche Unterschied ------------- */
+function drawMatter(v){
+  const { sites, a } = lattice();
+  const metal = v.p.key === 'metal';
+  const R = state.R;
+  const ap = a*v.ppm;
+  const b = beta(v.p);
+  const rel = metal ? v.p.anim : b;            // 0 … 1
+  const arrows = $('cbDipole').checked;
+
+  // überhöhte Verschiebung: im Leiter verlassen die Elektronen ihr Atom,
+  // im Nichtleiter bleiben sie gebunden
+  const d = (metal ? 1.15 : 0.40)*a*rel;
+
+  const rCore  = Math.max(1.4, ap*0.10);
+  const rCloud = Math.max(2.2, ap*0.30);
+
+  for(const [x, y] of sites){
+    const cxp = sx(v,x), cyp = sy(v,y);
+
+    if(metal){
+      // ortsfester positiver Rumpf
+      ctx.fillStyle = 'rgba(255,92,108,0.85)';
+      ctx.beginPath(); ctx.arc(cxp, cyp, rCore*1.25, 0, 7); ctx.fill();
+      // frei bewegliches Elektron, an der Oberfläche gestaut
+      const xh = Math.sqrt(Math.max(0, R*R - y*y)) - 0.14*a;
+      const ex = Math.max(-xh, x - d);
+      ctx.fillStyle = 'rgba(77,163,255,0.9)';
+      ctx.beginPath(); ctx.arc(sx(v,ex), cyp, rCore*1.45, 0, 7); ctx.fill();
+      if(rel > 0.02 && x - d < -xh + 1e-9){
+        ctx.strokeStyle = 'rgba(77,163,255,0.28)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(cxp, cyp); ctx.lineTo(sx(v,ex), cyp); ctx.stroke();
+      }
+    } else {
+      // gebundene Elektronenhülle, gegen das Feld verschoben
+      ctx.fillStyle = 'rgba(77,163,255,0.30)';
+      ctx.beginPath(); ctx.arc(sx(v,x-d), cyp, rCloud, 0, 7); ctx.fill();
+      ctx.strokeStyle = 'rgba(77,163,255,0.55)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(sx(v,x-d), cyp, rCloud, 0, 7); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,92,108,0.95)';
+      ctx.beginPath(); ctx.arc(cxp, cyp, rCore*1.2, 0, 7); ctx.fill();
+      if(arrows && d > 0.01){
+        ctx.strokeStyle = 'rgba(255,200,87,0.75)';
+        ctx.lineWidth = 1.3;
+        const x1 = sx(v, x-d), x2 = sx(v, x + d*0.15);
+        ctx.beginPath(); ctx.moveTo(x1, cyp); ctx.lineTo(x2, cyp); ctx.stroke();
+        ctx.fillStyle = 'rgba(255,200,87,0.75)';
+        ctx.beginPath();
+        ctx.moveTo(x2+4, cyp); ctx.lineTo(x2-1.5, cyp-2.6); ctx.lineTo(x2-1.5, cyp+2.6);
+        ctx.closePath(); ctx.fill();
+      }
+    }
+  }
+}
+
+function sign(x, y, s, size, col){
+  ctx.save();
+  ctx.strokeStyle = col;
+  ctx.lineWidth = Math.max(1.5, size*0.24);
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x - size*0.45, y); ctx.lineTo(x + size*0.45, y);
+  if(s > 0){ ctx.moveTo(x, y - size*0.45); ctx.lineTo(x, y + size*0.45); }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function fmt(v, d){ return v.toFixed(d).replace('.', ','); }
+function sci(v, d){
+  const A = Math.abs(v);
+  if(A === 0) return '0';
+  if(A >= 1e4 || A < 1e-2){
+    const e = Math.floor(Math.log10(A));
+    return fmt(v/Math.pow(10,e), d) + '·10' + sup(e);
+  }
+  return fmt(v, d);
+}
+function sup(n){
+  const m = {'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+  return String(n).split('').map(c => m[c] || c).join('');
+}
+
+function drawLabels(v){
+  const metal = v.p.key === 'metal';
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.font = '600 15px system-ui';
+  ctx.fillStyle = metal ? '#ff9aa4' : '#9ad0ff';
+  ctx.fillText(v.p.label + (metal ? '' : '   εᵣ = ' + fmt(state.er,1)), v.x + v.w/2, v.y + 26);
+
+  ctx.font = '12px system-ui';
+  ctx.fillStyle = '#8b98b3';
+  ctx.fillText(metal ? 'Elektronen frei beweglich → Influenz'
+                     : 'Elektronen gebunden → Polarisation', v.x + v.w/2, v.y + 45);
+
+  const b = beta(v.p), ei = Ein(v.p);
+  const rows = [
+    'β = ' + fmt(b,3),
+    'E innen = ' + fmt(ei,1) + ' V/m   (' + fmt(state.e0 > 0 ? 100*ei/state.e0 : 0,1) + ' % von E₀)',
+    '|σ| max = ' + fmt(sigma0(v.p),2) + ' nC/m²',
+    'p = ' + sci(dipoleP(v.p), 2) + ' C·m'
+  ];
+  ctx.textAlign = 'left';
+  ctx.font = '12px system-ui';
+  const bx = v.x + 16, by = v.y + v.h - 16 - rows.length*17;
+  ctx.fillStyle = 'rgba(11,15,24,.78)';
+  ctx.fillRect(bx-9, by-16, 232, rows.length*17 + 12);
+  ctx.strokeStyle = '#26314a'; ctx.lineWidth = 1;
+  ctx.strokeRect(bx-9.5, by-16.5, 232, rows.length*17 + 12);
+  rows.forEach((t, i) => {
+    ctx.fillStyle = i === 1 ? '#ffc857' : '#c3cde0';
+    ctx.fillText(t, bx, by - 2 + i*17);
+  });
+  ctx.restore();
+}
+
+/* ============================ Animation =========================== */
+let last = performance.now();
+let dirty = true;
+function invalidate(){ dirty = true; }
+
+function frame(now){
+  const dt = Math.min(0.05, (now - last)/1000);
+  last = now;
+  const target = state.fieldOn ? 1 : 0;
+  for(const p of panels){
+    if(Math.abs(p.anim - target) > 1e-4){
+      const k = 1 - Math.exp(-dt/p.tau);      // Relaxation, Leiter mit kleinerem tau
+      p.anim += (target - p.anim)*k;
+      if(Math.abs(p.anim - target) < 2e-3) p.anim = target;
+      dirty = true;
+    }
+  }
+  if(dirty){ draw(); dirty = false; }
+  updateProbe();
+  requestAnimationFrame(frame);
+}
+
+/* =============================== UI =============================== */
+$('modeSeg').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if(!b) return;
+  state.mode = b.dataset.mode;
+  document.querySelectorAll('#modeSeg button').forEach(x => x.classList.toggle('on', x === b));
+  $('matSeg').style.display = state.mode === 'single' ? 'grid' : 'none';
+  invalidate();
+});
+$('matSeg').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if(!b) return;
+  state.mat = b.dataset.mat;
+  document.querySelectorAll('#matSeg button').forEach(x => x.classList.toggle('on', x === b));
+  invalidate();
+});
+$('btnField').addEventListener('click', () => {
+  state.fieldOn = !state.fieldOn;
+  const b = $('btnField');
+  b.classList.toggle('on', state.fieldOn);
+  b.textContent = state.fieldOn ? 'Zustand: Gleichgewicht'
+                                : 'Zustand: unmittelbar nach dem Einschalten';
+});
+$('e0').addEventListener('input', e => {
+  state.e0 = parseFloat(e.target.value);
+  $('e0Val').textContent = state.e0 + ' V/m';
+  syncInfo(); invalidate();
+});
+$('er').addEventListener('input', e => {
+  state.er = parseFloat(e.target.value);
+  $('erVal').textContent = fmt(state.er,1);
+  syncInfo(); invalidate();
+});
+$('grid').addEventListener('input', e => {
+  state.rows = parseInt(e.target.value, 10);
+  $('gridVal').textContent = state.rows + ' Reihen';
+  invalidate();
+});
+$('rad').addEventListener('input', e => {
+  state.R = parseFloat(e.target.value);
+  $('radVal').textContent = fmt(state.R,2) + ' m';
+  syncInfo(); invalidate();
+});
+['cbAtoms','cbDipole','cbSurf','cbLines','cbEqui','cbLabels']
+  .forEach(id => $(id).addEventListener('change', invalidate));
+
+function syncInfo(){
+  const bd = betaMax(panels[1]);
+  $('matInfo').innerHTML =
+    'Nichtleiter: β = <span class="f">' + fmt(bd,3) + '</span>, '
+    + 'E<sub>i</sub> = <span class="f">' + fmt((1-bd)*state.e0,1) + ' V/m</span> '
+    + '= <span class="f">' + fmt(100*(1-bd),1) + ' %</span> von E₀<br>'
+    + 'Leiter: β = <span class="f">1,000</span>, E<sub>i</sub> = <span class="f">0 V/m</span><br><br>'
+    + 'ε<sub>r</sub> = 1 bedeutet Vakuum – dann passiert nichts. Je größer ε<sub>r</sub>, '
+    + 'desto stärker die Polarisation; für ε<sub>r</sub> → ∞ geht der Nichtleiter in den Leiter über.';
+  const ratio = state.e0 > 0 ? (1-bd) : 0;
+  $('physNote').innerHTML =
+    'Bei ε<sub>r</sub> = ' + fmt(state.er,1) + ' bleiben im Nichtleiter noch <b>'
+    + fmt(100*ratio,1) + ' %</b> des Außenfeldes übrig – im Leiter <b>0 %</b>. '
+    + 'Genau das ist der Unterschied zwischen <b>Polarisation</b> und <b>Influenz</b>.';
+}
+
+/* ============================== Sonde ============================= */
+cv.addEventListener('pointermove', e => {
+  const r = cv.getBoundingClientRect();
+  const px = e.clientX - r.left, py = e.clientY - r.top;
+  const v = layout().find(v => px >= v.x && px < v.x + v.w && py >= v.y && py < v.y + v.h);
+  probeInfo = v ? { v, x: wx(v,px), y: wy(v,py) } : null;
+});
+cv.addEventListener('pointerleave', () => { probeInfo = null; });
+
+function updateProbe(){
+  const el = $('probe');
+  if(!probeInfo){
+    el.innerHTML = '<span class="k">Messsonde:</span> Maus über eine Darstellung bewegen';
+    return;
+  }
+  const { v, x, y } = probeInfo;
+  const [ex, ey] = fieldAt(v.p, x, y);
+  const E = Math.hypot(ex, ey);
+  const inside = x*x + y*y <= state.R*state.R;
+  el.innerHTML =
+    '<span class="k">' + v.p.label + (inside ? ' – <b>im Körper</b>' : ' – außen') + '</span><br>' +
+    '<span class="k">Ort</span> <span class="v">x = ' + fmt(x,2) + ' m, y = ' + fmt(y,2) + ' m</span><br>' +
+    '<span class="k">Feldstärke</span> <span class="v">|E| = ' + fmt(E,1) + ' V/m</span>' +
+    (state.e0 > 0 ? ' <span class="k">=</span> <span class="v">' + fmt(100*E/state.e0,1) + ' % E₀</span>' : '') + '<br>' +
+    '<span class="k">Potential</span> <span class="v">V = ' + fmt(potAt(v.p, x, y),1) + ' V</span>';
+}
+
+/* ============================== Start ============================= */
+function resize(){
+  const r = cv.parentElement.getBoundingClientRect();
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = Math.max(320, Math.floor(r.width));
+  H = Math.max(260, Math.floor(r.height));
+  cv.width = Math.floor(W*DPR); cv.height = Math.floor(H*DPR);
+  cv.style.width = W+'px'; cv.style.height = H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  invalidate();
+}
+window.addEventListener('resize', resize);
+
+resize();
+syncInfo();
+updateProbe();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
