@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elektrische Feldlinien – Simulation</title>
+<style>
+  :root{
+    --bg:#0b0f18;
+    --panel:#131a27;
+    --panel2:#1a2233;
+    --line:#26314a;
+    --text:#e6ecf7;
+    --muted:#8b98b3;
+    --pos:#ff5c6c;
+    --neg:#4da3ff;
+    --accent:#ffc857;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+    display:flex;
+    overflow:hidden;
+  }
+
+  /* ---------- Sidebar ---------- */
+  #sidebar{
+    width:330px;
+    min-width:330px;
+    height:100%;
+    background:var(--panel);
+    border-right:1px solid var(--line);
+    overflow-y:auto;
+    padding:16px 16px 40px;
+  }
+  #sidebar::-webkit-scrollbar{width:9px;}
+  #sidebar::-webkit-scrollbar-thumb{background:#2a3550;border-radius:5px;}
+
+  h1{
+    font-size:17px;margin:0 0 2px;letter-spacing:.2px;
+  }
+  .sub{font-size:12px;color:var(--muted);margin-bottom:16px;}
+
+  .group{
+    background:var(--panel2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px;
+    margin-bottom:12px;
+  }
+  .group > h2{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:1.1px;
+    color:var(--muted);
+    margin:0 0 10px;
+    font-weight:600;
+  }
+
+  .tools{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;}
+  .tool{
+    background:#212c42;border:1px solid #2f3b58;color:var(--text);
+    border-radius:8px;padding:9px 4px;cursor:pointer;
+    font-size:11px;text-align:center;line-height:1.35;
+    transition:.13s;
+  }
+  .tool:hover{background:#2a3855;}
+  .tool.active{background:#2f4a7a;border-color:#4d7fd0;box-shadow:0 0 0 1px #4d7fd055;}
+  .tool .ic{display:block;font-size:17px;margin-bottom:3px;}
+
+  .hint{font-size:11px;color:var(--muted);margin-top:9px;line-height:1.5;}
+
+  .row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px;}
+  .row:last-child{margin-bottom:0;}
+  .row label{font-size:12.5px;color:#c3cde0;}
+  .val{font-size:12px;color:var(--accent);font-variant-numeric:tabular-nums;min-width:66px;text-align:right;}
+
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:4px;
+    background:#2c3752;border-radius:3px;outline:none;margin:4px 0 10px;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+    background:var(--accent);cursor:pointer;border:2px solid #1a2233;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:13px;height:13px;border-radius:50%;background:var(--accent);
+    cursor:pointer;border:2px solid #1a2233;
+  }
+  input[type=number]{
+    width:74px;background:#0f1624;border:1px solid #2f3b58;color:var(--text);
+    border-radius:6px;padding:4px 6px;font-size:12px;
+  }
+
+  .check{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12.5px;color:#c3cde0;cursor:pointer;}
+  .check:last-child{margin-bottom:0;}
+  .check input{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;}
+
+  #objlist{display:flex;flex-direction:column;gap:6px;}
+  .item{
+    display:flex;align-items:center;gap:9px;
+    background:#212c42;border:1px solid #2f3b58;border-radius:8px;
+    padding:7px 9px;cursor:pointer;font-size:12px;transition:.12s;
+  }
+  .item:hover{background:#28344e;}
+  .item.sel{border-color:var(--accent);background:#2c3550;}
+  .dot{width:11px;height:11px;border-radius:50%;flex:none;}
+  .item .nm{flex:1;}
+  .item .qq{font-variant-numeric:tabular-nums;color:var(--muted);}
+  .item .del{
+    color:#6f7c96;font-size:15px;line-height:1;padding:0 2px;border-radius:4px;
+  }
+  .item .del:hover{color:var(--pos);background:#3a2430;}
+  .empty{font-size:11.5px;color:var(--muted);font-style:italic;}
+
+  .btn{
+    width:100%;background:#212c42;border:1px solid #2f3b58;color:var(--text);
+    border-radius:8px;padding:8px;cursor:pointer;font-size:12px;transition:.12s;
+  }
+  .btn:hover{background:#2a3855;}
+  .btn.danger:hover{background:#3a2430;border-color:#7a3444;color:#ffa8b3;}
+  .btnrow{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+
+  .legend{font-size:11.5px;color:var(--muted);line-height:1.65;}
+  .legend b{color:#c3cde0;font-weight:600;}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px;}
+
+  /* ---------- Canvas ---------- */
+  #stage{flex:1;position:relative;height:100%;min-width:0;}
+  canvas{display:block;position:absolute;inset:0;cursor:crosshair;touch-action:none;}
+  #readout{
+    position:absolute;left:12px;bottom:12px;
+    background:rgba(11,15,24,.82);border:1px solid var(--line);
+    border-radius:8px;padding:8px 11px;font-size:11.5px;
+    color:#c3cde0;font-variant-numeric:tabular-nums;
+    pointer-events:none;line-height:1.6;backdrop-filter:blur(4px);
+  }
+  #readout .k{color:var(--muted);}
+  #readout .v{color:var(--accent);}
+  #toast{
+    position:absolute;left:50%;top:14px;transform:translateX(-50%);
+    background:rgba(47,74,122,.92);border:1px solid #4d7fd0;
+    border-radius:8px;padding:7px 14px;font-size:12px;
+    pointer-events:none;opacity:0;transition:opacity .25s;
+  }
+  #toast.show{opacity:1;}
+
+  @media (max-width:880px){
+    body{flex-direction:column;overflow:auto;}
+    #sidebar{width:100%;min-width:0;height:auto;max-height:46vh;border-right:none;border-bottom:1px solid var(--line);}
+    #stage{height:54vh;flex:none;}
+  }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <h1>Elektrische Feldlinien</h1>
+  <div class="sub">Superposition von Coulomb-Feldern &middot; E = k&middot;q/r&sup2;</div>
+
+  <div class="group">
+    <h2>Ladung hinzufügen</h2>
+    <div class="tools">
+      <div class="tool" data-tool="point"><span class="ic">&#9679;</span>Punkt&shy;ladung</div>
+      <div class="tool" data-tool="plate"><span class="ic">&#9646;</span>Flächen&shy;ladung</div>
+      <div class="tool" data-tool="ring"><span class="ic">&#9711;</span>Ring&shy;ladung</div>
+    </div>
+    <div class="hint" id="toolhint">Werkzeug wählen, dann in die Zeichenfläche klicken. Körper anklicken = auswählen, ziehen = verschieben.</div>
+  </div>
+
+  <div class="group">
+    <h2>Objekte</h2>
+    <div id="objlist"></div>
+    <div class="btnrow" style="margin-top:10px">
+      <button class="btn" id="btnDipol">Dipol laden</button>
+      <button class="btn danger" id="btnClear">Alles löschen</button>
+    </div>
+  </div>
+
+  <div class="group" id="propBox">
+    <h2>Ausgewählter Körper</h2>
+    <div id="propNone" class="empty">Kein Körper ausgewählt.</div>
+    <div id="propBody" style="display:none">
+      <div class="row"><label>Ladung Q</label>
+        <span><input type="number" id="qNum" step="0.5" min="-40" max="40"> <span style="font-size:11px;color:var(--muted)">nC</span></span>
+      </div>
+      <input type="range" id="qRange" min="-40" max="40" step="0.5">
+
+      <div id="geoPlate" style="display:none">
+        <div class="row"><label>Länge</label><span class="val" id="lenVal"></span></div>
+        <input type="range" id="lenRange" min="0.4" max="9" step="0.1">
+        <div class="row"><label>Drehwinkel</label><span class="val" id="angVal"></span></div>
+        <input type="range" id="angRange" min="0" max="360" step="1">
+      </div>
+
+      <div id="geoRing" style="display:none">
+        <div class="row"><label>Radius</label><span class="val" id="radVal"></span></div>
+        <input type="range" id="radRange" min="0.3" max="6" step="0.05">
+      </div>
+
+      <div class="row" style="margin-top:4px"><label>Feldlinien</label><span class="val" id="nLines"></span></div>
+      <div class="row"><label>Ladungsdichte</label><span class="val" id="densVal"></span></div>
+      <button class="btn danger" id="btnDel" style="margin-top:8px">Körper löschen (Entf)</button>
+    </div>
+  </div>
+
+  <div class="group">
+    <h2>Darstellung</h2>
+    <div class="row"><label>Linien pro nC</label><span class="val" id="lpcVal">2,0</span></div>
+    <input type="range" id="lpc" min="0.5" max="6" step="0.25" value="2">
+    <label class="check"><input type="checkbox" id="cbLines" checked> Feldlinien</label>
+    <label class="check"><input type="checkbox" id="cbArrows" checked> Richtungspfeile</label>
+    <label class="check"><input type="checkbox" id="cbHeat"> Feldstärke als Farbfläche |E|</label>
+    <label class="check"><input type="checkbox" id="cbEqui"> Äquipotentiallinien</label>
+    <label class="check"><input type="checkbox" id="cbVec"> Feldvektoren (Raster)</label>
+    <label class="check"><input type="checkbox" id="cbGrid" checked> Koordinatengitter (1 m)</label>
+  </div>
+
+  <div class="group">
+    <h2>Legende &amp; Physik</h2>
+    <div class="legend">
+      <span class="sw" style="background:var(--pos)"></span><b>positiv</b> – Linien starten&nbsp;&nbsp;
+      <span class="sw" style="background:var(--neg)"></span><b>negativ</b> – Linien enden<br><br>
+      Die <b>Anzahl der Linien</b> ist proportional zur Ladungsmenge&nbsp;|Q|. Dadurch ist die <b>Liniendichte</b> ein Maß für die Feldstärke |E| (Gauß'scher Satz).<br><br>
+      Feld: <b>E&nbsp;=&nbsp;k&middot;q/r&sup2;</b>, Potential <b>V&nbsp;=&nbsp;k&middot;q/r</b>, k&nbsp;=&nbsp;8,99&middot;10<sup>9</sup>&nbsp;Vm/C.<br><br>
+      Flächen- und Ringladungen werden als <b>homogen geladene Körper</b> aus vielen Teilladungen aufgebaut; das Feld ist deren Superposition.<br><br>
+      <b>Maus:</b> Ziehen im leeren Raum = Ansicht verschieben, Mausrad = Zoom, Pfeiltasten = Auswahl bewegen.
+    </div>
+  </div>
+</div>
+
+<div id="stage">
+  <canvas id="cv"></canvas>
+  <div id="readout"></div>
+  <div id="toast"></div>
+</div>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   Physikalische Konstanten & Einheiten
+   Längen in Metern, Ladungen in Nanocoulomb (nC).
+   k*1nC = 8.9875e9 * 1e-9 = 8.9875 V*m   ->  E[V/m] = K*q[nC]/r[m]^2
+   ===================================================================== */
+const K = 8.9875;                 // V*m pro nC
+const BODY = { point:0.22, plate:0.10, ring:0.10 };   // "Dicke"/Radius der Körper (m)
+
+/* ---------------------------- Zustand ---------------------------- */
+const cv  = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1;
+
+const cam = { cx:0, cy:0, ppm:58 };      // Pixel pro Meter
+
+let objects = [];
+let nextId  = 1;
+let selId   = null;
+let tool    = null;
+
+let subs   = [];      // Teilladungen für die Feldberechnung
+let lines  = [];      // berechnete Feldlinien
+let heat   = null;    // Offscreen-Canvas für |E|
+let equi   = [];      // Segmente der Äquipotentiallinien
+
+let dirtyField = true, dirtyRender = true;
+let dragObj = null, dragOff = [0,0], panning = false, panStart = null;
+let moved = false;
+let mouseW = null;
+
+/* =========================== Geometrie =========================== */
+function w2sx(x){ return W/2 + (x - cam.cx) * cam.ppm; }
+function w2sy(y){ return H/2 - (y - cam.cy) * cam.ppm; }
+function s2wx(sx){ return cam.cx + (sx - W/2) / cam.ppm; }
+function s2wy(sy){ return cam.cy - (sy - H/2) / cam.ppm; }
+
+function viewRect(pad){
+  const hw = W/2/cam.ppm * (1+pad), hh = H/2/cam.ppm * (1+pad);
+  return { x0:cam.cx-hw, x1:cam.cx+hw, y0:cam.cy-hh, y1:cam.cy+hh };
+}
+
+/* ===================== Teilladungen aufbauen ===================== */
+function buildSubs(){
+  subs = [];
+  for(const o of objects){
+    if(Math.abs(o.q) < 1e-6) continue;
+    if(o.type === 'point'){
+      subs.push({ x:o.x, y:o.y, q:o.q, eps2:0.11*0.11 });
+    } else if(o.type === 'plate'){
+      const n = 31, c = Math.cos(o.angle), s = Math.sin(o.angle);
+      const sp = o.len / n, eps = Math.max(sp*0.62, 0.05);
+      for(let i=0;i<n;i++){
+        const t = ((i+0.5)/n - 0.5) * o.len;
+        subs.push({ x:o.x + c*t, y:o.y + s*t, q:o.q/n, eps2:eps*eps });
+      }
+    } else {                       // ring
+      const n = 44, sp = 2*Math.PI*o.radius/n, eps = Math.max(sp*0.62, 0.05);
+      for(let i=0;i<n;i++){
+        const a = 2*Math.PI*i/n;
+        subs.push({ x:o.x + o.radius*Math.cos(a), y:o.y + o.radius*Math.sin(a),
+                    q:o.q/n, eps2:eps*eps });
+      }
+    }
+  }
+}
+
+/* ========================= Feldberechnung ========================= */
+let _ex = 0, _ey = 0, _dmin = 1e9;
+
+function fieldAt(x, y){
+  let ex = 0, ey = 0, dmin = 1e9;
+  for(let i=0;i<subs.length;i++){
+    const s = subs[i];
+    const dx = x - s.x, dy = y - s.y;
+    let r2 = dx*dx + dy*dy;
+    if(r2 < dmin) dmin = r2;
+    if(r2 < s.eps2) r2 = s.eps2;
+    const r = Math.sqrt(r2);
+    const f = K * s.q / (r2 * r);
+    ex += f*dx; ey += f*dy;
+  }
+  _ex = ex; _ey = ey; _dmin = Math.sqrt(dmin);
+  return ex;
+}
+
+function potentialAt(x, y){
+  let v = 0;
+  for(let i=0;i<subs.length;i++){
+    const s = subs[i];
+    const dx = x - s.x, dy = y - s.y;
+    let r2 = dx*dx + dy*dy;
+    if(r2 < s.eps2) r2 = s.eps2;
+    v += K * s.q / Math.sqrt(r2);
+  }
+  return v;
+}
+
+/* ===================== Treffer-/Auswahltest ====================== */
+function hitObj(o, x, y, m){
+  if(o.type === 'point') return Math.hypot(x-o.x, y-o.y) <= BODY.point + m;
+  if(o.type === 'plate'){
+    const c = Math.cos(o.angle), s = Math.sin(o.angle);
+    const dx = x-o.x, dy = y-o.y;
+    const a =  dx*c + dy*s, b = -dx*s + dy*c;
+    return Math.abs(a) <= o.len/2 + BODY.plate + m && Math.abs(b) <= BODY.plate + m;
+  }
+  return Math.abs(Math.hypot(x-o.x, y-o.y) - o.radius) <= BODY.ring + m;
+}
+function pickObj(x, y, m){
+  for(let i=objects.length-1;i>=0;i--) if(hitObj(objects[i], x, y, m)) return objects[i];
+  return null;
+}
+function insideAny(x, y){
+  for(let i=0;i<objects.length;i++){
+    const o = objects[i];
+    if(Math.abs(o.q) < 1e-6) continue;
+    if(hitObj(o, x, y, 0)) return true;
+  }
+  return false;
+}
+
+/* ====================== Startpunkte der Linien ==================== */
+function seedPoints(o, n){
+  const out = [];
+  if(o.type === 'point'){
+    const R = BODY.point + 0.09;
+    for(let i=0;i<n;i++){
+      const a = 2*Math.PI*i/n;
+      out.push([o.x + R*Math.cos(a), o.y + R*Math.sin(a)]);
+    }
+  } else if(o.type === 'plate'){
+    // gleichmäßig auf der Offset-Kurve (Stadionform) um das Liniensegment
+    const d = BODY.plate + 0.08, L = o.len;
+    const c = Math.cos(o.angle), s = Math.sin(o.angle);
+    const ux = c, uy = s, nx = -s, ny = c;
+    const Ax = o.x - ux*L/2, Ay = o.y - uy*L/2;
+    const Bx = o.x + ux*L/2, By = o.y + uy*L/2;
+    const arc = Math.PI*d, P = 2*L + 2*arc;
+    for(let i=0;i<n;i++){
+      let t = (i+0.5)/n * P;
+      if(t < L){                                   // Oberseite A -> B
+        out.push([Ax + ux*t + nx*d, Ay + uy*t + ny*d]);
+      } else if(t < L + arc){                      // Halbkreis um B
+        const p = (t - L)/arc, ph = o.angle + Math.PI/2 - Math.PI*p;
+        out.push([Bx + d*Math.cos(ph), By + d*Math.sin(ph)]);
+      } else if(t < 2*L + arc){                    // Unterseite B -> A
+        const u2 = t - L - arc;
+        out.push([Bx - ux*u2 - nx*d, By - uy*u2 - ny*d]);
+      } else {                                     // Halbkreis um A
+        const p = (t - 2*L - arc)/arc, ph = o.angle - Math.PI/2 - Math.PI*p;
+        out.push([Ax + d*Math.cos(ph), Ay + d*Math.sin(ph)]);
+      }
+    }
+  } else {                                          // ring
+    const d = BODY.ring + 0.08;
+    const Ro = o.radius + d, Ri = o.radius - d;
+    let nOut = n, nIn = 0;
+    if(Ri > 0.18){ nOut = Math.ceil(n*0.6); nIn = n - nOut; }
+    for(let i=0;i<nOut;i++){
+      const a = 2*Math.PI*i/nOut;
+      out.push([o.x + Ro*Math.cos(a), o.y + Ro*Math.sin(a)]);
+    }
+    for(let i=0;i<nIn;i++){
+      const a = 2*Math.PI*(i+0.5)/nIn;
+      out.push([o.x + Ri*Math.cos(a), o.y + Ri*Math.sin(a)]);
+    }
+  }
+  return out;
+}
+
+/* ====================== Feldlinie integrieren ===================== */
+function trace(x, y, sign, maxSteps, box){
+  const pts = [x, y];
+  let len = 0;
+  const maxLen = (box.x1-box.x0) * 3.2;
+  for(let k=0;k<maxSteps;k++){
+    fieldAt(x, y);
+    let ex = _ex*sign, ey = _ey*sign;
+    let m = Math.hypot(ex, ey);
+    if(!isFinite(m) || m < 1e-7) break;                     // Feldfreier Punkt
+    const h = Math.min(Math.max(0.32*_dmin, 0.022), 0.30);  // adaptive Schrittweite
+    // Mittelpunktverfahren (RK2)
+    const mx = x + ex/m*h*0.5, my = y + ey/m*h*0.5;
+    fieldAt(mx, my);
+    let e2x = _ex*sign, e2y = _ey*sign;
+    let m2 = Math.hypot(e2x, e2y);
+    if(!isFinite(m2) || m2 < 1e-9) break;
+    x += e2x/m2*h;  y += e2y/m2*h;
+    pts.push(x, y);
+    len += h;
+    if(x < box.x0 || x > box.x1 || y < box.y0 || y > box.y1) break;
+    if(len > maxLen) break;
+    if(insideAny(x, y)) break;                              // trifft eine Ladung
+  }
+  return pts;
+}
+
+function lineCount(o){
+  const lpc = parseFloat(document.getElementById('lpc').value);
+  return Math.min(160, Math.round(Math.abs(o.q) * lpc));
+}
+
+const LINE_BUDGET = 420;          // Obergrenze der Gesamtlinienzahl (Rechenzeit)
+
+function computeLines(){
+  lines = [];
+  if(!document.getElementById('cbLines').checked) return;
+  const box = viewRect(0.6);
+
+  // Wunsch-Linienzahl je Körper (proportional zu |Q|)
+  const want = objects.map(o => Math.abs(o.q) < 1e-6 ? 0 : lineCount(o));
+  const total = want.reduce((a,b) => a+b, 0);
+  if(total < 1) return;
+
+  // Bei Überschreitung des Budgets alle Körper gleichmäßig herunterskalieren,
+  // damit das Verhältnis der Liniendichten (= Feldstärkeverhältnis) erhalten bleibt.
+  let scale = Math.min(1, LINE_BUDGET / total);
+  if(dragObj) scale *= 0.55;
+
+  const maxSteps = dragObj ? 700 : (subs.length > 120 ? 1400 : 2400);
+
+  objects.forEach((o, i) => {
+    if(want[i] < 1) return;
+    const n = Math.max(1, Math.round(want[i] * scale));
+    const dir = o.q > 0 ? 1 : -1;
+    for(const s of seedPoints(o, n)){
+      const pts = trace(s[0], s[1], dir, maxSteps, box);
+      if(pts.length >= 4) lines.push({ pts, dir });
+    }
+  });
+}
+
+/* ==================== |E| als Farbfläche (Heatmap) ================ */
+function computeHeat(){
+  heat = null;
+  if(!document.getElementById('cbHeat').checked || subs.length === 0) return;
+  const cell = dragObj ? 8 : 5;
+  const nx = Math.ceil(W/cell), ny = Math.ceil(H/cell);
+  const off = document.createElement('canvas');
+  off.width = nx; off.height = ny;
+  const octx = off.getContext('2d');
+  const img = octx.createImageData(nx, ny);
+  const d = img.data;
+  for(let j=0;j<ny;j++){
+    const wy = s2wy(j*cell + cell/2);
+    for(let i=0;i<nx;i++){
+      const wx = s2wx(i*cell + cell/2);
+      fieldAt(wx, wy);
+      const E = Math.hypot(_ex, _ey);
+      // logarithmische Skala: 0.5 .. 500 V/m
+      let t = (Math.log10(E + 1e-3) + 0.3) / 3.0;
+      t = t < 0 ? 0 : t > 1 ? 1 : t;
+      const p = (j*nx + i)*4;
+      // dunkelblau -> violett -> orange
+      d[p]   = Math.round(255 * Math.min(1, Math.max(0, t*2.1 - 0.55)));
+      d[p+1] = Math.round(255 * Math.min(1, Math.max(0, t*1.75 - 0.95)));
+      d[p+2] = Math.round(255 * Math.min(1, Math.max(0, 0.85*t + 0.12 - t*t*0.75)));
+      d[p+3] = Math.round(215 * t);
+    }
+  }
+  octx.putImageData(img, 0, 0);
+  heat = off;
+}
+
+/* ===================== Äquipotentiallinien ======================== */
+const V_LEVELS = [1,2,4,8,16,32,64,128,256];
+function computeEqui(){
+  equi = [];
+  if(!document.getElementById('cbEqui').checked || subs.length === 0) return;
+  const cell = 7;
+  const nx = Math.ceil(W/cell)+1, ny = Math.ceil(H/cell)+1;
+  const g = new Float32Array(nx*ny);
+  for(let j=0;j<ny;j++){
+    const wy = s2wy(j*cell);
+    for(let i=0;i<nx;i++) g[j*nx+i] = potentialAt(s2wx(i*cell), wy);
+  }
+  const levels = [];
+  for(const v of V_LEVELS){ levels.push(v, -v); }
+  const ip = (v1,v2,L)=> (L - v1) / (v2 - v1);
+  for(const L of levels){
+    const seg = [];
+    for(let j=0;j<ny-1;j++){
+      for(let i=0;i<nx-1;i++){
+        const a = g[j*nx+i], b = g[j*nx+i+1], c = g[(j+1)*nx+i+1], dd = g[(j+1)*nx+i];
+        let idx = 0;
+        if(a > L) idx |= 1;
+        if(b > L) idx |= 2;
+        if(c > L) idx |= 4;
+        if(dd> L) idx |= 8;
+        if(idx === 0 || idx === 15) continue;
+        const x0 = i*cell, y0 = j*cell;
+        const e0 = [x0 + cell*ip(a,b,L), y0];
+        const e1 = [x0 + cell,           y0 + cell*ip(b,c,L)];
+        const e2 = [x0 + cell*ip(dd,c,L),y0 + cell];
+        const e3 = [x0,                  y0 + cell*ip(a,dd,L)];
+        const push = (p,q)=>{ seg.push(p[0],p[1],q[0],q[1]); };
+        switch(idx){
+          case 1: case 14: push(e3,e0); break;
+          case 2: case 13: push(e0,e1); break;
+          case 3: case 12: push(e3,e1); break;
+          case 4: case 11: push(e1,e2); break;
+          case 6: case 9:  push(e0,e2); break;
+          case 7: case 8:  push(e2,e3); break;
+          case 5:  push(e3,e0); push(e1,e2); break;
+          case 10: push(e0,e1); push(e2,e3); break;
+        }
+      }
+    }
+    if(seg.length) equi.push({ level:L, seg });
+  }
+}
+
+/* ============================ Zeichnen ============================ */
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#0b0f18';
+  ctx.fillRect(0,0,W,H);
+
+  if(heat) { ctx.imageSmoothingEnabled = true; ctx.drawImage(heat, 0, 0, W, H); }
+  if(document.getElementById('cbGrid').checked) drawGrid();
+  if(equi.length) drawEqui();
+  if(document.getElementById('cbVec').checked) drawVectors();
+  drawLines();
+  for(const o of objects) drawBody(o);
+}
+
+function drawGrid(){
+  const step = cam.ppm >= 34 ? 1 : cam.ppm >= 17 ? 2 : 5;   // Meter
+  const r = viewRect(0);
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(255,255,255,0.045)';
+  ctx.beginPath();
+  for(let x = Math.ceil(r.x0/step)*step; x <= r.x1; x += step){
+    const sx = Math.round(w2sx(x)) + .5;
+    ctx.moveTo(sx, 0); ctx.lineTo(sx, H);
+  }
+  for(let y = Math.ceil(r.y0/step)*step; y <= r.y1; y += step){
+    const sy = Math.round(w2sy(y)) + .5;
+    ctx.moveTo(0, sy); ctx.lineTo(W, sy);
+  }
+  ctx.stroke();
+  // Achsen
+  ctx.strokeStyle = 'rgba(255,255,255,0.11)';
+  ctx.beginPath();
+  ctx.moveTo(0, Math.round(w2sy(0))+.5); ctx.lineTo(W, Math.round(w2sy(0))+.5);
+  ctx.moveTo(Math.round(w2sx(0))+.5, 0); ctx.lineTo(Math.round(w2sx(0))+.5, H);
+  ctx.stroke();
+  // Maßstab
+  ctx.fillStyle = 'rgba(139,152,179,.75)';
+  ctx.font = '11px system-ui';
+  ctx.textAlign = 'right';
+  ctx.fillText(step + ' m', W-14, H-14);
+  ctx.beginPath();
+  ctx.moveTo(W-14-step*cam.ppm, H-24.5); ctx.lineTo(W-14, H-24.5);
+  ctx.strokeStyle = 'rgba(139,152,179,.75)';
+  ctx.stroke();
+  ctx.textAlign = 'left';
+}
+
+function drawEqui(){
+  ctx.lineWidth = 1;
+  for(const c of equi){
+    ctx.strokeStyle = c.level > 0 ? 'rgba(255,150,160,0.30)' : 'rgba(140,190,255,0.30)';
+    ctx.beginPath();
+    const s = c.seg;
+    for(let i=0;i<s.length;i+=4){
+      ctx.moveTo(s[i], s[i+1]); ctx.lineTo(s[i+2], s[i+3]);
+    }
+    ctx.stroke();
+  }
+}
+
+function drawVectors(){
+  const step = 46;
+  ctx.lineWidth = 1.1;
+  for(let sy = step/2; sy < H; sy += step){
+    for(let sx = step/2; sx < W; sx += step){
+      const wx = s2wx(sx), wy = s2wy(sy);
+      if(insideAny(wx, wy)) continue;
+      fieldAt(wx, wy);
+      const E = Math.hypot(_ex, _ey);
+      if(E < 1e-4) continue;
+      const t = Math.min(1, Math.max(0, (Math.log10(E+1e-3)+0.3)/3));
+      const L = 7 + 12*t;
+      const ux = _ex/E, uy = -_ey/E;             // Bildschirm-y invertiert
+      const x2 = sx + ux*L, y2 = sy + uy*L;
+      ctx.strokeStyle = 'rgba(255,255,255,' + (0.16 + 0.4*t).toFixed(3) + ')';
+      ctx.beginPath();
+      ctx.moveTo(sx - ux*L*0.5, sy - uy*L*0.5);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - ux*4 + uy*2.4, y2 - uy*4 - ux*2.4);
+      ctx.lineTo(x2 - ux*4 - uy*2.4, y2 - uy*4 + ux*2.4);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(255,255,255,' + (0.2 + 0.45*t).toFixed(3) + ')';
+      ctx.fill();
+    }
+  }
+}
+
+function drawLines(){
+  if(!lines.length) return;
+  const arrows = document.getElementById('cbArrows').checked;
+  ctx.lineWidth = 1.25;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = 'rgba(230,238,255,0.62)';
+  ctx.beginPath();
+  for(const l of lines){
+    const p = l.pts;
+    ctx.moveTo(w2sx(p[0]), w2sy(p[1]));
+    for(let i=2;i<p.length;i+=2) ctx.lineTo(w2sx(p[i]), w2sy(p[i+1]));
+  }
+  ctx.stroke();
+  if(!arrows) return;
+  ctx.fillStyle = 'rgba(230,238,255,0.85)';
+  for(const l of lines){
+    const p = l.pts, n = p.length/2;
+    if(n < 12) continue;
+    const spacing = Math.max(11, Math.round(n/4));
+    for(let i = Math.round(n*0.22); i < n-2; i += spacing){
+      const x1 = w2sx(p[2*i]),   y1 = w2sy(p[2*i+1]);
+      const x2 = w2sx(p[2*i+2]), y2 = w2sy(p[2*i+3]);
+      let dx = x2-x1, dy = y2-y1;
+      const m = Math.hypot(dx,dy);
+      if(m < 0.4) continue;
+      dx /= m; dy /= m;
+      // Richtung: dir=1 -> vom Startpunkt weg (von +), dir=-1 -> zum Objekt hin
+      const s = l.dir;
+      const ax = dx*s, ay = dy*s;
+      const L = 5.4, Wd = 2.9;
+      ctx.beginPath();
+      ctx.moveTo(x1 + ax*L, y1 + ay*L);
+      ctx.lineTo(x1 - ay*Wd, y1 + ax*Wd);
+      ctx.lineTo(x1 + ay*Wd, y1 - ax*Wd);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+}
+
+function signColor(q){ return q > 0 ? '#ff5c6c' : q < 0 ? '#4da3ff' : '#8b98b3'; }
+
+function drawBody(o){
+  const sel = o.id === selId;
+  const col = signColor(o.q);
+  const px = w2sx(o.x), py = w2sy(o.y);
+  ctx.save();
+
+  if(o.type === 'point'){
+    const R = BODY.point * cam.ppm;
+    const g = ctx.createRadialGradient(px, py, 1, px, py, R*2.6);
+    g.addColorStop(0, col + 'cc'); g.addColorStop(1, col + '00');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(px, py, R*2.6, 0, 7); ctx.fill();
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(px, py, R, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#0b0f18'; ctx.lineWidth = 1.6; ctx.stroke();
+    drawSign(px, py, o.q, Math.min(R*1.15, 15));
+  }
+
+  else if(o.type === 'plate'){
+    ctx.translate(px, py); ctx.rotate(-o.angle);
+    const L = o.len*cam.ppm, T = BODY.plate*2*cam.ppm;
+    const g = ctx.createLinearGradient(0, -T, 0, T);
+    g.addColorStop(0, col + '00'); g.addColorStop(.5, col + 'cc'); g.addColorStop(1, col + '00');
+    ctx.fillStyle = g;
+    ctx.fillRect(-L/2, -T*1.9, L, T*3.8);
+    ctx.fillStyle = col;
+    roundRect(-L/2, -T/2, L, T, Math.min(T/2, 6)); ctx.fill();
+    ctx.strokeStyle = '#0b0f18'; ctx.lineWidth = 1.4; ctx.stroke();
+    const cnt = Math.max(2, Math.min(16, Math.round(o.len*2.2)));
+    for(let i=0;i<cnt;i++){
+      const t = (-0.5 + (i+0.5)/cnt) * L;
+      drawSign(t, 0, o.q, Math.min(T*0.75, 9));
+    }
+  }
+
+  else {
+    const R = o.radius*cam.ppm, T = BODY.ring*2*cam.ppm;
+    ctx.strokeStyle = col + '55'; ctx.lineWidth = T*3.2;
+    ctx.beginPath(); ctx.arc(px, py, R, 0, 7); ctx.stroke();
+    ctx.strokeStyle = col; ctx.lineWidth = T;
+    ctx.beginPath(); ctx.arc(px, py, R, 0, 7); ctx.stroke();
+    const cnt = Math.max(4, Math.min(22, Math.round(o.radius*5)));
+    for(let i=0;i<cnt;i++){
+      const a = 2*Math.PI*i/cnt;
+      drawSign(px + R*Math.cos(a), py + R*Math.sin(a), o.q, Math.min(T*0.7, 8));
+    }
+  }
+  ctx.restore();
+
+  if(sel){
+    ctx.save();
+    ctx.strokeStyle = '#ffc857';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5,4]);
+    ctx.beginPath();
+    if(o.type === 'point'){
+      ctx.arc(px, py, BODY.point*cam.ppm + 8, 0, 7);
+    } else if(o.type === 'plate'){
+      ctx.save(); ctx.translate(px, py); ctx.rotate(-o.angle);
+      const L = o.len*cam.ppm + 16, T = BODY.plate*2*cam.ppm + 16;
+      ctx.rect(-L/2, -T/2, L, T);
+      ctx.restore();
+    } else {
+      ctx.arc(px, py, o.radius*cam.ppm + BODY.ring*cam.ppm + 8, 0, 7);
+      ctx.moveTo(px + Math.max(0, o.radius*cam.ppm - BODY.ring*cam.ppm - 8), py);
+      ctx.arc(px, py, Math.max(0, o.radius*cam.ppm - BODY.ring*cam.ppm - 8), 0, 7);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+}
+
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+function drawSign(x, y, q, s){
+  if(Math.abs(q) < 1e-6 || s < 3) return;
+  ctx.save();
+  ctx.strokeStyle = '#0b0f18';
+  ctx.lineWidth = Math.max(1.4, s*0.22);
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x - s*0.45, y); ctx.lineTo(x + s*0.45, y);
+  if(q > 0){ ctx.moveTo(x, y - s*0.45); ctx.lineTo(x, y + s*0.45); }
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* ======================= Ablauf / Scheduling ====================== */
+function invalidate(){ dirtyField = true; dirtyRender = true; }
+function repaint(){ dirtyRender = true; }
+
+function frame(){
+  if(dirtyField){
+    buildSubs();
+    computeLines();
+    computeHeat();
+    computeEqui();
+    dirtyField = false;
+    dirtyRender = true;
+    updatePropInfo();
+  }
+  if(dirtyRender){ draw(); dirtyRender = false; }
+  requestAnimationFrame(frame);
+}
+
+/* ============================= Objekte ============================ */
+function addObject(type, x, y){
+  const o = { id:nextId++, type, x, y, q:10 };
+  if(type === 'plate'){ o.len = 3; o.angle = 0; o.q = 12; }
+  if(type === 'ring') { o.radius = 1.8; o.q = 12; }
+  objects.push(o);
+  selId = o.id;
+  syncUI();
+  invalidate();
+}
+function delObject(id){
+  objects = objects.filter(o => o.id !== id);
+  if(selId === id) selId = null;
+  syncUI(); invalidate();
+}
+function getSel(){ return objects.find(o => o.id === selId) || null; }
+
+function loadDipol(){
+  objects = [];
+  nextId = 1;
+  addObject('point', -1.8, 0);
+  objects[0].q = 12;
+  addObject('point',  1.8, 0);
+  objects[1].q = -12;
+  selId = null;
+  syncUI(); invalidate();
+}
+
+/* =============================== UI =============================== */
+const $ = id => document.getElementById(id);
+
+document.querySelectorAll('.tool').forEach(el => {
+  el.addEventListener('click', () => {
+    const t = el.dataset.tool;
+    tool = (tool === t) ? null : t;
+    document.querySelectorAll('.tool').forEach(x => x.classList.toggle('active', x.dataset.tool === tool));
+    $('toolhint').textContent = tool
+      ? 'Jetzt in die Zeichenfläche klicken, um die Ladung zu platzieren.'
+      : 'Werkzeug wählen, dann in die Zeichenfläche klicken. Körper anklicken = auswählen, ziehen = verschieben.';
+    cv.style.cursor = tool ? 'copy' : 'crosshair';
+  });
+});
+
+$('btnClear').addEventListener('click', () => { objects = []; selId = null; syncUI(); invalidate(); });
+$('btnDipol').addEventListener('click', loadDipol);
+$('btnDel').addEventListener('click', () => { if(selId !== null) delObject(selId); });
+
+$('qRange').addEventListener('input', e => {
+  const o = getSel(); if(!o) return;
+  o.q = parseFloat(e.target.value); $('qNum').value = o.q;
+  syncList(); invalidate();
+});
+$('qNum').addEventListener('input', e => {
+  const o = getSel(); if(!o) return;
+  let v = parseFloat(e.target.value);
+  if(!isFinite(v)) return;
+  v = Math.max(-40, Math.min(40, v));
+  o.q = v; $('qRange').value = v;
+  syncList(); invalidate();
+});
+$('lenRange').addEventListener('input', e => {
+  const o = getSel(); if(!o) return;
+  o.len = parseFloat(e.target.value); $('lenVal').textContent = fmt(o.len,2)+' m'; invalidate();
+});
+$('angRange').addEventListener('input', e => {
+  const o = getSel(); if(!o) return;
+  o.angle = parseFloat(e.target.value) * Math.PI/180;
+  $('angVal').textContent = Math.round(parseFloat(e.target.value))+'°'; invalidate();
+});
+$('radRange').addEventListener('input', e => {
+  const o = getSel(); if(!o) return;
+  o.radius = parseFloat(e.target.value); $('radVal').textContent = fmt(o.radius,2)+' m'; invalidate();
+});
+$('lpc').addEventListener('input', e => {
+  $('lpcVal').textContent = fmt(parseFloat(e.target.value),2);
+  invalidate();
+});
+['cbLines','cbArrows','cbHeat','cbEqui','cbVec'].forEach(id => $(id).addEventListener('change', invalidate));
+$('cbGrid').addEventListener('change', repaint);
+
+function fmt(v, d){ return v.toFixed(d).replace('.', ','); }
+
+const TYPE_NAME = { point:'Punktladung', plate:'Flächenladung', ring:'Ringladung' };
+
+function syncList(){
+  const box = $('objlist');
+  if(!objects.length){ box.innerHTML = '<div class="empty">Noch keine Ladungen. Oben ein Werkzeug wählen.</div>'; return; }
+  box.innerHTML = '';
+  for(const o of objects){
+    const d = document.createElement('div');
+    d.className = 'item' + (o.id === selId ? ' sel' : '');
+    d.innerHTML = '<span class="dot" style="background:'+signColor(o.q)+'"></span>'
+                + '<span class="nm">'+TYPE_NAME[o.type]+'</span>'
+                + '<span class="qq">'+(o.q>0?'+':'')+fmt(o.q,1)+' nC</span>'
+                + '<span class="del" title="löschen">&times;</span>';
+    d.addEventListener('click', ev => {
+      if(ev.target.classList.contains('del')){ delObject(o.id); return; }
+      selId = o.id; syncUI(); repaint();
+    });
+    box.appendChild(d);
+  }
+}
+
+function syncProps(){
+  const o = getSel();
+  $('propNone').style.display = o ? 'none' : 'block';
+  $('propBody').style.display = o ? 'block' : 'none';
+  if(!o) return;
+  $('qRange').value = o.q;
+  $('qNum').value   = o.q;
+  $('geoPlate').style.display = o.type === 'plate' ? 'block' : 'none';
+  $('geoRing').style.display  = o.type === 'ring'  ? 'block' : 'none';
+  if(o.type === 'plate'){
+    $('lenRange').value = o.len; $('lenVal').textContent = fmt(o.len,2)+' m';
+    const deg = (o.angle*180/Math.PI + 360) % 360;
+    $('angRange').value = deg;   $('angVal').textContent = Math.round(deg)+'°';
+  }
+  if(o.type === 'ring'){
+    $('radRange').value = o.radius; $('radVal').textContent = fmt(o.radius,2)+' m';
+  }
+  updatePropInfo();
+}
+
+function updatePropInfo(){
+  const o = getSel();
+  if(!o) return;
+  $('nLines').textContent = lineCount(o);
+  let s = '–';
+  if(o.type === 'point')  s = fmt(o.q,1) + ' nC';
+  if(o.type === 'plate')  s = fmt(o.q/o.len, 2) + ' nC/m';
+  if(o.type === 'ring')   s = fmt(o.q/(2*Math.PI*o.radius), 2) + ' nC/m';
+  $('densVal').textContent = s;
+}
+
+function syncUI(){ syncList(); syncProps(); }
+
+/* ========================= Maus / Zeiger ========================== */
+function evPos(e){
+  const r = cv.getBoundingClientRect();
+  return [e.clientX - r.left, e.clientY - r.top];
+}
+
+cv.addEventListener('pointerdown', e => {
+  const [sx, sy] = evPos(e);
+  const wx = s2wx(sx), wy = s2wy(sy);
+  moved = false;
+  cv.setPointerCapture(e.pointerId);
+
+  if(tool){                                     // Platzieren
+    addObject(tool, wx, wy);
+    tool = null;
+    document.querySelectorAll('.tool').forEach(x => x.classList.remove('active'));
+    $('toolhint').textContent = 'Werkzeug wählen, dann in die Zeichenfläche klicken. Körper anklicken = auswählen, ziehen = verschieben.';
+    cv.style.cursor = 'crosshair';
+    toast('Ladung platziert – jetzt Q einstellen oder verschieben.');
+    return;
+  }
+  const hit = pickObj(wx, wy, 0.10);
+  if(hit){
+    selId = hit.id;
+    dragObj = hit;
+    dragOff = [wx - hit.x, wy - hit.y];
+    cv.style.cursor = 'grabbing';
+    syncUI(); repaint();
+  } else {
+    panning = true;
+    panStart = [sx, sy, cam.cx, cam.cy];
+    cv.style.cursor = 'grabbing';
+  }
+});
+
+cv.addEventListener('pointermove', e => {
+  const [sx, sy] = evPos(e);
+  mouseW = [s2wx(sx), s2wy(sy)];
+
+  if(dragObj){
+    moved = true;
+    dragObj.x = mouseW[0] - dragOff[0];
+    dragObj.y = mouseW[1] - dragOff[1];
+    invalidate();
+  } else if(panning){
+    moved = true;
+    cam.cx = panStart[2] - (sx - panStart[0]) / cam.ppm;
+    cam.cy = panStart[3] + (sy - panStart[1]) / cam.ppm;
+    invalidate();
+  } else if(!tool){
+    cv.style.cursor = pickObj(mouseW[0], mouseW[1], 0.10) ? 'grab' : 'crosshair';
+  }
+  updateReadout();
+});
+
+function endDrag(e){
+  const wasDrag = dragObj;
+  if(dragObj || panning){
+    dragObj = null; panning = false;
+    cv.style.cursor = tool ? 'copy' : 'crosshair';
+    if(wasDrag) invalidate();        // volle Qualität neu berechnen
+    else invalidate();
+  }
+  if(!moved && !wasDrag && !tool){
+    // Klick ins Leere -> Auswahl aufheben
+    const [sx, sy] = evPos(e);
+    if(!pickObj(s2wx(sx), s2wy(sy), 0.10)){ selId = null; syncUI(); repaint(); }
+  }
+}
+cv.addEventListener('pointerup', endDrag);
+cv.addEventListener('pointercancel', endDrag);
+cv.addEventListener('pointerleave', () => { mouseW = null; updateReadout(); });
+
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  const [sx, sy] = evPos(e);
+  const bx = s2wx(sx), by = s2wy(sy);
+  const f = e.deltaY < 0 ? 1.12 : 1/1.12;
+  cam.ppm = Math.max(10, Math.min(300, cam.ppm * f));
+  cam.cx = bx - (sx - W/2)/cam.ppm;
+  cam.cy = by + (sy - H/2)/cam.ppm;
+  invalidate();
+}, { passive:false });
+
+window.addEventListener('keydown', e => {
+  const o = getSel();
+  if(!o) return;
+  if(document.activeElement && document.activeElement.tagName === 'INPUT') return;
+  const st = e.shiftKey ? 0.02 : 0.2;
+  if(e.key === 'Delete' || e.key === 'Backspace'){ delObject(o.id); e.preventDefault(); }
+  else if(e.key === 'ArrowLeft'){  o.x -= st; invalidate(); e.preventDefault(); }
+  else if(e.key === 'ArrowRight'){ o.x += st; invalidate(); e.preventDefault(); }
+  else if(e.key === 'ArrowUp'){    o.y += st; invalidate(); e.preventDefault(); }
+  else if(e.key === 'ArrowDown'){  o.y -= st; invalidate(); e.preventDefault(); }
+});
+
+/* ============================ Anzeige ============================= */
+function updateReadout(){
+  const el = $('readout');
+  if(!mouseW || !subs.length){
+    el.innerHTML = '<span class="k">Messsonde:</span> Maus über die Zeichenfläche bewegen';
+    return;
+  }
+  const [x, y] = mouseW;
+  fieldAt(x, y);
+  const E = Math.hypot(_ex, _ey);
+  const V = potentialAt(x, y);
+  const ang = (Math.atan2(_ey, _ex) * 180/Math.PI + 360) % 360;
+  el.innerHTML =
+    '<span class="k">Position</span> <span class="v">x = ' + fmt(x,2) + ' m, y = ' + fmt(y,2) + ' m</span><br>' +
+    '<span class="k">Feldstärke</span> <span class="v">|E| = ' + sci(E) + ' V/m</span> <span class="k">bei</span> <span class="v">' + Math.round(ang) + '°</span><br>' +
+    '<span class="k">Potential</span> <span class="v">V = ' + sci(V) + ' V</span>';
+}
+
+function sci(v){
+  const a = Math.abs(v);
+  if(a === 0) return '0';
+  if(a >= 1e5 || a < 1e-2){
+    const ex = Math.floor(Math.log10(a));
+    return fmt(v/Math.pow(10,ex), 2) + '·10' + sup(ex);
+  }
+  return fmt(v, a >= 100 ? 1 : 2);
+}
+function sup(n){
+  const m = {'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+  return String(n).split('').map(c => m[c] || c).join('');
+}
+
+let toastT = null;
+function toast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* ============================= Start ============================== */
+function resize(){
+  const r = cv.parentElement.getBoundingClientRect();
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = Math.max(320, Math.floor(r.width));
+  H = Math.max(240, Math.floor(r.height));
+  cv.width  = Math.floor(W*DPR);
+  cv.height = Math.floor(H*DPR);
+  cv.style.width  = W + 'px';
+  cv.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  invalidate();
+}
+window.addEventListener('resize', resize);
+
+resize();
+loadDipol();
+updateReadout();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

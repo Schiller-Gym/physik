@@ -11,6 +11,7 @@ This is a collection of standalone HTML applications with embedded CSS and JavaS
 - **bremsweg.html** - Physics simulation for braking distance calculations (German)
 - **burgen.html** - Castle defense game (Ballerburg-style) with projectile physics and damage calculations
 - **finance-app.html** - Personal finance dashboard
+- **feldlinien.html** - Electric field line simulation (German): point, surface and ring charges, adjustable charge, draggable bodies
 
 ## Development
 
@@ -32,3 +33,4 @@ Each application is self-contained in a single HTML file with:
 - **burgen.html**: Uses HTML5 Canvas for game rendering, implements projectile motion physics with gravity, wind, and damage calculations based on kinetic energy
 - **bremsweg.html**: Uses Canvas for road/sky visualization with braking distance calculations
 - **finance-app.html**: Dashboard layout with sidebar navigation and chart components
+- **feldlinien.html**: Extended charge bodies are discretised into point sub-charges; the field is their Coulomb superposition (E = k*q/r^2, charges in nC, positions in metres). Field lines are traced with an adaptive-step midpoint (RK2) integrator; the number of lines per body is proportional to |Q|, so line density represents field strength. Optional |E| heat map and marching-squares equipotentials.
