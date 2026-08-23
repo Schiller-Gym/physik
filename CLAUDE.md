@@ -15,6 +15,13 @@ This is a collection of standalone HTML applications with embedded CSS and JavaS
 - **influenz.html** - Polarisation (dielectric) vs. influence (conductor), side by side: sphere in a uniform external field
 - **feldlinien.html** - Electric field line simulation (German): point, surface, ring and hollow-sphere charges with conductor influence (induced charge), adjustable charge, draggable bodies
 
+## Worksheets
+
+- **arbeitsblatt-feldstaerke.docx** - student worksheet for feldstaerke.html: record F(q), plot it on the prepared grid, read E off the slope
+- **arbeitsblatt-feldstaerke-loesung.docx** - solution sheet with the expected values and notes for the teacher
+
+These are plain Word documents; edit them in Word. With U = 2000 V and d = 10 cm the settings give E = 20 kV/m, so F = 20 uN per nC and the measured points run from (0|0) to (10 nC|200 uN), exactly the diagonal of the printed grid.
+
 ## Development
 
 These are single-file applications. To work on them:
