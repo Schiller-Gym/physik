@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kraft auf eine Probeladung</title>
+<style>
+  :root{
+    --bg:#0b0f18; --panel:#131a27; --panel2:#1a2233; --line:#26314a;
+    --text:#e6ecf7; --muted:#8b98b3;
+    --pos:#ff5c6c; --neg:#4da3ff; --accent:#ffc857; --ok:#5ed39a;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+    display:flex;overflow:hidden;
+  }
+
+  #sidebar{
+    width:330px;min-width:330px;height:100%;
+    background:var(--panel);border-right:1px solid var(--line);
+    overflow-y:auto;padding:16px 16px 40px;
+  }
+  #sidebar::-webkit-scrollbar{width:9px;}
+  #sidebar::-webkit-scrollbar-thumb{background:#2a3550;border-radius:5px;}
+
+  h1{font-size:17px;margin:0 0 2px;}
+  .sub{font-size:12px;color:var(--muted);margin-bottom:16px;}
+
+  .group{
+    background:var(--panel2);border:1px solid var(--line);
+    border-radius:10px;padding:12px;margin-bottom:12px;
+  }
+  .group > h2{
+    font-size:11px;text-transform:uppercase;letter-spacing:1.1px;
+    color:var(--muted);margin:0 0 10px;font-weight:600;
+  }
+
+  .row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;}
+  .row label{font-size:12.5px;color:#c3cde0;}
+  .val{font-size:12.5px;color:var(--accent);font-variant-numeric:tabular-nums;}
+
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:4px;
+    background:#2c3752;border-radius:3px;outline:none;margin:5px 0 12px;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+    background:var(--accent);cursor:pointer;border:2px solid #1a2233;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:13px;height:13px;border-radius:50%;background:var(--accent);
+    cursor:pointer;border:2px solid #1a2233;
+  }
+
+  .check{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12.5px;color:#c3cde0;cursor:pointer;}
+  .check:last-child{margin-bottom:0;}
+  .check input{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;}
+
+  .btn{
+    width:100%;background:#212c42;border:1px solid #2f3b58;color:var(--text);
+    border-radius:8px;padding:9px;cursor:pointer;font-size:12.5px;transition:.13s;
+  }
+  .btn:hover{background:#2a3855;}
+  .btn.prim{background:#2c4a35;border-color:#4d9d6a;color:#c9f0d8;}
+  .btn.prim:hover{background:#35603f;}
+  .btn.danger:hover{background:#3a2430;border-color:#7a3444;color:#ffa8b3;}
+  .btn:disabled{opacity:.45;cursor:default;}
+  .btnrow{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px;}
+
+  select{
+    background:#0f1624;border:1px solid #2f3b58;color:var(--text);
+    border-radius:6px;padding:5px 6px;font-size:12px;
+  }
+
+  .res{
+    background:#101827;border:1px solid #2a3550;border-radius:9px;
+    padding:10px 12px;margin-bottom:9px;
+  }
+  .res .lab{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.9px;}
+  .res .big{font-size:22px;color:var(--accent);font-variant-numeric:tabular-nums;margin-top:2px;}
+  .res .dir{font-size:12px;color:#c3cde0;margin-top:3px;}
+  .res.e .big{font-size:18px;color:var(--ok);}
+
+  .legend{font-size:11.5px;color:var(--muted);line-height:1.7;}
+  .legend b{color:#c3cde0;font-weight:600;}
+  .legend .f{color:var(--accent);font-variant-numeric:tabular-nums;}
+  .note{
+    background:#22283a;border-left:3px solid #4d7fd0;
+    padding:7px 9px;border-radius:0 6px 6px 0;margin-top:9px;
+    font-size:11.5px;line-height:1.6;color:#a9b6cf;
+  }
+
+  #stage{flex:1;height:100%;min-width:0;display:flex;flex-direction:column;}
+  #scenewrap{flex:1 1 auto;position:relative;min-height:0;}
+  #cv{display:block;position:absolute;inset:0;touch-action:none;}
+  #meas{
+    flex:0 0 262px;border-top:1px solid var(--line);
+    background:#0e1420;display:flex;min-height:0;
+  }
+  #plotwrap{flex:1 1 auto;position:relative;min-width:0;}
+  #plot{display:block;position:absolute;inset:0;}
+  #tablewrap{
+    flex:0 0 320px;border-left:1px solid var(--line);
+    overflow-y:auto;padding:8px 10px;
+  }
+  #tablewrap::-webkit-scrollbar{width:8px;}
+  #tablewrap::-webkit-scrollbar-thumb{background:#2a3550;border-radius:4px;}
+  table{width:100%;border-collapse:collapse;font-size:11.5px;font-variant-numeric:tabular-nums;}
+  th{
+    color:var(--muted);font-weight:600;text-align:right;padding:3px 5px;
+    border-bottom:1px solid var(--line);position:sticky;top:0;background:#0e1420;
+  }
+  th:first-child{text-align:left;}
+  td{text-align:right;padding:3px 5px;border-bottom:1px solid #1b2436;color:#c3cde0;}
+  td:first-child{text-align:left;color:var(--muted);}
+  tr:hover td{background:#172032;}
+  tr.hl td{color:var(--accent);}
+  .tempty{color:var(--muted);font-style:italic;font-size:11.5px;padding:8px 2px;}
+
+  @media (max-width:900px){
+    body{flex-direction:column;overflow:auto;}
+    #sidebar{width:100%;min-width:0;height:auto;max-height:44vh;border-right:none;border-bottom:1px solid var(--line);}
+    #stage{height:auto;}
+    #scenewrap{height:44vh;flex:none;}
+    #meas{flex-direction:column;flex:none;height:auto;}
+    #plotwrap{height:230px;flex:none;}
+    #tablewrap{flex:none;max-height:220px;border-left:none;border-top:1px solid var(--line);}
+  }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <h1>Kraft auf eine Probeladung</h1>
+  <div class="sub">Plattenkondensator &middot; Gewichtskraft vernachlässigt</div>
+
+  <div class="group">
+    <h2>Messgrößen</h2>
+    <div class="res">
+      <div class="lab">Kraft auf die Probeladung</div>
+      <div class="big" id="fVal">–</div>
+      <div class="dir" id="fDir">–</div>
+    </div>
+    <div class="res e" id="eBox">
+      <div class="lab">Feldstärke E = F / q</div>
+      <div class="big" id="eVal">–</div>
+    </div>
+    <div class="legend" id="derived"></div>
+  </div>
+
+  <div class="group">
+    <h2>Kondensator</h2>
+    <div class="row"><label>Spannung U</label><span class="val" id="UVal"></span></div>
+    <input type="range" id="U" min="-5000" max="5000" step="50" value="2000">
+    <div class="row"><label>Plattenabstand d</label><span class="val" id="dVal"></span></div>
+    <input type="range" id="d" min="0.02" max="0.20" step="0.005" value="0.10">
+    <div class="row"><label>Plattenfläche A</label><span class="val" id="AVal"></span></div>
+    <input type="range" id="A" min="0.01" max="0.10" step="0.005" value="0.05">
+  </div>
+
+  <div class="group">
+    <h2>Probeladung</h2>
+    <div class="row"><label>Ladung q</label><span class="val" id="qVal"></span></div>
+    <input type="range" id="q" min="-10" max="10" step="0.25" value="2">
+  </div>
+
+  <div class="group">
+    <h2>Messreihe</h2>
+    <div class="row"><label>Messgröße auf der x-Achse</label></div>
+    <select id="xsel" style="width:100%;margin-bottom:8px">
+      <option value="q">Probeladung q</option>
+      <option value="U">Spannung U</option>
+      <option value="d">Plattenabstand d</option>
+      <option value="invd">Kehrwert des Abstands 1/d</option>
+      <option value="A">Plattenfläche A</option>
+    </select>
+    <div class="row"><label>Messgröße auf der y-Achse</label></div>
+    <select id="ysel" style="width:100%">
+      <option value="F">Kraft F</option>
+      <option value="E">Feldstärke E</option>
+      <option value="Q">Plattenladung Q</option>
+    </select>
+    <button class="btn prim" id="btnAdd" style="margin-top:10px">Messwert übernehmen</button>
+    <div class="btnrow">
+      <button class="btn" id="btnSeries">Serie aufnehmen</button>
+      <button class="btn danger" id="btnClear">Tabelle leeren</button>
+    </div>
+    <div class="legend" id="fitInfo" style="margin-top:10px"></div>
+  </div>
+
+  <div class="group">
+    <h2>Darstellung</h2>
+    <label class="check"><input type="checkbox" id="cbLines" checked> Feldlinien</label>
+    <label class="check"><input type="checkbox" id="cbDims" checked> Maße und Beschriftung</label>
+    <label class="check"><input type="checkbox" id="cbHideE" checked> Feldstärke E ausblenden (selbst bestimmen)</label>
+  </div>
+
+  <div class="group">
+    <h2>Physik</h2>
+    <div class="legend">
+      Idealer Plattenkondensator, an den Platten liegt die Spannung <b>U</b>:<br><br>
+      Feld zwischen den Platten <span class="f">E = U/d</span><br>
+      Kraft auf die Probeladung <span class="f">F = q·E = q·U/d</span><br>
+      Flächenladungsdichte <span class="f">σ = ε₀·E</span><br>
+      Plattenladung <span class="f">Q = ε₀·A·U/d = C·U</span>, Kapazität <span class="f">C = ε₀A/d</span><br><br>
+      ε₀ = 8,854·10<sup>−12</sup> As/Vm<br><br>
+      Damit ist <b>E = F/q</b> – im F(q)-Diagramm ist die <b>Steigung</b> der Ursprungsgeraden genau die Feldstärke.<br><br>
+      Bei vorgegebener <b>Spannung</b> hängt E nur von d ab, <b>nicht von der Plattenfläche</b>: A ändert nur die Ladung Q auf den Platten.
+    </div>
+    <div class="note">Modellannahmen: ideales homogenes Feld ohne Randeffekte, außerhalb der Platten E&nbsp;=&nbsp;0. Die Probeladung gilt als so klein, dass sie die Ladungsverteilung auf den Platten nicht stört. <b>Gewichtskräfte werden vernachlässigt</b>, wie gefordert.</div>
+  </div>
+</div>
+
+<div id="stage">
+  <div id="scenewrap"><canvas id="cv"></canvas></div>
+  <div id="meas">
+    <div id="plotwrap"><canvas id="plot"></canvas></div>
+    <div id="tablewrap">
+      <table id="tbl"><thead></thead><tbody></tbody></table>
+      <div class="tempty" id="tempty">Noch keine Messwerte. „Messwert übernehmen" oder „Serie aufnehmen".</div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   Idealer Plattenkondensator, Platten waagerecht.
+   Vorgegeben wird die Spannung U; U > 0 bedeutet obere Platte positiv.
+   Spannung in V, Abstand in m, Fläche in m², Probeladung in nC.
+       E     = U/d                       [V/m]   zwischen den Platten
+       F     = q*E = q*U/d               [N]
+       sigma = eps0*E                    [C/m²]
+       Q     = sigma*A = eps0*A*U/d = C*U,  C = eps0*A/d
+   Feldrichtung: von + nach -, bei U > 0 also nach unten.
+   Außerhalb der Platten ist das Feld im Idealmodell null.
+   Bei vorgegebener Spannung hängt E nicht von A ab - A ändert nur Q.
+   Gewichtskraft wird laut Aufgabenstellung nicht berücksichtigt.
+   ===================================================================== */
+const EPS0 = 8.8541878128e-12;
+
+const state = { U:2000, q:2, d:0.10, A:0.05, px:0, py:0 };
+
+const cv   = document.getElementById('cv');
+const ctx  = cv.getContext('2d');
+const pcv  = document.getElementById('plot');
+const pctx = pcv.getContext('2d');
+let W=0, H=0, PW=0, PH=0, DPR=1;
+
+let rows = [];
+let dragging = false;
+let series = null;
+const $ = id => document.getElementById(id);
+
+/* ------------------------------ Physik --------------------------- */
+function Efield(){ return state.U/state.d; }            // V/m, Vorzeichen von U
+function sigma(){ return EPS0*Efield(); }               // C/m²
+function plateQ(){ return sigma()*state.A*1e9; }        // nC auf der oberen Platte
+function capacity(){ return EPS0*state.A/state.d; }     // F
+function plateW(){ return Math.sqrt(state.A); }         // quadratische Platten, Kantenlänge
+
+function insidePlates(x, y){
+  return Math.abs(x) <= plateW()/2 && Math.abs(y) <= state.d/2;
+}
+/* Kraft auf die Probeladung, y-Komponente in Newton (positiv = nach oben) */
+function forceY(){
+  if(!insidePlates(state.px, state.py)) return 0;
+  return -(state.q*1e-9)*Efield();
+}
+
+/* --------------------------- Formatierung ------------------------ */
+function fmt(v, n){
+  if(!isFinite(v)) return '–';
+  return v.toFixed(n).replace('.', ',');
+}
+function sup(n){
+  const m = {'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+  return String(n).split('').map(c => m[c] || c).join('');
+}
+function sci(v, n){
+  const a = Math.abs(v);
+  if(a === 0) return '0';
+  if(a >= 1e5 || a < 1e-2){
+    const e = Math.floor(Math.log10(a));
+    return fmt(v/Math.pow(10,e), n) + '·10' + sup(e);
+  }
+  return fmt(v, a >= 100 ? 1 : a >= 10 ? 2 : n);
+}
+function fmtF(F){                       // F in N -> µN
+  return fmt(F*1e6, Math.abs(F*1e6) >= 100 ? 1 : 2) + ' µN';
+}
+function fmtE(E){
+  return Math.abs(E) >= 1000 ? fmt(E/1000,3) + ' kV/m' : fmt(E,1) + ' V/m';
+}
+
+/* ============================== Szene =============================
+   Fester Maßstab: er richtet sich nach den größtmöglichen Einstellungen,
+   nicht nach den aktuellen. Nur so bildet die Zeichnung Abstand und
+   Fläche absolut ab – ein doppelt so großes d sieht auch doppelt so
+   groß aus, und A ändert wirklich nur die Breite.
+   (Vorher passte sich der Zoom an, dadurch blieb die Lücke ab einem
+   bestimmten d konstant und stattdessen schrumpfte die Plattenbreite.) */
+let MAX_D = 0.20, MAX_PW = Math.sqrt(0.10);
+let FMAX = 2.5e-3;         // größtmögliche Kraft, für Pfeil- und Balkenlänge
+let E_REF = 20000;         // Referenzfeldstärke für die Feldlinienzahl
+const MARGIN_X = 200;      // Platz für Maßlinie links und Halterung rechts
+const MARGIN_Y = 130;      // Platz für Ladungsbeschriftung und Maßlinie
+
+function sceneScale(){
+  return Math.max(120, Math.min((W - MARGIN_X)/MAX_PW, (H - MARGIN_Y)/MAX_D));
+}
+const S = () => sceneScale();
+const cxp = () => W/2;
+const cyp = () => H/2;
+const X = x => cxp() + x*S();
+const Y = y => cyp() - y*S();
+const invX = p => (p - cxp())/S();
+const invY = p => (cyp() - p)/S();
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#0b0f18';
+  ctx.fillRect(0,0,W,H);
+
+  const pw = plateW(), d = state.d, s = S();
+  const top = Y(d/2), bot = Y(-d/2);
+  const left = X(-pw/2), right = X(pw/2);
+  const th = Math.max(5, 0.006*s);
+  const E = Efield();
+  const posTop = state.U >= 0;
+
+  // Bereich zwischen den Platten
+  ctx.fillStyle = 'rgba(120,150,210,0.05)';
+  ctx.fillRect(left, top, right-left, bot-top);
+
+  if($('cbLines').checked && Math.abs(E) > 1){
+    const n = Math.max(1, Math.min(26, Math.round(Math.abs(E)/E_REF*12)));
+    ctx.strokeStyle = 'rgba(230,238,255,0.5)';
+    ctx.fillStyle   = 'rgba(230,238,255,0.75)';
+    ctx.lineWidth = 1.2;
+    const down = posTop;                       // Feld zeigt von + nach -
+    for(let i=0;i<n;i++){
+      const x = left + (right-left)*(i+0.5)/n;
+      ctx.beginPath(); ctx.moveTo(x, top+1); ctx.lineTo(x, bot-1); ctx.stroke();
+      for(const f of [0.32, 0.68]){
+        const yy = top + (bot-top)*f;
+        const dy = down ? 1 : -1;
+        ctx.beginPath();
+        ctx.moveTo(x, yy + dy*6);
+        ctx.lineTo(x - 3.4, yy - dy*2.2);
+        ctx.lineTo(x + 3.4, yy - dy*2.2);
+        ctx.closePath(); ctx.fill();
+      }
+    }
+  }
+
+  // yFace ist jeweils die dem Zwischenraum zugewandte Fläche
+  drawPlate(left, right, top, th, posTop ? +1 : -1, +1);
+  drawPlate(left, right, bot, th, posTop ? -1 : +1, -1);
+
+  if($('cbDims').checked){ drawDims(left, right, top, bot, pw); drawScaleBar(); }
+  drawProbe();
+  drawGauge();
+}
+
+/* yFace: dem Zwischenraum zugewandte Fläche.
+   into: +1 wenn der Zwischenraum darunter liegt (obere Platte), sonst -1. */
+function drawPlate(left, right, yFace, th, s, into){
+  const col = s > 0 ? '#ff5c6c' : '#4da3ff';
+  const yBody = into > 0 ? yFace - th : yFace;
+  const g = ctx.createLinearGradient(0, yFace, 0, yFace + into*th*7);
+  g.addColorStop(0, col + '55'); g.addColorStop(1, col + '00');
+  ctx.fillStyle = g;
+  ctx.fillRect(left, into > 0 ? yFace : yFace - th*7, right-left, th*7);
+  ctx.fillStyle = col;
+  ctx.fillRect(left, yBody, right-left, th);
+  const n = Math.max(3, Math.round((right-left)/38));
+  for(let i=0;i<n;i++){
+    const x = left + (right-left)*(i+0.5)/n;
+    sign(x, yBody + th/2, s, Math.min(th*1.5, 11), '#0b0f18');
+  }
+}
+
+function sign(x, y, s, size, col){
+  ctx.save();
+  ctx.strokeStyle = col;
+  ctx.lineWidth = Math.max(1.4, size*0.22);
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x - size*0.45, y); ctx.lineTo(x + size*0.45, y);
+  if(s > 0){ ctx.moveTo(x, y - size*0.45); ctx.lineTo(x, y + size*0.45); }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawDims(left, right, top, bot, pw){
+  ctx.save();
+  ctx.strokeStyle = 'rgba(139,152,179,.7)';
+  ctx.fillStyle   = 'rgba(200,212,232,.9)';
+  ctx.lineWidth = 1;
+  ctx.font = '12px system-ui';
+  // Plattenabstand d, links (rechts hängt die Halterung der Probeladung)
+  const xd = left - 30;
+  ctx.beginPath();
+  ctx.moveTo(xd, top); ctx.lineTo(xd, bot);
+  ctx.moveTo(xd-5, top); ctx.lineTo(xd+5, top);
+  ctx.moveTo(xd-5, bot); ctx.lineTo(xd+5, bot);
+  ctx.stroke();
+  ctx.textAlign = 'right';
+  ctx.fillText('d = ' + fmt(state.d*100,1) + ' cm', xd - 8, (top+bot)/2 + 4);
+  // Plattenladungen, außerhalb der Platten
+  const th = Math.max(5, 0.006*S());
+  ctx.textAlign = 'center';
+  const Qp = Math.abs(plateQ());
+  ctx.fillStyle = state.U >= 0 ? '#ff9aa4' : '#9ad0ff';
+  ctx.fillText((state.U >= 0 ? '+' : '−') + fmt(Qp,2) + ' nC',
+               (left+right)/2, top - th - 9);
+  ctx.fillStyle = state.U >= 0 ? '#9ad0ff' : '#ff9aa4';
+  ctx.fillText((state.U >= 0 ? '−' : '+') + fmt(Qp,2) + ' nC',
+               (left+right)/2, bot + th + 17);
+  // Plattenbreite
+  const yb = bot + th + 40;
+  ctx.strokeStyle = 'rgba(139,152,179,.7)';
+  ctx.beginPath();
+  ctx.moveTo(left, yb); ctx.lineTo(right, yb);
+  ctx.moveTo(left, yb-5); ctx.lineTo(left, yb+5);
+  ctx.moveTo(right, yb-5); ctx.lineTo(right, yb+5);
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(200,212,232,.9)';
+  ctx.fillText('A = ' + fmt(state.A*1e4,0) + ' cm²  (Kantenlänge ' + fmt(pw*100,1) + ' cm)',
+               (left+right)/2, yb + 17);
+  ctx.restore();
+}
+
+/* Maßstabsbalken – macht sichtbar, dass der Maßstab fest ist */
+function drawScaleBar(){
+  const len = 0.05*S();                       // 5 cm
+  const x0 = W - 26 - len, y0 = H - 22;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(139,152,179,.8)';
+  ctx.fillStyle   = 'rgba(200,212,232,.9)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x0, y0); ctx.lineTo(x0 + len, y0);
+  ctx.moveTo(x0, y0-4); ctx.lineTo(x0, y0+4);
+  ctx.moveTo(x0+len, y0-4); ctx.lineTo(x0+len, y0+4);
+  ctx.stroke();
+  ctx.font = '11px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText('5 cm', x0 + len/2, y0 - 8);
+  ctx.restore();
+}
+
+function drawProbe(){
+  const x = X(state.px), y = Y(state.py);
+  const r = Math.max(7, 0.008*S());
+  const q = state.q;
+  const col = q > 0 ? '#ff5c6c' : q < 0 ? '#4da3ff' : '#8b98b3';
+  const Fy = forceY();
+
+  // Kraftpfeil
+  if(Math.abs(Fy) > 0){
+    const Fmax = FMAX;                                 // größtmögliche Kraft
+    const L = 26 + 96*Math.min(1, Math.abs(Fy)/Fmax);
+    const dir = Fy > 0 ? -1 : +1;                      // Bildschirm-y ist invertiert
+    const y1 = y + dir*(r+4), y2 = y + dir*(r+4+L);
+    ctx.strokeStyle = '#ffc857'; ctx.fillStyle = '#ffc857';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(x, y1); ctx.lineTo(x, y2 - dir*9); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, y2);
+    ctx.lineTo(x - 6.5, y2 - dir*11);
+    ctx.lineTo(x + 6.5, y2 - dir*11);
+    ctx.closePath(); ctx.fill();
+    ctx.font = '600 13px system-ui';
+    ctx.textAlign = 'left';
+    ctx.fillText('F = ' + fmtF(Math.abs(Fy)), x + 12, y2 - dir*2);
+  }
+
+  // Halterung (isolierender Stiel)
+  ctx.strokeStyle = 'rgba(200,212,232,.35)';
+  ctx.setLineDash([5,4]); ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(W - 18, y); ctx.stroke();
+  ctx.setLineDash([]);
+
+  const g = ctx.createRadialGradient(x, y, 1, x, y, r*2.4);
+  g.addColorStop(0, col + 'bb'); g.addColorStop(1, col + '00');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(x, y, r*2.4, 0, 7); ctx.fill();
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+  ctx.strokeStyle = dragging ? '#ffc857' : '#0b0f18';
+  ctx.lineWidth = dragging ? 2.2 : 1.6;
+  ctx.stroke();
+  if(Math.abs(q) > 1e-9) sign(x, y, q, r*1.2, '#0b0f18');
+
+  ctx.fillStyle = '#c3cde0';
+  ctx.font = '12px system-ui';
+  ctx.textAlign = 'right';
+  ctx.fillText('q = ' + (q>0?'+':'') + fmt(q,2) + ' nC', x - r - 10, y + 4);
+  ctx.textAlign = 'left';
+}
+
+function drawGauge(){
+  const Fy = forceY(), aF = Math.abs(Fy);
+  const Fmax = FMAX;
+  const bx = 16, by = 16, bw = 186, bh = 62;
+  ctx.fillStyle = 'rgba(11,15,24,.82)';
+  ctx.strokeStyle = '#26314a'; ctx.lineWidth = 1;
+  ctx.fillRect(bx, by, bw, bh);
+  ctx.strokeRect(bx+.5, by+.5, bw, bh);
+  ctx.fillStyle = '#8b98b3'; ctx.font = '11px system-ui'; ctx.textAlign = 'left';
+  ctx.fillText('KRAFTMESSER', bx+10, by+16);
+  ctx.fillStyle = '#ffc857'; ctx.font = '600 18px system-ui';
+  ctx.fillText(fmtF(aF), bx+10, by+38);
+  ctx.fillStyle = '#1c2436';
+  ctx.fillRect(bx+10, by+46, bw-20, 7);
+  ctx.fillStyle = '#ffc857';
+  ctx.fillRect(bx+10, by+46, (bw-20)*Math.min(1, aF/Fmax), 7);
+}
+
+/* ============================ Diagramm ============================ */
+/* slider: welcher Regler für die automatische Serie verstellt wird */
+const AX = {
+  q:   { lab:'q in nC',    get:r => r.q,      unit:'nC',   slider:'q' },
+  U:   { lab:'U in V',     get:r => r.U,      unit:'V',    slider:'U' },
+  d:   { lab:'d in cm',    get:r => r.d*100,  unit:'cm',   slider:'d' },
+  invd:{ lab:'1/d in 1/m', get:r => 1/r.d,    unit:'1/m',  slider:'d' },
+  A:   { lab:'A in cm²',   get:r => r.A*1e4,  unit:'cm²',  slider:'A' },
+  F:   { lab:'F in µN',    get:r => r.F*1e6,  unit:'µN' },
+  E:   { lab:'E in kV/m',  get:r => r.E/1000, unit:'kV/m' },
+  Q:   { lab:'Q in nC',    get:r => r.Q,      unit:'nC' }
+};
+
+function niceStep(range, target){
+  const raw = range/target;
+  const p = Math.pow(10, Math.floor(Math.log10(raw)));
+  const m = raw/p;
+  return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10)*p;
+}
+
+function drawPlot(){
+  pctx.clearRect(0,0,PW,PH);
+  pctx.fillStyle = '#0e1420';
+  pctx.fillRect(0,0,PW,PH);
+
+  const xk = $('xsel').value, yk = $('ysel').value;
+  const ax = AX[xk], ay = AX[yk];
+  const L = 58, Rp = 18, T = 18, B = 38;
+  const w = PW - L - Rp, h = PH - T - B;
+  if(w < 40 || h < 30) return;
+
+  const xs = rows.map(ax.get), ys = rows.map(ay.get);
+  let x0 = Math.min(0, ...xs), x1 = Math.max(0, ...xs);
+  let y0 = Math.min(0, ...ys), y1 = Math.max(0, ...ys);
+  if(!rows.length){ x0 = 0; x1 = 1; y0 = 0; y1 = 1; }
+  if(x1 - x0 < 1e-12){ x1 = x0 + 1; }
+  if(y1 - y0 < 1e-12){ y1 = y0 + 1; }
+  const padx = (x1-x0)*0.08, pady = (y1-y0)*0.12;
+  x0 -= padx; x1 += padx; y0 -= pady; y1 += pady;
+
+  const px = v => L + (v - x0)/(x1 - x0)*w;
+  const py = v => T + h - (v - y0)/(y1 - y0)*h;
+
+  // Raster
+  const sx = niceStep(x1-x0, 6), sy = niceStep(y1-y0, 5);
+  pctx.font = '11px system-ui';
+  pctx.strokeStyle = 'rgba(255,255,255,.06)';
+  pctx.lineWidth = 1;
+  pctx.fillStyle = '#8b98b3';
+  pctx.textAlign = 'center'; pctx.textBaseline = 'top';
+  for(let v = Math.ceil(x0/sx)*sx; v <= x1+1e-9; v += sx){
+    const X0 = Math.round(px(v))+.5;
+    pctx.beginPath(); pctx.moveTo(X0, T); pctx.lineTo(X0, T+h); pctx.stroke();
+    pctx.fillText(fmt(v, sx < 1 ? 2 : sx < 10 ? 1 : 0), X0, T+h+6);
+  }
+  pctx.textAlign = 'right'; pctx.textBaseline = 'middle';
+  for(let v = Math.ceil(y0/sy)*sy; v <= y1+1e-9; v += sy){
+    const Y0 = Math.round(py(v))+.5;
+    pctx.beginPath(); pctx.moveTo(L, Y0); pctx.lineTo(L+w, Y0); pctx.stroke();
+    pctx.fillText(fmt(v, sy < 1 ? 2 : sy < 10 ? 1 : 0), L-7, Y0);
+  }
+  // Achsen durch den Ursprung
+  pctx.strokeStyle = 'rgba(255,255,255,.28)';
+  pctx.beginPath();
+  if(y0 <= 0 && y1 >= 0){ pctx.moveTo(L, Math.round(py(0))+.5); pctx.lineTo(L+w, Math.round(py(0))+.5); }
+  if(x0 <= 0 && x1 >= 0){ pctx.moveTo(Math.round(px(0))+.5, T); pctx.lineTo(Math.round(px(0))+.5, T+h); }
+  pctx.stroke();
+  pctx.strokeStyle = 'rgba(255,255,255,.18)';
+  pctx.strokeRect(L+.5, T+.5, w, h);
+
+  pctx.fillStyle = '#c3cde0'; pctx.font = '12px system-ui';
+  pctx.textAlign = 'right'; pctx.textBaseline = 'alphabetic';
+  pctx.fillText(ax.lab, L+w, PH-8);
+  pctx.save();
+  pctx.translate(13, T+6); pctx.rotate(-Math.PI/2);
+  pctx.textAlign = 'right';
+  pctx.fillText(ay.lab, 0, 0);
+  pctx.restore();
+
+  // Ausgleichsgerade durch den Ursprung  y = k*x
+  const fit = fitOrigin(xs, ys);
+  if(fit !== null && rows.length >= 2 && fitResidual(xs, ys, fit) < 0.02){
+    pctx.strokeStyle = 'rgba(94,211,154,.75)';
+    pctx.lineWidth = 1.6;
+    pctx.setLineDash([6,4]);
+    pctx.beginPath();
+    pctx.moveTo(px(x0), py(fit*x0));
+    pctx.lineTo(px(x1), py(fit*x1));
+    pctx.stroke();
+    pctx.setLineDash([]);
+  }
+
+  // Messpunkte
+  rows.forEach((r, i) => {
+    const X0 = px(ax.get(r)), Y0 = py(ay.get(r));
+    pctx.fillStyle = i === rows.length-1 ? '#ffc857' : '#4da3ff';
+    pctx.beginPath(); pctx.arc(X0, Y0, i === rows.length-1 ? 5 : 4, 0, 7); pctx.fill();
+    pctx.strokeStyle = '#0e1420'; pctx.lineWidth = 1.4; pctx.stroke();
+  });
+
+  if(!rows.length){
+    pctx.fillStyle = '#8b98b3'; pctx.font = '12px system-ui';
+    pctx.textAlign = 'center'; pctx.textBaseline = 'middle';
+    pctx.fillText('Messwerte aufnehmen, dann erscheinen hier die Punkte.', L+w/2, T+h/2);
+  }
+}
+
+function fitOrigin(xs, ys){          // kleinste Quadrate für y = k*x
+  let sxy = 0, sxx = 0;
+  for(let i=0;i<xs.length;i++){ sxy += xs[i]*ys[i]; sxx += xs[i]*xs[i]; }
+  if(sxx < 1e-12) return null;
+  return sxy/sxx;
+}
+
+/* Relative Restabweichung von der Ursprungsgeraden: klein = Proportionalität */
+function fitResidual(xs, ys, k){
+  let num = 0, den = 0;
+  for(let i=0;i<xs.length;i++){
+    const r = ys[i] - k*xs[i];
+    num += r*r; den += ys[i]*ys[i];
+  }
+  return den > 0 ? Math.sqrt(num/den) : 0;
+}
+
+/* ============================= Tabelle ============================ */
+function syncTable(){
+  const head = $('tbl').tHead, body = $('tbl').tBodies[0];
+  $('tempty').style.display = rows.length ? 'none' : 'block';
+  head.innerHTML = rows.length
+    ? '<tr><th>Nr.</th><th>U/V</th><th>q/nC</th><th>d/cm</th><th>A/cm²</th><th>F/µN</th></tr>' : '';
+  body.innerHTML = '';
+  rows.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    if(i === rows.length-1) tr.className = 'hl';
+    tr.innerHTML = '<td>'+(i+1)+'</td><td>'+fmt(r.U,0)+'</td><td>'+fmt(r.q,2)+'</td>'
+                 + '<td>'+fmt(r.d*100,1)+'</td><td>'+fmt(r.A*1e4,0)+'</td>'
+                 + '<td>'+fmt(r.F*1e6,2)+'</td>';
+    body.appendChild(tr);
+  });
+  if(rows.length) $('tablewrap').scrollTop = $('tablewrap').scrollHeight;
+}
+
+function addRow(){
+  rows.push({ U:state.U, q:state.q, d:state.d, A:state.A,
+              F:Math.abs(forceY()), E:Math.abs(Efield()), Q:Math.abs(plateQ()) });
+  syncTable(); drawPlot(); syncFit();
+}
+
+function syncFit(){
+  const xk = $('xsel').value, yk = $('ysel').value;
+  const el = $('fitInfo');
+  if(rows.length < 2){
+    el.innerHTML = 'Ab zwei Messwerten wird eine Ursprungsgerade eingepasst.';
+    return;
+  }
+  const xs = rows.map(AX[xk].get), ys = rows.map(AX[yk].get);
+  const k = fitOrigin(xs, ys);
+  if(k === null){ el.innerHTML = 'Keine Steigung bestimmbar.'; return; }
+  const res = fitResidual(xs, ys, k);
+  const prop = res < 0.02;
+
+  let txt;
+  if(prop){
+    txt = AX[yk].lab.split(' ')[0] + ' ist <b>proportional</b> zu ' + AX[xk].lab.split(' ')[0]
+        + '.<br>Steigung: <span class="f">k = ' + sci(k,3) + ' '
+        + AX[yk].unit + '/' + AX[xk].unit + '</span>';
+  } else {
+    txt = '<b>Keine Proportionalität</b> – die Messpunkte liegen nicht auf einer '
+        + 'Ursprungsgeraden (Restabweichung ' + fmt(res*100,0) + ' %). '
+        + 'Die eingezeichnete Gerade ist hier also nicht aussagekräftig.';
+    if(xk === 'd' && (yk === 'F' || yk === 'E'))
+      txt += '<br><br>Das ist richtig so: bei fest vorgegebener <b>Spannung</b> ist '
+           + 'E = U/d, also <b>umgekehrt proportional</b> zu d. Auf der x-Achse '
+           + '<b>1/d</b> wählen – dann liegen die Punkte auf einer Ursprungsgeraden.';
+    if(xk === 'A' && (yk === 'F' || yk === 'E'))
+      txt += '<br><br>Auch das ist richtig: E = U/d enthält die Fläche nicht. '
+           + 'A ändert allein die <b>Ladung</b> Q = ε₀AU/d auf den Platten.';
+  }
+  if(prop && xk === 'U' && yk === 'F')
+    txt += '<br><br>Erwartet: k = q/d = <span class="f">'
+        + sci(state.q*1e-9/state.d*1e6, 3) + ' µN/V</span>.';
+  if(prop && xk === 'invd' && yk === 'F')
+    txt += '<br><br>F ist also <b>umgekehrt proportional zum Plattenabstand</b>. '
+        + 'Erwartet: k = q·U = <span class="f">'
+        + sci(state.q*1e-9*state.U*1e6, 3) + ' µN·m</span>.';
+  if(prop && xk === 'q' && yk === 'F'){
+    // 1 µN/nC = 1e-6 N / 1e-9 C = 1e3 N/C = 1e3 V/m
+    txt += '<br><br>1 µN/nC = 10³ V/m, also <b>E = <span class="f">'
+        + fmtE(k*1e3) + '</span></b>.<br>Das ist genau die <b>elektrische Feldstärke</b> – '
+        + 'sie hängt nicht von der Probeladung ab.';
+  }
+  el.innerHTML = txt;
+}
+
+/* ============================ Anzeigen ============================ */
+function syncAll(){
+  $('UVal').textContent = (state.U>0?'+':'') + fmt(state.U,0) + ' V';
+  $('qVal').textContent = (state.q>0?'+':'') + fmt(state.q,2) + ' nC';
+  $('dVal').textContent = fmt(state.d*100,1) + ' cm';
+  $('AVal').textContent = fmt(state.A*1e4,0) + ' cm²';
+
+  const Fy = forceY(), E = Efield();
+  const inside = insidePlates(state.px, state.py);
+
+  $('fVal').textContent = fmtF(Math.abs(Fy));
+  let dir;
+  if(!inside)              dir = 'Probeladung außerhalb des Kondensators – dort ist E = 0';
+  else if(Math.abs(Fy) === 0) dir = state.q === 0 ? 'q = 0: keine Kraft' : 'U = 0: kein Feld, keine Kraft';
+  else {
+    const toTop = Fy > 0;
+    const topPos = state.U >= 0;
+    const platePos = toTop ? topPos : !topPos;
+    dir = 'nach ' + (toTop ? 'oben' : 'unten') + ', zur '
+        + (platePos ? 'positiven' : 'negativen') + ' Platte';
+  }
+  $('fDir').textContent = dir;
+
+  const hide = $('cbHideE').checked;
+  $('eBox').style.display = hide ? 'none' : 'block';
+  $('eVal').textContent = fmtE(Math.abs(E));
+  const base = 'Q = ε₀AU/d = <span class="f">' + fmt(Math.abs(plateQ()),2) + ' nC</span>'
+             + '<br>σ = Q/A = <span class="f">' + fmt(Math.abs(sigma())*1e9,1) + ' nC/m²</span>'
+             + '<br>C = ε₀A/d = <span class="f">' + fmt(capacity()*1e12,2) + ' pF</span>';
+  $('derived').innerHTML = hide
+    ? base
+    : base + '<br>E = U/d = <span class="f">' + fmtE(Math.abs(E)) + '</span>'
+      + '<br>F = q·E = <span class="f">' + fmtF(Math.abs(Fy)) + '</span>';
+
+  draw();
+}
+
+/* ============================== Serie ============================= */
+function runSeries(){
+  if(series) return;
+  const xk = $('xsel').value;
+  const sk = AX[xk].slider;                 // 1/d wird über den d-Regler gefahren
+  const inp = $(sk);
+  const lo = parseFloat(inp.min), hi = parseFloat(inp.max), step = parseFloat(inp.step);
+  const n = 7;
+  // bei q und U von 0 aus nach oben, sonst über den ganzen Reglerbereich
+  const from = (sk === 'q' || sk === 'U') ? 0 : lo;
+  const back = state[sk];
+  let i = 0;
+  $('btnSeries').disabled = true;
+  series = setInterval(() => {
+    let v;
+    if(xk === 'invd'){                      // gleichmäßig in 1/d, nicht in d
+      const inv = 1/hi + (1/lo - 1/hi)*i/(n-1);
+      v = 1/inv;
+    } else {
+      v = from + (hi - from)*i/(n-1);
+    }
+    state[sk] = Math.round(v/step)*step;
+    inp.value = state[sk];
+    if(sk === 'd' || sk === 'A') clampProbe();
+    syncAll();
+    addRow();
+    if(++i >= n){
+      clearInterval(series); series = null;
+      $('btnSeries').disabled = false;
+      state[sk] = back; inp.value = back;
+      clampProbe(); syncAll();
+    }
+  }, 260);
+}
+
+/* ================================ UI ============================== */
+['U','q','d','A'].forEach(k => {
+  $(k).addEventListener('input', e => {
+    state[k] = parseFloat(e.target.value);
+    if(k === 'd' || k === 'A') clampProbe();
+    syncAll();
+  });
+});
+$('btnAdd').addEventListener('click', addRow);
+$('btnSeries').addEventListener('click', runSeries);
+$('btnClear').addEventListener('click', () => { rows = []; syncTable(); drawPlot(); syncFit(); });
+$('xsel').addEventListener('change', () => { drawPlot(); syncFit(); });
+$('ysel').addEventListener('change', () => { drawPlot(); syncFit(); });
+$('cbLines').addEventListener('change', draw);
+$('cbDims').addEventListener('change', draw);
+$('cbHideE').addEventListener('change', syncAll);
+
+/* Nur an den sichtbaren Bereich binden – die Probeladung darf den
+   Kondensator verlassen, dort ist das Feld im Idealmodell null. */
+function clampProbe(){
+  const hw = W/2/S()*0.94, hh = H/2/S()*0.9;
+  state.px = Math.max(-hw, Math.min(hw, state.px));
+  state.py = Math.max(-hh, Math.min(hh, state.py));
+}
+
+cv.addEventListener('pointerdown', e => {
+  const r = cv.getBoundingClientRect();
+  const x = invX(e.clientX - r.left), y = invY(e.clientY - r.top);
+  if(Math.hypot(x - state.px, y - state.py) < 0.02){
+    dragging = true;
+    cv.setPointerCapture(e.pointerId);
+    draw();
+  }
+});
+cv.addEventListener('pointermove', e => {
+  const r = cv.getBoundingClientRect();
+  const x = invX(e.clientX - r.left), y = invY(e.clientY - r.top);
+  if(dragging){
+    state.px = x; state.py = y;
+    clampProbe();
+    syncAll();
+  } else {
+    cv.style.cursor = Math.hypot(x - state.px, y - state.py) < 0.02 ? 'grab' : 'default';
+  }
+});
+function endDrag(){ if(dragging){ dragging = false; cv.style.cursor = 'default'; draw(); } }
+cv.addEventListener('pointerup', endDrag);
+cv.addEventListener('pointercancel', endDrag);
+
+/* =============================== Start ============================ */
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const a = cv.parentElement.getBoundingClientRect();
+  W = Math.max(320, Math.floor(a.width)); H = Math.max(220, Math.floor(a.height));
+  cv.width = Math.floor(W*DPR); cv.height = Math.floor(H*DPR);
+  cv.style.width = W+'px'; cv.style.height = H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+
+  const b = pcv.parentElement.getBoundingClientRect();
+  PW = Math.max(220, Math.floor(b.width)); PH = Math.max(140, Math.floor(b.height));
+  pcv.width = Math.floor(PW*DPR); pcv.height = Math.floor(PH*DPR);
+  pcv.style.width = PW+'px'; pcv.style.height = PH+'px';
+  pctx.setTransform(DPR,0,0,DPR,0,0);
+
+  draw(); drawPlot();
+}
+window.addEventListener('resize', resize);
+
+// Maßstab an den Reglergrenzen ausrichten, damit er fest bleibt
+MAX_D  = parseFloat($('d').max);
+MAX_PW = Math.sqrt(parseFloat($('A').max));
+FMAX   = parseFloat($('q').max)*1e-9 * parseFloat($('U').max)/parseFloat($('d').min);
+E_REF  = state.U/state.d;
+
+resize();
+syncAll();
+syncTable();
+drawPlot();
+syncFit();
+</script>
+</body>
+</html>
