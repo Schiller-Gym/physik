@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elektronenablenkröhre</title>
+<style>
+  :root{
+    --bg:#0b0f18; --panel:#131a27; --panel2:#1a2233; --line:#26314a;
+    --text:#e6ecf7; --muted:#8b98b3;
+    --pos:#ff5c6c; --neg:#4da3ff; --accent:#ffc857;
+    --beam:#7dffc4; --warn:#ffb45c;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+    display:flex;overflow:hidden;
+  }
+
+  #sidebar{
+    width:340px;min-width:340px;height:100%;
+    background:var(--panel);border-right:1px solid var(--line);
+    overflow-y:auto;padding:16px 16px 40px;
+  }
+  #sidebar::-webkit-scrollbar{width:9px;}
+  #sidebar::-webkit-scrollbar-thumb{background:#2a3550;border-radius:5px;}
+
+  h1{font-size:17px;margin:0 0 2px;}
+  .sub{font-size:12px;color:var(--muted);margin-bottom:16px;}
+
+  .group{
+    background:var(--panel2);border:1px solid var(--line);
+    border-radius:10px;padding:12px;margin-bottom:12px;
+  }
+  .group > h2{
+    font-size:11px;text-transform:uppercase;letter-spacing:1.1px;
+    color:var(--muted);margin:0 0 10px;font-weight:600;
+  }
+
+  .row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:4px;}
+  .row label{font-size:12.5px;color:#c3cde0;}
+  .val{font-size:12.5px;color:var(--accent);font-variant-numeric:tabular-nums;}
+
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:4px;
+    background:#2c3752;border-radius:3px;outline:none;margin:5px 0 12px;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+    background:var(--accent);cursor:pointer;border:2px solid #1a2233;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:13px;height:13px;border-radius:50%;background:var(--accent);
+    cursor:pointer;border:2px solid #1a2233;
+  }
+
+  .check{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12.5px;color:#c3cde0;cursor:pointer;}
+  .check:last-child{margin-bottom:0;}
+  .check input{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;}
+
+  .res{
+    background:#101827;border:1px solid #2a3550;border-radius:9px;
+    padding:10px 12px;margin-bottom:9px;
+  }
+  .res .lab{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.9px;}
+  .res .big{font-size:23px;color:var(--beam);font-variant-numeric:tabular-nums;margin-top:2px;}
+  .res .sml{font-size:12px;color:#c3cde0;margin-top:3px;}
+
+  .kv{font-size:11.5px;color:var(--muted);line-height:1.85;}
+  .kv b{color:#c3cde0;font-weight:600;font-variant-numeric:tabular-nums;}
+  .kv .f{color:var(--accent);font-variant-numeric:tabular-nums;}
+
+  .legend{font-size:11.5px;color:var(--muted);line-height:1.7;}
+  .legend b{color:#c3cde0;font-weight:600;}
+  .legend .f{color:var(--accent);font-variant-numeric:tabular-nums;}
+  .note{
+    background:#22283a;border-left:3px solid #4d7fd0;
+    padding:7px 9px;border-radius:0 6px 6px 0;margin-top:9px;
+    font-size:11.5px;line-height:1.6;color:#a9b6cf;
+  }
+  .warn{
+    background:#3a2f18;border-left:3px solid #d08a2c;color:#ffd98a;
+    padding:8px 10px;border-radius:0 6px 6px 0;margin-bottom:9px;
+    font-size:12px;line-height:1.55;
+  }
+  .fixed{
+    display:grid;grid-template-columns:auto auto;gap:2px 10px;
+    font-size:12px;color:#c3cde0;
+  }
+  .fixed span:nth-child(odd){color:var(--muted);}
+  .fixed span:nth-child(even){font-variant-numeric:tabular-nums;}
+
+  #stage{flex:1;position:relative;height:100%;min-width:0;}
+  canvas{display:block;position:absolute;inset:0;}
+
+  @media (max-width:900px){
+    body{flex-direction:column;overflow:auto;}
+    #sidebar{width:100%;min-width:0;height:auto;max-height:46vh;border-right:none;border-bottom:1px solid var(--line);}
+    #stage{height:54vh;flex:none;}
+  }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <h1>Elektronenablenkröhre</h1>
+  <div class="sub">Flugbahn eines Elektronenstrahls im Querfeld</div>
+
+  <div id="warnBox" class="warn" style="display:none"></div>
+
+  <div class="group">
+    <h2>Ergebnis</h2>
+    <div class="res">
+      <div class="lab">Ablenkung auf dem Schirm</div>
+      <div class="big" id="ySVal">–</div>
+      <div class="sml" id="ySDir">–</div>
+    </div>
+    <div class="kv" id="mainKv"></div>
+  </div>
+
+  <div class="group">
+    <h2>Spannungen</h2>
+    <div class="row"><label>Beschleunigungsspannung U<sub>B</sub></label><span class="val" id="ubVal"></span></div>
+    <input type="range" id="ub" min="500" max="5000" step="50" value="2000">
+    <div class="row"><label>Ablenkspannung U<sub>A</sub></label><span class="val" id="uaVal"></span></div>
+    <input type="range" id="ua" min="-500" max="500" step="5" value="200">
+    <div class="note">U<sub>A</sub> &gt; 0 bedeutet: obere Platte positiv. Elektronen sind negativ geladen und werden deshalb <b>zur positiven Platte hin</b> abgelenkt – also nach oben.</div>
+  </div>
+
+  <div class="group">
+    <h2>Aufbau (fest)</h2>
+    <div class="fixed">
+      <span>Plattenlänge l</span><span>10,0 cm</span>
+      <span>Plattenabstand d</span><span>60 mm</span>
+      <span>Abstand Platten – Schirm L</span><span>20,0 cm</span>
+      <span>Schirmhöhe</span><span>100 mm</span>
+    </div>
+  </div>
+
+  <div class="group">
+    <h2>Zwischenwerte</h2>
+    <div class="kv" id="derived"></div>
+  </div>
+
+  <div class="group">
+    <h2>Darstellung</h2>
+    <label class="check"><input type="checkbox" id="cbField" checked> Feld zwischen den Platten</label>
+    <label class="check"><input type="checkbox" id="cbBack" checked> Rückwärtsverlängerung zur Plattenmitte</label>
+    <label class="check"><input type="checkbox" id="cbFan"> Bahnkurven für weitere Ablenkspannungen</label>
+    <label class="check"><input type="checkbox" id="cbDims" checked> Maße und Beschriftung</label>
+  </div>
+
+  <div class="group">
+    <h2>Physik</h2>
+    <div class="legend">
+      <b>Beschleunigung:</b> Die Arbeit e·U<sub>B</sub> wird zu kinetischer Energie:<br>
+      <span class="f">e·U<sub>B</sub> = ½·m·v₀²</span> &nbsp;→&nbsp; <span class="f">v₀ = √(2e·U<sub>B</sub>/m)</span><br><br>
+
+      <b>Im Plattenkondensator</b> wirkt quer zur Bewegung die konstante Kraft
+      F = e·U<sub>A</sub>/d. Längs bleibt v₀ erhalten, quer wird gleichmäßig
+      beschleunigt – die Bahn ist eine <b>Wurfparabel</b>:<br>
+      <span class="f">y(x) = U<sub>A</sub>·x² / (4·d·U<sub>B</sub>)</span><br><br>
+
+      Am Plattenende: <span class="f">y₁ = U<sub>A</sub>·l²/(4·d·U<sub>B</sub>)</span>,
+      <span class="f">tan α = U<sub>A</sub>·l/(2·d·U<sub>B</sub>)</span><br><br>
+
+      Danach fliegt das Elektron <b>geradlinig</b> weiter. Auf dem Schirm:<br>
+      <span class="f">y<sub>S</sub> = (U<sub>A</sub>·l)/(2·d·U<sub>B</sub>) · (l/2 + L)</span><br><br>
+
+      Die Gerade läuft rückwärts verlängert genau durch die <b>Mitte der Platten</b> –
+      so, als käme der Strahl von dort geradlinig her.<br><br>
+
+      Bemerkenswert: In y<sub>S</sub> kommt <b>e/m nicht vor</b>. Die Ablenkung wäre
+      für jedes geladene Teilchen gleich, solange es dieselbe Spannung U<sub>B</sub>
+      durchlaufen hat.
+    </div>
+    <div class="note">Modell: homogenes Feld nur zwischen den Platten, außerhalb feldfrei; keine Randfelder, keine Raumladung, keine Schwerkraft. Klassisch gerechnet – bei U<sub>B</sub> = 5 kV erreicht v₀ rund 14 % der Lichtgeschwindigkeit, die relativistische Korrektur liegt dort bei 0,7 %.</div>
+  </div>
+</div>
+
+<div id="stage"><canvas id="cv"></canvas></div>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   Elektronenablenkröhre.  Ursprung x = 0 am Plattenanfang, y = 0 auf der
+   Rohrachse, y nach oben.
+       v0    = sqrt(2*e*U_B/m)
+       y(x)  = U_A*x^2/(4*d*U_B)          innerhalb der Platten (Parabel)
+       y1    = U_A*l^2/(4*d*U_B)          am Plattenende
+       tan a = U_A*l/(2*d*U_B)            Austrittswinkel
+       y_S   = y1 + L*tan a               auf dem Schirm
+   U_A > 0: obere Platte positiv -> das negative Elektron wird nach oben
+   abgelenkt.  Klassische Rechnung, homogenes Feld nur zwischen den Platten.
+   ===================================================================== */
+const E_C = 1.602176634e-19;      // C
+const M_E = 9.1093837015e-31;     // kg
+const C_L = 299792458;            // m/s
+const EM  = E_C/M_E;
+
+const L_PL = 0.10;                // Plattenlänge
+const D_PL = 0.060;               // Plattenabstand
+const L_SC = 0.20;                // Platten -> Schirm
+const X_SC = L_PL + L_SC;         // Schirmposition
+const SC_H = 0.050;               // halbe Schirmhöhe
+const TUBE = 0.055;               // halber Innendurchmesser des Rohrs
+const X_GUN = -0.095;             // Anfang der Kanone
+
+const state = { ub:2000, ua:200 };
+
+const cv  = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1, PPM = 1, OX = 0, OY = 0;
+const $ = id => document.getElementById(id);
+
+/* ------------------------------ Physik --------------------------- */
+const v0     = () => Math.sqrt(2*EM*state.ub);
+const kPar   = () => state.ua/(4*D_PL*state.ub);      // y = k*x²
+const y1     = () => kPar()*L_PL*L_PL;
+const tanA   = () => 2*kPar()*L_PL;
+const yScr   = () => y1() + L_SC*tanA();
+const eField = () => state.ua/D_PL;                   // V/m
+const accel  = () => EM*state.ua/D_PL;                // m/s²
+const tFly   = () => L_PL/v0();                       // s
+
+/* Bahn berechnen; meldet, wo sie gegebenenfalls endet */
+function trajectory(ua){
+  const k = ua/(4*D_PL*state.ub);
+  const pts = [[X_GUN, 0], [0, 0]];
+  let stop = null;                       // 'plate' | 'tube' | null
+
+  let xEnd = L_PL;
+  if(k !== 0){
+    const xh = Math.sqrt((D_PL/2)/Math.abs(k));       // |k|x² = d/2
+    if(xh < L_PL){ xEnd = xh; stop = 'plate'; }
+  }
+  const N = 80;
+  for(let i=1;i<=N;i++){
+    const x = xEnd*i/N;
+    pts.push([x, k*x*x]);
+  }
+  if(stop) return { pts, stop };
+
+  const yy1 = k*L_PL*L_PL, ta = 2*k*L_PL;
+  let xEnd2 = X_SC;
+  if(ta !== 0){
+    const xw = L_PL + (Math.sign(ta)*TUBE - yy1)/ta;  // Treffer an der Rohrwand
+    if(xw > L_PL && xw < X_SC){ xEnd2 = xw; stop = 'tube'; }
+  }
+  pts.push([xEnd2, yy1 + (xEnd2 - L_PL)*ta]);
+  return { pts, stop };
+}
+
+/* --------------------------- Formatierung ------------------------ */
+function fmt(v, n){ return (isFinite(v) ? v.toFixed(n) : '–').replace('.', ','); }
+function sup(n){
+  const m = {'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+  return String(n).split('').map(c => m[c] || c).join('');
+}
+function sci(v, n){
+  const a = Math.abs(v);
+  if(a === 0) return '0';
+  const e = Math.floor(Math.log10(a));
+  return fmt(v/Math.pow(10,e), n) + '·10' + sup(e);
+}
+
+/* ============================ Geometrie =========================== */
+function layout(){
+  const vw = (X_SC + 0.022) - X_GUN;         // etwas Luft hinter dem Schirm
+  const vh = 2*TUBE + 0.030;
+  PPM = Math.max(200, Math.min((W - 150)/vw, (H - 60)/vh));
+  OX = 70 - X_GUN*PPM;
+  OY = H/2;
+}
+const px = x => OX + x*PPM;
+const py = y => OY - y*PPM;
+
+/* ============================= Zeichnen =========================== */
+function draw(){
+  layout();
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#0b0f18';
+  ctx.fillRect(0,0,W,H);
+
+  drawTube();
+  drawGun();
+  if($('cbField').checked) drawField();
+  drawPlates();
+  drawScreen();
+  if($('cbFan').checked) drawFan();
+  if($('cbBack').checked) drawBackLine();
+  drawBeam();
+  if($('cbDims').checked) drawDims();
+}
+
+function drawTube(){
+  const x0 = px(X_GUN) - 12, x1 = px(X_SC) + 18;
+  const yt = py(TUBE), yb = py(-TUBE);
+  ctx.strokeStyle = 'rgba(140,170,215,0.22)';
+  ctx.lineWidth = 1.5;
+  ctx.fillStyle = 'rgba(120,150,210,0.035)';
+  const r = 16;
+  ctx.beginPath();
+  ctx.moveTo(x0+r, yt);
+  ctx.lineTo(x1-r, yt); ctx.quadraticCurveTo(x1, yt, x1, yt+r);
+  ctx.lineTo(x1, yb-r); ctx.quadraticCurveTo(x1, yb, x1-r, yb);
+  ctx.lineTo(x0+r, yb); ctx.quadraticCurveTo(x0, yb, x0, yb-r);
+  ctx.lineTo(x0, yt+r); ctx.quadraticCurveTo(x0, yt, x0+r, yt);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  // Achse
+  ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+  ctx.setLineDash([7,6]); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(px(X_GUN), py(0)); ctx.lineTo(px(X_SC), py(0)); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawGun(){
+  const xc = px(X_GUN) + 6, xa = px(-0.012);
+  const h = 0.020*PPM;
+  // Glühkathode
+  ctx.strokeStyle = '#ff9a4d'; ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  ctx.moveTo(xc, py(0)-h); ctx.lineTo(xc+7, py(0)); ctx.lineTo(xc, py(0)+h);
+  ctx.stroke();
+  const g = ctx.createRadialGradient(xc+4, py(0), 1, xc+4, py(0), 26);
+  g.addColorStop(0, 'rgba(255,154,77,0.35)'); g.addColorStop(1, 'rgba(255,154,77,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(xc+4, py(0), 26, 0, 7); ctx.fill();
+
+  // Anode mit Loch
+  ctx.fillStyle = '#8fa3c4';
+  const ah = 0.030*PPM, gap = 0.005*PPM;
+  ctx.fillRect(xa, py(0)-ah, 5, ah-gap);
+  ctx.fillRect(xa, py(0)+gap, 5, ah-gap);
+
+  if($('cbDims').checked){
+    ctx.fillStyle = 'rgba(200,212,232,.85)';
+    ctx.font = '11px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('Kathode', xc+4, py(0) + h + 30);
+    ctx.fillText('Anode',  xa+2, py(0) - ah - 8);
+    ctx.fillStyle = '#ffc857';
+    ctx.fillText('U_B = ' + fmt(state.ub,0) + ' V', (xc+xa)/2, py(0) - ah - 24);
+  }
+}
+
+function drawPlates(){
+  const x0 = px(0), x1 = px(L_PL);
+  const th = Math.max(4, 0.005*PPM);
+  const up = state.ua >= 0;
+  for(const s of [+1, -1]){
+    const posPlate = (s > 0) === up;                  // ist diese Platte positiv?
+    const col = state.ua === 0 ? '#8b98b3' : (posPlate ? '#ff5c6c' : '#4da3ff');
+    const yf = py(s*D_PL/2);                          // dem Strahl zugewandte Fläche
+    const yBody = s > 0 ? yf - th : yf;
+    ctx.fillStyle = col;
+    ctx.fillRect(x0, yBody, x1-x0, th);
+    if(state.ua !== 0){
+      const n = Math.max(3, Math.round((x1-x0)/40));
+      for(let i=0;i<n;i++){
+        const x = x0 + (x1-x0)*(i+0.5)/n;
+        sign(x, yBody + th/2, posPlate ? +1 : -1, Math.min(th*1.4, 10), '#0b0f18');
+      }
+    }
+  }
+  if($('cbDims').checked){
+    ctx.fillStyle = '#ffc857';
+    ctx.font = '12px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('U_A = ' + (state.ua > 0 ? '+' : '') + fmt(state.ua,0) + ' V',
+                 (x0+x1)/2, py(D_PL/2) - Math.max(4, 0.005*PPM) - 12);
+  }
+}
+
+function drawField(){
+  if(state.ua === 0) return;
+  const x0 = px(0), x1 = px(L_PL);
+  const yt = py(D_PL/2), yb = py(-D_PL/2);
+  const n = 11;
+  const down = state.ua >= 0;      // E zeigt von + nach -, bei U_A>0 also nach unten
+  ctx.strokeStyle = 'rgba(230,238,255,0.20)';
+  ctx.fillStyle   = 'rgba(230,238,255,0.28)';
+  ctx.lineWidth = 1;
+  for(let i=0;i<n;i++){
+    const x = x0 + (x1-x0)*(i+0.5)/n;
+    ctx.beginPath(); ctx.moveTo(x, yt+2); ctx.lineTo(x, yb-2); ctx.stroke();
+    const ym = (yt+yb)/2, dy = down ? 1 : -1;
+    ctx.beginPath();
+    ctx.moveTo(x, ym + dy*6);
+    ctx.lineTo(x - 3.2, ym - dy*2);
+    ctx.lineTo(x + 3.2, ym - dy*2);
+    ctx.closePath(); ctx.fill();
+  }
+}
+
+function drawScreen(){
+  const x = px(X_SC);
+  const yt = py(SC_H), yb = py(-SC_H);
+  ctx.fillStyle = 'rgba(125,255,196,0.10)';
+  ctx.fillRect(x, yt, 7, yb-yt);
+  ctx.strokeStyle = 'rgba(125,255,196,0.55)';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(x+.5, yt+.5, 7, yb-yt);
+
+  // Millimeterskala
+  ctx.strokeStyle = 'rgba(200,240,225,0.45)';
+  ctx.fillStyle = 'rgba(200,240,225,0.75)';
+  ctx.font = '10px system-ui';
+  ctx.textAlign = 'left';
+  ctx.lineWidth = 1;
+  for(let mm = -50; mm <= 50; mm += 10){
+    const yy = py(mm/1000);
+    const long = (mm % 20 === 0);
+    ctx.beginPath();
+    ctx.moveTo(x+7, yy); ctx.lineTo(x+7+(long?9:5), yy);
+    ctx.stroke();
+    if(long) ctx.fillText((mm > 0 ? '+' : '') + mm, x+19, yy+3.5);
+  }
+
+  // Leuchtfleck
+  const tr = trajectory(state.ua);
+  if(!tr.stop){
+    const ys = yScr();
+    if(Math.abs(ys) <= SC_H){
+      const sy = py(ys);
+      const g = ctx.createRadialGradient(x+3, sy, 0, x+3, sy, 22);
+      g.addColorStop(0, 'rgba(190,255,225,0.95)');
+      g.addColorStop(0.35, 'rgba(125,255,196,0.45)');
+      g.addColorStop(1, 'rgba(125,255,196,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(x+3, sy, 22, 0, 7); ctx.fill();
+      ctx.fillStyle = '#eafff5';
+      ctx.beginPath(); ctx.arc(x+3, sy, 3.4, 0, 7); ctx.fill();
+    }
+  }
+}
+
+function polyline(pts, stroke, width, dash){
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = width;
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  if(dash) ctx.setLineDash(dash);
+  ctx.beginPath();
+  ctx.moveTo(px(pts[0][0]), py(pts[0][1]));
+  for(let i=1;i<pts.length;i++) ctx.lineTo(px(pts[i][0]), py(pts[i][1]));
+  ctx.stroke();
+  if(dash) ctx.setLineDash([]);
+}
+
+function drawBeam(){
+  const tr = trajectory(state.ua);
+  polyline(tr.pts, 'rgba(125,255,196,0.16)', 9);
+  polyline(tr.pts, 'rgba(125,255,196,0.35)', 4.5);
+  polyline(tr.pts, '#d8fff0', 1.7);
+  if(tr.stop){
+    const p = tr.pts[tr.pts.length-1];
+    const x = px(p[0]), y = py(p[1]);
+    const g = ctx.createRadialGradient(x, y, 0, x, y, 20);
+    g.addColorStop(0, 'rgba(255,180,92,0.9)');
+    g.addColorStop(1, 'rgba(255,180,92,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(x, y, 20, 0, 7); ctx.fill();
+  }
+}
+
+function drawFan(){
+  const base = state.ua === 0 ? 200 : Math.abs(state.ua);
+  for(const f of [-1, -0.5, 0, 0.5, 1]){
+    const ua = f*base;
+    if(Math.abs(ua - state.ua) < 1e-9) continue;
+    polyline(trajectory(ua).pts, 'rgba(125,255,196,0.18)', 1.2, [4,4]);
+  }
+}
+
+function drawBackLine(){
+  const tr = trajectory(state.ua);
+  if(tr.stop || state.ua === 0) return;
+  const ys = yScr();
+  polyline([[L_PL/2, 0], [X_SC, ys]], 'rgba(255,200,87,0.55)', 1.2, [6,5]);
+  ctx.fillStyle = 'rgba(255,200,87,0.9)';
+  ctx.beginPath(); ctx.arc(px(L_PL/2), py(0), 3.2, 0, 7); ctx.fill();
+  if($('cbDims').checked){
+    ctx.font = '11px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('Plattenmitte', px(L_PL/2), py(0) + 18);
+  }
+}
+
+function sign(x, y, s, size, col){
+  ctx.save();
+  ctx.strokeStyle = col;
+  ctx.lineWidth = Math.max(1.4, size*0.24);
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x - size*0.45, y); ctx.lineTo(x + size*0.45, y);
+  if(s > 0){ ctx.moveTo(x, y - size*0.45); ctx.lineTo(x, y + size*0.45); }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawDims(){
+  ctx.save();
+  ctx.strokeStyle = 'rgba(139,152,179,.75)';
+  ctx.fillStyle   = 'rgba(200,212,232,.9)';
+  ctx.lineWidth = 1;
+  ctx.font = '11px system-ui';
+
+  // Plattenabstand d
+  const xd = px(0) - 22;
+  const yt = py(D_PL/2), yb = py(-D_PL/2);
+  ctx.beginPath();
+  ctx.moveTo(xd, yt); ctx.lineTo(xd, yb);
+  ctx.moveTo(xd-4, yt); ctx.lineTo(xd+4, yt);
+  ctx.moveTo(xd-4, yb); ctx.lineTo(xd+4, yb);
+  ctx.stroke();
+  ctx.textAlign = 'right';
+  ctx.fillText('d = 60 mm', xd - 6, (yt+yb)/2 + 4);
+
+  // Plattenlänge l
+  const yl = py(-TUBE) + 22;
+  ctx.beginPath();
+  ctx.moveTo(px(0), yl); ctx.lineTo(px(L_PL), yl);
+  ctx.moveTo(px(0), yl-4); ctx.lineTo(px(0), yl+4);
+  ctx.moveTo(px(L_PL), yl-4); ctx.lineTo(px(L_PL), yl+4);
+  ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.fillText('l = 10,0 cm', (px(0)+px(L_PL))/2, yl + 15);
+
+  // Abstand L
+  ctx.beginPath();
+  ctx.moveTo(px(L_PL), yl); ctx.lineTo(px(X_SC), yl);
+  ctx.moveTo(px(X_SC), yl-4); ctx.lineTo(px(X_SC), yl+4);
+  ctx.stroke();
+  ctx.fillText('L = 20,0 cm', (px(L_PL)+px(X_SC))/2, yl + 15);
+
+  // Ablenkung auf dem Schirm
+  const tr = trajectory(state.ua);
+  if(!tr.stop && Math.abs(yScr()) <= SC_H && Math.abs(state.ua) > 0){
+    const xs = px(X_SC) + 46, y0 = py(0), ys = py(yScr());
+    ctx.strokeStyle = 'rgba(125,255,196,.8)';
+    ctx.beginPath();
+    ctx.moveTo(xs, y0); ctx.lineTo(xs, ys);
+    ctx.moveTo(xs-4, y0); ctx.lineTo(xs+4, y0);
+    ctx.moveTo(xs-4, ys); ctx.lineTo(xs+4, ys);
+    ctx.stroke();
+    ctx.fillStyle = '#7dffc4';
+    ctx.textAlign = 'left';
+    ctx.fillText('y = ' + fmt(yScr()*1000,1) + ' mm', xs + 7, (y0+ys)/2 + 4);
+  }
+  ctx.restore();
+}
+
+/* ============================== Anzeige =========================== */
+function syncAll(){
+  $('ubVal').textContent = fmt(state.ub,0) + ' V';
+  $('uaVal').textContent = (state.ua > 0 ? '+' : '') + fmt(state.ua,0) + ' V';
+
+  const tr = trajectory(state.ua);
+  const ys = yScr(), v = v0(), aDeg = Math.atan(tanA())*180/Math.PI;
+  const wb = $('warnBox');
+
+  if(tr.stop === 'plate'){
+    $('ySVal').textContent = '—';
+    $('ySDir').textContent = 'Der Strahl erreicht den Schirm nicht.';
+    wb.style.display = 'block';
+    wb.innerHTML = '<b>Der Strahl trifft auf eine Ablenkplatte.</b> Das passiert, sobald '
+      + 'y₁ ≥ d/2 = 30 mm wird, also ab U<sub>A</sub> = 2d²U<sub>B</sub>/l² = '
+      + '0,72 · U<sub>B</sub> = ' + fmt(0.72*state.ub,0) + ' V. '
+      + 'U<sub>A</sub> verringern oder U<sub>B</sub> erhöhen.';
+  } else if(tr.stop === 'tube'){
+    $('ySVal').textContent = '—';
+    $('ySDir').textContent = 'Der Strahl erreicht den Schirm nicht.';
+    wb.style.display = 'block';
+    wb.innerHTML = '<b>Der Strahl trifft die Rohrwand,</b> bevor er den Schirm erreicht. '
+      + 'Rechnerisch läge die Ablenkung bei ' + fmt(ys*1000,1) + ' mm.';
+  } else if(Math.abs(ys) > SC_H){
+    $('ySVal').textContent = fmt(ys*1000,1) + ' mm';
+    $('ySDir').textContent = 'liegt außerhalb des Schirms (±50 mm)';
+    wb.style.display = 'block';
+    wb.innerHTML = '<b>Der Leuchtfleck liegt außerhalb des Schirms.</b> '
+      + 'Der Wert stimmt rechnerisch, ist aber nicht mehr ablesbar.';
+  } else {
+    $('ySVal').textContent = (ys > 0 ? '+' : '') + fmt(ys*1000,2) + ' mm';
+    $('ySDir').textContent = state.ua === 0 ? 'keine Ablenkung – der Strahl läuft gerade'
+      : 'nach ' + (ys > 0 ? 'oben' : 'unten') + ', zur '
+        + (state.ua > 0 ? 'oberen' : 'unteren') + ' (positiven) Platte';
+    wb.style.display = 'none';
+  }
+
+  $('mainKv').innerHTML =
+      'Ablenkwinkel α = <b>' + fmt(aDeg,2) + '°</b><br>'
+    + 'Ablenkung am Plattenende y₁ = <b>' + fmt(y1()*1000,2) + ' mm</b><br>'
+    + 'Geschwindigkeit v₀ = <b>' + sci(v,3) + ' m/s</b> = <b>' + fmt(v/C_L*100,2) + ' % c</b>';
+
+  $('derived').innerHTML =
+      'Feld zwischen den Platten<br>E = U<sub>A</sub>/d = <span class="f">'
+        + fmt(Math.abs(eField()),1) + ' V/m</span><br>'
+    + 'Querbeschleunigung<br>a = e·E/m = <span class="f">' + sci(Math.abs(accel()),3) + ' m/s²</span><br>'
+    + 'Flugzeit zwischen den Platten<br>t = l/v₀ = <span class="f">' + fmt(tFly()*1e9,3) + ' ns</span><br>'
+    + 'Energie nach der Beschleunigung<br>E<sub>kin</sub> = e·U<sub>B</sub> = <span class="f">'
+        + fmt(state.ub/1000,3) + ' keV</span> = <span class="f">' + sci(state.ub*E_C,3) + ' J</span>';
+
+  draw();
+}
+
+/* ================================ UI ============================== */
+$('ub').addEventListener('input', e => { state.ub = parseFloat(e.target.value); syncAll(); });
+$('ua').addEventListener('input', e => { state.ua = parseFloat(e.target.value); syncAll(); });
+['cbField','cbBack','cbFan','cbDims'].forEach(id =>
+  $(id).addEventListener('change', draw));
+
+/* =============================== Start ============================ */
+function resize(){
+  const r = cv.parentElement.getBoundingClientRect();
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = Math.max(360, Math.floor(r.width));
+  H = Math.max(260, Math.floor(r.height));
+  cv.width = Math.floor(W*DPR); cv.height = Math.floor(H*DPR);
+  cv.style.width = W+'px'; cv.style.height = H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  draw();
+}
+window.addEventListener('resize', resize);
+
+resize();
+syncAll();
+</script>
+</body>
+</html>
