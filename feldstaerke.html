@@ -70,6 +70,15 @@
   .btn:disabled{opacity:.45;cursor:default;}
   .btnrow{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px;}
 
+  .seg{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+  .seg button{
+    background:#212c42;border:1px solid #2f3b58;color:var(--text);
+    border-radius:8px;padding:9px 4px;cursor:pointer;font-size:12.5px;transition:.13s;
+  }
+  .seg button:hover{background:#2a3855;}
+  .seg button.on{background:#2f4a7a;border-color:#4d7fd0;box-shadow:0 0 0 1px #4d7fd055;}
+  .seg button.on.real{background:#5a3a22;border-color:#d08a2c;box-shadow:0 0 0 1px #d08a2c55;}
+
   select{
     background:#0f1624;border:1px solid #2f3b58;color:var(--text);
     border-radius:6px;padding:5px 6px;font-size:12px;
@@ -149,6 +158,14 @@
       <div class="big" id="eVal">–</div>
     </div>
     <div class="legend" id="derived"></div>
+  </div>
+
+  <div class="group">
+    <h2>Messdaten</h2>
+    <div class="seg" id="dataSeg">
+      <button data-mode="ideal" class="on">Ideale Daten</button>
+      <button data-mode="real">Reale Daten</button>
+    </div>
   </div>
 
   <div class="group">
@@ -243,7 +260,44 @@
    ===================================================================== */
 const EPS0 = 8.8541878128e-12;
 
-const state = { U:2000, q:2, d:0.10, A:0.05, px:0, py:0 };
+const state = { U:2000, q:2, d:0.10, A:0.05, px:0, py:0, real:false };
+
+/* Messfehler des Kraftmessers (nur im Modus "reale Daten"):
+   relativer Fehler bis ERR_REL und ein Nullpunktfehler bis ERR_ZERO.
+   Beide werden deterministisch aus der Einstellung berechnet, damit
+   dieselbe Einstellung immer denselben Messwert liefert - der Zeiger
+   steht still und alle Lernenden erhalten dieselben Zahlen.
+   Der Nullpunktfehler haengt nicht von q ab: er gehoert zum Instrument
+   und bleibt waehrend einer Messreihe ueber q konstant.               */
+const ERR_REL  = 0.04;
+const ERR_ZERO = 1.0e-6;          // N
+
+function hash32(vals){
+  // FNV-1a mit vollem Avalanche nach jedem Wert. Der Mischschritt nach jedem
+  // Schritt ist nötig, weil die Eingaben stark strukturiert sind (q läuft in
+  // gleichen Schritten); ohne ihn liegen aufeinanderfolgende Messwerte im
+  // selben schmalen Band, statt zu streuen.
+  let h = 2166136261 >>> 0;
+  for(const v of vals){
+    h = Math.imul((h ^ (v | 0)) >>> 0, 16777619) >>> 0;
+    h = Math.imul((h ^ (h >>> 16)) >>> 0, 2246822507) >>> 0;
+    h = Math.imul((h ^ (h >>> 13)) >>> 0, 3266489909) >>> 0;
+    h = (h ^ (h >>> 16)) >>> 0;
+  }
+  return h >>> 0;
+}
+const rand11 = vals => hash32(vals)/4294967296*2 - 1;      // -1 … +1
+
+function relErr(){
+  if(!state.real) return 0;
+  return ERR_REL*rand11([Math.round(state.U), Math.round(state.q*100),
+                         Math.round(state.d*1000), Math.round(state.A*10000), 1]);
+}
+function zeroErr(){
+  if(!state.real) return 0;
+  return ERR_ZERO*rand11([Math.round(state.U), Math.round(state.d*1000),
+                          Math.round(state.A*10000), 2]);
+}
 
 const cv   = document.getElementById('cv');
 const ctx  = cv.getContext('2d');
@@ -270,6 +324,12 @@ function insidePlates(x, y){
 function forceY(){
   if(!insidePlates(state.px, state.py)) return 0;
   return -(state.q*1e-9)*Efield();
+}
+/* Was der Kraftmesser anzeigt. Im Modus "ideale Daten" der wahre Wert. */
+function forceRead(){
+  const F = forceY();
+  if(!state.real) return F;
+  return F*(1 + relErr()) + zeroErr();
 }
 
 /* --------------------------- Formatierung ------------------------ */
@@ -460,7 +520,7 @@ function drawProbe(){
   const r = Math.max(7, 0.008*S());
   const q = state.q;
   const col = q > 0 ? '#ff5c6c' : q < 0 ? '#4da3ff' : '#8b98b3';
-  const Fy = forceY();
+  const Fy = forceRead();
 
   // Kraftpfeil
   if(Math.abs(Fy) > 0){
@@ -506,7 +566,7 @@ function drawProbe(){
 }
 
 function drawGauge(){
-  const Fy = forceY(), aF = Math.abs(Fy);
+  const aF = Math.abs(forceRead());
   const Fmax = FMAX;
   const bx = 16, by = 16, bw = 186, bh = 62;
   ctx.fillStyle = 'rgba(11,15,24,.82)';
@@ -515,6 +575,11 @@ function drawGauge(){
   ctx.strokeRect(bx+.5, by+.5, bw, bh);
   ctx.fillStyle = '#8b98b3'; ctx.font = '11px system-ui'; ctx.textAlign = 'left';
   ctx.fillText('KRAFTMESSER', bx+10, by+16);
+  if(state.real){
+    ctx.fillStyle = '#d08a2c'; ctx.textAlign = 'right';
+    ctx.fillText('± 5 %', bx+bw-10, by+16);
+    ctx.textAlign = 'left';
+  }
   ctx.fillStyle = '#ffc857'; ctx.font = '600 18px system-ui';
   ctx.fillText(fmtF(aF), bx+10, by+38);
   ctx.fillStyle = '#1c2436';
@@ -603,14 +668,14 @@ function drawPlot(){
   pctx.restore();
 
   // Ausgleichsgerade durch den Ursprung  y = k*x
-  const fit = fitOrigin(xs, ys);
-  if(fit !== null && rows.length >= 2 && fitResidual(xs, ys, fit) < 0.02){
+  const f = bestFit(xs, ys);
+  if(f && rows.length >= 2 && f.ok){
     pctx.strokeStyle = 'rgba(94,211,154,.75)';
     pctx.lineWidth = 1.6;
     pctx.setLineDash([6,4]);
     pctx.beginPath();
-    pctx.moveTo(px(x0), py(fit*x0));
-    pctx.lineTo(px(x1), py(fit*x1));
+    pctx.moveTo(px(x0), py(f.k*x0 + f.n0));
+    pctx.lineTo(px(x1), py(f.k*x1 + f.n0));
     pctx.stroke();
     pctx.setLineDash([]);
   }
@@ -638,10 +703,22 @@ function fitOrigin(xs, ys){          // kleinste Quadrate für y = k*x
 }
 
 /* Relative Restabweichung von der Ursprungsgeraden: klein = Proportionalität */
-function fitResidual(xs, ys, k){
+/* Allgemeine Ausgleichsgerade y = k*x + n (fuer Daten mit Nullpunktfehler) */
+function fitLine(xs, ys){
+  const n = xs.length;
+  if(n < 2) return null;
+  let sx = 0, sy = 0, sxx = 0, sxy = 0;
+  for(let i=0;i<n;i++){ sx += xs[i]; sy += ys[i]; sxx += xs[i]*xs[i]; sxy += xs[i]*ys[i]; }
+  const den = n*sxx - sx*sx;
+  if(Math.abs(den) < 1e-12) return null;
+  const k = (n*sxy - sx*sy)/den;
+  return { k, n0:(sy - k*sx)/n };
+}
+
+function fitResidual(xs, ys, k, n0){
   let num = 0, den = 0;
   for(let i=0;i<xs.length;i++){
-    const r = ys[i] - k*xs[i];
+    const r = ys[i] - k*xs[i] - (n0 || 0);
     num += r*r; den += ys[i]*ys[i];
   }
   return den > 0 ? Math.sqrt(num/den) : 0;
@@ -667,8 +744,24 @@ function syncTable(){
 
 function addRow(){
   rows.push({ U:state.U, q:state.q, d:state.d, A:state.A,
-              F:Math.abs(forceY()), E:Math.abs(Efield()), Q:Math.abs(plateQ()) });
+              F:Math.abs(forceRead()), E:Math.abs(Efield()), Q:Math.abs(plateQ()) });
   syncTable(); drawPlot(); syncFit();
+}
+
+/* Ideale Daten: Ursprungsgerade. Reale Daten: allgemeine Gerade, weil der
+   Nullpunktfehler des Kraftmessers einen Achsenabschnitt erzeugt. Die
+   Toleranz fuer "linearer Zusammenhang" ist dann entsprechend groesser. */
+function bestFit(xs, ys){
+  if(state.real){
+    const f = fitLine(xs, ys);
+    if(!f) return null;
+    const res = fitResidual(xs, ys, f.k, f.n0);
+    return { k:f.k, n0:f.n0, res, ok:res < 0.10, origin:false };
+  }
+  const k = fitOrigin(xs, ys);
+  if(k === null) return null;
+  const res = fitResidual(xs, ys, k, 0);
+  return { k, n0:0, res, ok:res < 0.02, origin:true };
 }
 
 function syncFit(){
@@ -679,16 +772,28 @@ function syncFit(){
     return;
   }
   const xs = rows.map(AX[xk].get), ys = rows.map(AX[yk].get);
-  const k = fitOrigin(xs, ys);
-  if(k === null){ el.innerHTML = 'Keine Steigung bestimmbar.'; return; }
-  const res = fitResidual(xs, ys, k);
-  const prop = res < 0.02;
+  const f = bestFit(xs, ys);
+  if(!f){ el.innerHTML = 'Keine Steigung bestimmbar.'; return; }
+  const k = f.k, res = f.res, prop = f.ok;
 
   let txt;
   if(prop){
-    txt = AX[yk].lab.split(' ')[0] + ' ist <b>proportional</b> zu ' + AX[xk].lab.split(' ')[0]
+    txt = AX[yk].lab.split(' ')[0] + ' waechst <b>linear</b> mit ' + AX[xk].lab.split(' ')[0]
         + '.<br>Steigung: <span class="f">k = ' + sci(k,3) + ' '
         + AX[yk].unit + '/' + AX[xk].unit + '</span>';
+    if(f.origin){
+      txt = AX[yk].lab.split(' ')[0] + ' ist <b>proportional</b> zu ' + AX[xk].lab.split(' ')[0]
+          + '.<br>Steigung: <span class="f">k = ' + sci(k,3) + ' '
+          + AX[yk].unit + '/' + AX[xk].unit + '</span>';
+    } else {
+      txt += '<br>Achsenabschnitt: <span class="f">n = ' + sci(f.n0,3) + ' '
+           + AX[yk].unit + '</span>';
+      if(yk === 'F')
+        txt += '. Bei einem perfekt genullten Messgerät wäre n = 0; ein deutlich '
+             + 'davon abweichender Wert deutet auf einen <b>Nullpunktfehler</b> hin. '
+             + 'Vorsicht: Aus wenigen Messwerten ist n selbst nur grob bestimmbar – '
+             + 'für die Feldstärke zählt allein die <b>Steigung</b>.';
+    }
   } else {
     txt = '<b>Keine Proportionalität</b> – die Messpunkte liegen nicht auf einer '
         + 'Ursprungsgeraden (Restabweichung ' + fmt(res*100,0) + ' %). '
@@ -724,15 +829,16 @@ function syncAll(){
   $('dVal').textContent = fmt(state.d*100,1) + ' cm';
   $('AVal').textContent = fmt(state.A*1e4,0) + ' cm²';
 
-  const Fy = forceY(), E = Efield();
+  const Ftrue = forceY(), Fy = forceRead(), E = Efield();
   const inside = insidePlates(state.px, state.py);
 
   $('fVal').textContent = fmtF(Math.abs(Fy));
   let dir;
   if(!inside)              dir = 'Probeladung außerhalb des Kondensators – dort ist E = 0';
-  else if(Math.abs(Fy) === 0) dir = state.q === 0 ? 'q = 0: keine Kraft' : 'U = 0: kein Feld, keine Kraft';
+  else if(Ftrue === 0)     dir = (state.q === 0 ? 'q = 0: keine Kraft' : 'U = 0: kein Feld, keine Kraft')
+                                 + (state.real ? ' – angezeigt wird nur der Nullpunktfehler' : '');
   else {
-    const toTop = Fy > 0;
+    const toTop = Ftrue > 0;
     const topPos = state.U >= 0;
     const platePos = toTop ? topPos : !topPos;
     dir = 'nach ' + (toTop ? 'oben' : 'unten') + ', zur '
@@ -742,7 +848,9 @@ function syncAll(){
 
   const hide = $('cbHideE').checked;
   $('eBox').style.display = hide ? 'none' : 'block';
-  $('eVal').textContent = fmtE(Math.abs(E));
+  // Die Box ist mit "E = F/q" beschriftet, zeigt also den aus dem Messwert
+  // bestimmten Wert. Bei idealen Daten ist das exakt U/d.
+  $('eVal').textContent = state.q === 0 ? '–' : fmtE(Math.abs(Fy/(state.q*1e-9)));
   const base = 'Q = ε₀AU/d = <span class="f">' + fmt(Math.abs(plateQ()),2) + ' nC</span>'
              + '<br>σ = Q/A = <span class="f">' + fmt(Math.abs(sigma())*1e9,1) + ' nC/m²</span>'
              + '<br>C = ε₀A/d = <span class="f">' + fmt(capacity()*1e12,2) + ' pF</span>';
@@ -797,6 +905,18 @@ function runSeries(){
     syncAll();
   });
 });
+$('dataSeg').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if(!b) return;
+  state.real = b.dataset.mode === 'real';
+  document.querySelectorAll('#dataSeg button').forEach(x => {
+    x.classList.toggle('on', x === b);
+    x.classList.toggle('real', x.dataset.mode === 'real');
+  });
+  syncAll(); drawPlot(); syncFit();
+});
+
+
 $('btnAdd').addEventListener('click', addRow);
 $('btnSeries').addEventListener('click', runSeries);
 $('btnClear').addEventListener('click', () => { rows = []; syncTable(); drawPlot(); syncFit(); });
