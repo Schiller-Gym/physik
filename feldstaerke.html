@@ -161,14 +161,6 @@
   </div>
 
   <div class="group">
-    <h2>Messdaten</h2>
-    <div class="seg" id="dataSeg">
-      <button data-mode="ideal" class="on">Ideale Daten</button>
-      <button data-mode="real">Reale Daten</button>
-    </div>
-  </div>
-
-  <div class="group">
     <h2>Kondensator</h2>
     <div class="row"><label>Spannung U</label><span class="val" id="UVal"></span></div>
     <input type="range" id="U" min="-5000" max="5000" step="50" value="2000">
@@ -216,6 +208,14 @@
   </div>
 
   <div class="group">
+    <h2>Messdaten</h2>
+    <div class="seg" id="dataSeg">
+      <button data-mode="ideal">Ideale Daten</button>
+      <button data-mode="real" class="on real">Reale Daten</button>
+    </div>
+  </div>
+
+  <div class="group">
     <h2>Physik</h2>
     <div class="legend">
       Idealer Plattenkondensator, an den Platten liegt die Spannung <b>U</b>:<br><br>
@@ -260,7 +260,7 @@
    ===================================================================== */
 const EPS0 = 8.8541878128e-12;
 
-const state = { U:2000, q:2, d:0.10, A:0.05, px:0, py:0, real:false };
+const state = { U:2000, q:2, d:0.10, A:0.05, px:0, py:0, real:true };
 
 /* Messfehler des Kraftmessers (nur im Modus "reale Daten"):
    relativer Fehler bis ERR_REL und ein Nullpunktfehler bis ERR_ZERO.
