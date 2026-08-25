@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Physik-Simulationen</title>
+<style>
+  :root{
+    --bg:#0b0f18; --panel:#131a27; --panel2:#1a2233; --line:#26314a;
+    --text:#e6ecf7; --muted:#8b98b3;
+    --pos:#ff5c6c; --neg:#4da3ff; --accent:#ffc857; --beam:#7dffc4;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;background:var(--bg);color:var(--text);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+    line-height:1.6;
+  }
+
+  header{
+    padding:56px 24px 34px;
+    border-bottom:1px solid var(--line);
+    background:
+      radial-gradient(700px 300px at 18% -10%, rgba(77,163,255,.13), transparent 70%),
+      radial-gradient(700px 300px at 82% -10%, rgba(255,92,108,.11), transparent 70%);
+  }
+  .wrap{max-width:1140px;margin:0 auto;padding:0 24px;}
+  header .wrap{padding:0 24px;}
+  h1{margin:0 0 8px;font-size:34px;letter-spacing:-.4px;}
+  .lead{margin:0;color:var(--muted);font-size:15px;max-width:64ch;}
+
+  nav{margin-top:22px;display:flex;flex-wrap:wrap;gap:8px;}
+  nav a{
+    color:#c3cde0;text-decoration:none;font-size:13px;
+    border:1px solid var(--line);background:var(--panel);
+    padding:6px 13px;border-radius:999px;transition:.14s;
+  }
+  nav a:hover{background:var(--panel2);border-color:#3a4763;color:var(--text);}
+
+  main{padding:38px 0 20px;}
+  section{margin-bottom:46px;scroll-margin-top:20px;}
+  h2{
+    font-size:13px;text-transform:uppercase;letter-spacing:1.4px;
+    color:var(--muted);margin:0 0 4px;font-weight:600;
+  }
+  .shead{color:var(--muted);font-size:13.5px;margin:0 0 18px;}
+
+  .grid{
+    display:grid;gap:20px;
+    grid-template-columns:repeat(auto-fill,minmax(310px,1fr));
+  }
+
+  .card{
+    display:flex;flex-direction:column;
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;overflow:hidden;
+    text-decoration:none;color:inherit;
+    transition:transform .16s, border-color .16s, box-shadow .16s;
+  }
+  .card:hover{
+    transform:translateY(-3px);
+    border-color:#3f5580;
+    box-shadow:0 10px 26px rgba(0,0,0,.38);
+  }
+  .card svg{display:block;width:100%;height:auto;background:#080c14;
+            border-bottom:1px solid var(--line);}
+  .body{padding:15px 17px 17px;display:flex;flex-direction:column;flex:1;}
+  .card h3{margin:0 0 6px;font-size:16.5px;}
+  .card p{margin:0 0 12px;font-size:13.5px;color:var(--muted);flex:1;}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;}
+  .tag{
+    font-size:11px;color:#9fb0cc;border:1px solid #2c3752;
+    background:#101827;border-radius:999px;padding:2px 9px;
+  }
+  .go{
+    margin-top:12px;font-size:13px;color:var(--accent);
+    display:inline-flex;align-items:center;gap:6px;
+  }
+  .card:hover .go{gap:10px;}
+  .go span{transition:.16s;}
+
+  .sheets{
+    display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));
+  }
+  .sheet{
+    display:flex;gap:13px;align-items:flex-start;
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;padding:14px 16px;
+    text-decoration:none;color:inherit;transition:.14s;
+  }
+  .sheet:hover{background:var(--panel2);border-color:#3a4763;}
+  .sheet .ic{
+    flex:none;width:34px;height:42px;border-radius:4px;
+    background:linear-gradient(160deg,#2b3a55,#1b2536);
+    border:1px solid #3a4763;position:relative;
+  }
+  .sheet .ic::after{
+    content:"DOCX";position:absolute;left:0;right:0;bottom:5px;
+    text-align:center;font-size:8px;letter-spacing:.5px;color:#9fb0cc;
+  }
+  .sheet strong{display:block;font-size:14.5px;font-weight:600;margin-bottom:2px;}
+  .sheet span{font-size:12.5px;color:var(--muted);}
+
+  .note{
+    background:#141c2c;border-left:3px solid #3a5580;
+    border-radius:0 8px 8px 0;padding:12px 15px;
+    font-size:13px;color:#a9b6cf;margin-top:18px;
+  }
+
+  footer{
+    border-top:1px solid var(--line);margin-top:30px;
+    padding:24px 0 40px;color:var(--muted);font-size:12.5px;
+  }
+  footer a{color:#9fb0cc;}
+
+  @media (max-width:640px){
+    header{padding:38px 0 26px;}
+    h1{font-size:27px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>Physik-Simulationen</h1>
+    <p class="lead">Interaktive Simulationen für den Physikunterricht. Jede Seite ist eine
+      einzelne HTML-Datei ohne Installation – anklicken genügt, sie läuft direkt im Browser.</p>
+    <nav>
+      <a href="#efeld">Elektrisches Feld</a>
+      <a href="#elektronen">Elektronen im Feld</a>
+      <a href="#mechanik">Mechanik</a>
+      <a href="#material">Arbeitsblätter</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============================================ Elektrisches Feld -->
+  <section id="efeld">
+    <h2>Elektrisches Feld</h2>
+    <p class="shead">Feldbilder, Influenz und die Messung der Feldstärke.</p>
+    <div class="grid">
+
+      <a class="card" href="feldlinien.html">
+        <svg viewBox="0 0 320 180" role="img" aria-label="Feldlinien einer Punktladung, die von einer Hohlkugel abgeschirmt werden">
+          <title>Punktladung und abschirmende Hohlkugel</title>
+          <g stroke="#e6ecf7" stroke-opacity=".5" fill="none" stroke-width="1.2">
+            <path d="M66 90 H150"/>
+            <path d="M64 80 C100 62 128 60 150 70"/>
+            <path d="M64 100 C100 118 128 120 150 110"/>
+            <path d="M60 70 C86 30 130 24 158 40"/>
+            <path d="M60 110 C86 150 130 156 158 140"/>
+            <path d="M56 62 C74 14 190 2 246 34"/>
+            <path d="M56 118 C74 166 190 178 246 146"/>
+            <path d="M52 56 H24"/>
+            <path d="M56 74 L28 58"/>
+            <path d="M56 106 L28 122"/>
+            <path d="M52 124 H24"/>
+          </g>
+          <g fill="#e6ecf7" fill-opacity=".7">
+            <path d="M112 90 l-8-3.4 v6.8 z" transform="rotate(0 108 90)"/>
+            <path d="M212 34 l-8-3.4 v6.8 z" transform="rotate(-16 208 34)"/>
+            <path d="M212 146 l-8-3.4 v6.8 z" transform="rotate(16 208 146)"/>
+          </g>
+          <!-- Hohlkugel: links negativ influenziert, rechts positiv -->
+          <circle cx="222" cy="90" r="46" fill="#0b0f18" fill-opacity=".85"/>
+          <path d="M222 44 A46 46 0 0 0 222 136" stroke="#4da3ff" stroke-width="5" fill="none"/>
+          <path d="M222 44 A46 46 0 0 1 222 136" stroke="#ff5c6c" stroke-width="5" fill="none"/>
+          <circle cx="222" cy="90" r="38" stroke="#e6ecf7" stroke-opacity=".18"
+                  stroke-dasharray="4 5" fill="none"/>
+          <text x="222" y="95" text-anchor="middle" font-family="system-ui"
+                font-size="14" fill="#8b98b3">E = 0</text>
+          <circle cx="56" cy="90" r="13" fill="#ff5c6c"/>
+          <g stroke="#0b0f18" stroke-width="2.6" stroke-linecap="round">
+            <path d="M50 90 H62"/><path d="M56 84 V96"/>
+          </g>
+        </svg>
+        <div class="body">
+          <h3>Feldlinien</h3>
+          <p>Feldbilder von Punkt-, Flächen-, Ring- und Hohlkugelladungen. Leiter zeigen
+             Influenz: die Ladung verschiebt sich von selbst, im Innern der Hohlkugel
+             bleibt es feldfrei. Körper lassen sich anwählen und verschieben.</p>
+          <div class="tags"><span class="tag">Elektrostatik</span><span class="tag">Influenz</span><span class="tag">Faraday-Käfig</span></div>
+          <div class="go"><span>Öffnen</span><span>→</span></div>
+        </div>
+      </a>
+
+      <a class="card" href="influenz.html">
+        <svg viewBox="0 0 320 180" role="img" aria-label="Leiter und Nichtleiter nebeneinander im homogenen Feld">
+          <title>Influenz beim Leiter, Polarisation beim Nichtleiter</title>
+          <g stroke="#e6ecf7" stroke-opacity=".22" stroke-width="1">
+            <path d="M12 40 H150"/><path d="M12 140 H150"/>
+            <path d="M170 40 H308"/><path d="M170 140 H308"/>
+          </g>
+          <line x1="160" y1="12" x2="160" y2="168" stroke="#26314a"/>
+          <!-- Leiter -->
+          <circle cx="81" cy="90" r="40" fill="#8fa3c4" fill-opacity=".10" stroke="#d2e1fa" stroke-opacity=".5"/>
+          <g fill="#ff5c6c"><circle cx="66" cy="72" r="3"/><circle cx="86" cy="70" r="3"/>
+            <circle cx="100" cy="86" r="3"/><circle cx="96" cy="106" r="3"/>
+            <circle cx="76" cy="110" r="3"/><circle cx="62" cy="94" r="3"/>
+            <circle cx="82" cy="90" r="3"/></g>
+          <g fill="#4da3ff"><circle cx="48" cy="82" r="3.6"/><circle cx="46" cy="92" r="3.6"/>
+            <circle cx="49" cy="102" r="3.6"/><circle cx="55" cy="72" r="3.6"/>
+            <circle cx="56" cy="110" r="3.6"/><circle cx="53" cy="90" r="3.6"/></g>
+          <text x="81" y="150" text-anchor="middle" font-family="system-ui" font-size="12" fill="#ff9aa4">Leiter</text>
+          <!-- Nichtleiter -->
+          <circle cx="239" cy="90" r="40" fill="#7896d2" fill-opacity=".08"
+                  stroke="#aac3eb" stroke-opacity=".45" stroke-dasharray="6 4"/>
+          <g>
+            <g transform="translate(224,72)"><circle cx="-5" cy="0" r="6" fill="#4da3ff" fill-opacity=".35"/><circle cx="3" cy="0" r="2.6" fill="#ff5c6c"/></g>
+            <g transform="translate(248,72)"><circle cx="-5" cy="0" r="6" fill="#4da3ff" fill-opacity=".35"/><circle cx="3" cy="0" r="2.6" fill="#ff5c6c"/></g>
+            <g transform="translate(224,92)"><circle cx="-5" cy="0" r="6" fill="#4da3ff" fill-opacity=".35"/><circle cx="3" cy="0" r="2.6" fill="#ff5c6c"/></g>
+            <g transform="translate(248,92)"><circle cx="-5" cy="0" r="6" fill="#4da3ff" fill-opacity=".35"/><circle cx="3" cy="0" r="2.6" fill="#ff5c6c"/></g>
+            <g transform="translate(236,110)"><circle cx="-5" cy="0" r="6" fill="#4da3ff" fill-opacity=".35"/><circle cx="3" cy="0" r="2.6" fill="#ff5c6c"/></g>
+            <g transform="translate(236,54)"><circle cx="-5" cy="0" r="6" fill="#4da3ff" fill-opacity=".35"/><circle cx="3" cy="0" r="2.6" fill="#ff5c6c"/></g>
+          </g>
+          <text x="239" y="150" text-anchor="middle" font-family="system-ui" font-size="12" fill="#9ad0ff">Nichtleiter</text>
+          <g stroke="#ffc857" stroke-opacity=".55" stroke-width="1.4" fill="#ffc857" fill-opacity=".55">
+            <path d="M12 166 H300"/><path d="M306 166 l-9-4 v8 z"/>
+          </g>
+          <text x="16" y="160" font-family="system-ui" font-size="11" fill="#ffc857" fill-opacity=".8">E₀</text>
+        </svg>
+        <div class="body">
+          <h3>Influenz und Polarisation</h3>
+          <p>Leiter und Nichtleiter nebeneinander im selben Außenfeld. Sichtbar wird, was
+             im Innern passiert: freie Elektronen wandern bis an die Oberfläche, gebundene
+             verschieben sich nur ein Stück – jedes Atom wird zum Dipol.</p>
+          <div class="tags"><span class="tag">Influenz</span><span class="tag">Polarisation</span><span class="tag">Dielektrikum</span></div>
+          <div class="go"><span>Öffnen</span><span>→</span></div>
+        </div>
+      </a>
+
+      <a class="card" href="feldstaerke.html">
+        <svg viewBox="0 0 320 180" role="img" aria-label="Probeladung zwischen zwei Kondensatorplatten mit Kraftpfeil">
+          <title>Kraft auf eine Probeladung im Plattenkondensator</title>
+          <rect x="52" y="40" width="216" height="8" rx="3" fill="#ff5c6c"/>
+          <rect x="52" y="132" width="216" height="8" rx="3" fill="#4da3ff"/>
+          <g stroke="#0b0f18" stroke-width="2" stroke-linecap="round">
+            <path d="M76 44 H88"/><path d="M82 38 V50"/>
+            <path d="M136 44 H148"/><path d="M142 38 V50"/>
+            <path d="M196 44 H208"/><path d="M202 38 V50"/>
+            <path d="M76 136 H88"/><path d="M136 136 H148"/><path d="M196 136 H208"/>
+          </g>
+          <g stroke="#e6ecf7" stroke-opacity=".32" stroke-width="1">
+            <path d="M72 50 V130"/><path d="M104 50 V130"/><path d="M168 50 V130"/>
+            <path d="M200 50 V130"/><path d="M232 50 V130"/><path d="M248 50 V130"/>
+          </g>
+          <g fill="#e6ecf7" fill-opacity=".45">
+            <path d="M72 96 l-3.4 -8 h6.8 z" transform="rotate(180 72 92)"/>
+            <path d="M104 96 l-3.4 -8 h6.8 z" transform="rotate(180 104 92)"/>
+            <path d="M168 96 l-3.4 -8 h6.8 z" transform="rotate(180 168 92)"/>
+            <path d="M200 96 l-3.4 -8 h6.8 z" transform="rotate(180 200 92)"/>
+            <path d="M232 96 l-3.4 -8 h6.8 z" transform="rotate(180 232 92)"/>
+            <path d="M248 96 l-3.4 -8 h6.8 z" transform="rotate(180 248 92)"/>
+          </g>
+          <circle cx="136" cy="80" r="11" fill="#ff5c6c"/>
+          <g stroke="#0b0f18" stroke-width="2.2" stroke-linecap="round">
+            <path d="M131 80 H141"/><path d="M136 75 V85"/>
+          </g>
+          <g stroke="#ffc857" stroke-width="3" fill="#ffc857">
+            <path d="M136 94 V116"/>
+            <path d="M136 126 l-6.5 -11 h13 z"/>
+          </g>
+          <text x="152" y="116" font-family="system-ui" font-size="14" fill="#ffc857">F = q·E</text>
+        </svg>
+        <div class="body">
+          <h3>Feldstärke</h3>
+          <p>Die Kraft auf eine Probeladung im Plattenkondensator wird in einer Messreihe
+             aufgenommen. Im F(q)-Diagramm ist die Steigung genau die Feldstärke.
+             Wahlweise mit realistisch fehlerbehafteten Messwerten.</p>
+          <div class="tags"><span class="tag">Kondensator</span><span class="tag">Messreihe</span><span class="tag">Arbeitsblatt</span></div>
+          <div class="go"><span>Öffnen</span><span>→</span></div>
+        </div>
+      </a>
+
+      <a class="card" href="feldlinien-f.html">
+        <svg viewBox="0 0 320 180" role="img" aria-label="Feldlinienbild eines Dipols">
+          <title>Dipol aus positiver und negativer Ladung</title>
+          <g stroke="#e6ecf7" stroke-opacity=".45" fill="none" stroke-width="1.2">
+            <path d="M108 90 H212"/>
+            <path d="M106 80 Q160 52 214 80"/>
+            <path d="M104 72 Q160 26 216 72"/>
+            <path d="M106 100 Q160 128 214 100"/>
+            <path d="M104 108 Q160 154 216 108"/>
+            <path d="M98 66 C112 8 208 8 222 66"/>
+            <path d="M98 114 C112 172 208 172 222 114"/>
+            <path d="M92 74 C40 40 40 140 92 106"/>
+            <path d="M228 74 C280 40 280 140 228 106"/>
+          </g>
+          <g fill="#e6ecf7" fill-opacity=".65">
+            <path d="M166 90 l-8 -3.4 v6.8 z"/>
+            <path d="M166 62 l-8 -3.4 v6.8 z"/>
+            <path d="M166 118 l-8 -3.4 v6.8 z"/>
+          </g>
+          <circle cx="94" cy="90" r="14" fill="#ff5c6c"/>
+          <circle cx="226" cy="90" r="14" fill="#4da3ff"/>
+          <g stroke="#0b0f18" stroke-width="2.8" stroke-linecap="round">
+            <path d="M87 90 H101"/><path d="M94 83 V97"/>
+            <path d="M219 90 H233"/>
+          </g>
+        </svg>
+        <div class="body">
+          <h3>Feldlinien – Vorversion</h3>
+          <p>Die frühere Fassung, bewusst aufgehoben: Punkt-, Flächen- und Ringladungen
+             mit fester, homogener Ladungsverteilung – ohne Influenz und ohne Hohlkugel.
+             Gut für den ersten Zugang zum Feldlinienbild.</p>
+          <div class="tags"><span class="tag">Elektrostatik</span><span class="tag">Grundlagen</span></div>
+          <div class="go"><span>Öffnen</span><span>→</span></div>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- ========================================== Elektronen im Feld -->
+  <section id="elektronen">
+    <h2>Elektronen im Feld</h2>
+    <p class="shead">Was das Feld mit bewegten Ladungen macht.</p>
+    <div class="grid">
+
+      <a class="card" href="ablenkroehre.html">
+        <svg viewBox="0 0 320 180" role="img" aria-label="Elektronenstrahl wird zwischen zwei Platten abgelenkt und trifft den Schirm">
+          <title>Elektronenablenkröhre</title>
+          <rect x="10" y="26" width="300" height="128" rx="14"
+                fill="#7896d2" fill-opacity=".04" stroke="#8caad7" stroke-opacity=".22"/>
+          <path d="M22 90 H296" stroke="#e6ecf7" stroke-opacity=".10" stroke-dasharray="6 5"/>
+          <!-- Kanone -->
+          <path d="M26 80 l7 10 l-7 10" stroke="#ff9a4d" stroke-width="2.4" fill="none"/>
+          <rect x="48" y="62" width="5" height="21" fill="#8fa3c4"/>
+          <rect x="48" y="97" width="5" height="21" fill="#8fa3c4"/>
+          <!-- Platten -->
+          <rect x="86" y="56" width="96" height="6" rx="2" fill="#ff5c6c"/>
+          <rect x="86" y="118" width="96" height="6" rx="2" fill="#4da3ff"/>
+          <g stroke="#0b0f18" stroke-width="1.8" stroke-linecap="round">
+            <path d="M104 59 H112"/><path d="M108 55 V63"/>
+            <path d="M130 59 H138"/><path d="M134 55 V63"/>
+            <path d="M156 59 H164"/><path d="M160 55 V63"/>
+            <path d="M104 121 H112"/><path d="M130 121 H138"/><path d="M156 121 H164"/>
+          </g>
+          <g stroke="#e6ecf7" stroke-opacity=".16">
+            <path d="M100 64 V116"/><path d="M124 64 V116"/><path d="M148 64 V116"/><path d="M172 64 V116"/>
+          </g>
+          <!-- Strahl: Parabel zwischen den Platten, danach Gerade -->
+          <path d="M53 90 H86 Q134 90 182 68 L272 26" stroke="#7dffc4" stroke-opacity=".22" stroke-width="7" fill="none" stroke-linecap="round"/>
+          <path d="M53 90 H86 Q134 90 182 68 L272 26" stroke="#d8fff0" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <!-- Schirm -->
+          <rect x="272" y="34" width="6" height="112" fill="#7dffc4" fill-opacity=".14"
+                stroke="#7dffc4" stroke-opacity=".5"/>
+          <circle cx="275" cy="26" r="12" fill="#7dffc4" fill-opacity=".22"/>
+          <circle cx="275" cy="26" r="4" fill="#eafff5"/>
+        </svg>
+        <div class="body">
+          <h3>Ablenkröhre</h3>
+          <p>Die Flugbahn eines Elektronenstrahls zwischen zwei Ablenkplatten: eine Parabel
+             im Feld, danach eine Gerade. Beschleunigungs- und Ablenkspannung sind
+             einstellbar – bei zu großer Ablenkung trifft der Strahl die Platte.</p>
+          <div class="tags"><span class="tag">Elektronen</span><span class="tag">Wurfparabel</span><span class="tag">Braunsche Röhre</span></div>
+          <div class="go"><span>Öffnen</span><span>→</span></div>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- ==================================================== Mechanik -->
+  <section id="mechanik">
+    <h2>Mechanik</h2>
+    <p class="shead">Kräfte, Beschleunigung und Wurfbewegung.</p>
+    <div class="grid">
+
+      <a class="card" href="beschleunigung.html">
+        <svg viewBox="0 0 320 180" role="img" aria-label="Zwei verschieden schwere Massen werden von derselben Kraft beschleunigt">
+          <title>Grundgleichung der Mechanik F = m·a</title>
+          <path d="M20 74 H300" stroke="#3a4763" stroke-width="2"/>
+          <path d="M20 146 H300" stroke="#3a4763" stroke-width="2"/>
+          <path d="M270 34 V150" stroke="#ff5c6c" stroke-opacity=".45" stroke-dasharray="5 5"/>
+          <text x="266" y="30" text-anchor="end" font-family="system-ui" font-size="11" fill="#ff8a96">Ziel</text>
+          <!-- leichte Masse: weiter vorn -->
+          <rect x="150" y="46" width="44" height="28" rx="4" fill="#4da3ff"/>
+          <text x="172" y="65" text-anchor="middle" font-family="system-ui" font-size="13" fill="#0b0f18" font-weight="600">m₁</text>
+          <g stroke="#ffc857" stroke-width="3" fill="#ffc857">
+            <path d="M196 60 H228"/><path d="M238 60 l-11 -6 v12 z"/>
+          </g>
+          <!-- schwere Masse: zurueck -->
+          <rect x="78" y="118" width="56" height="28" rx="4" fill="#e74c3c"/>
+          <text x="106" y="137" text-anchor="middle" font-family="system-ui" font-size="13" fill="#0b0f18" font-weight="600">m₂</text>
+          <g stroke="#ffc857" stroke-width="3" fill="#ffc857">
+            <path d="M136 132 H168"/><path d="M178 132 l-11 -6 v12 z"/>
+          </g>
+          <text x="20" y="26" font-family="system-ui" font-size="13" fill="#8b98b3">gleiche Kraft F</text>
+          <text x="238" y="98" text-anchor="end" font-family="system-ui" font-size="13" fill="#ffc857">a = F / m</text>
+        </svg>
+        <div class="body">
+          <h3>Beschleunigung</h3>
+          <p>Die Grundgleichung der Mechanik F = m·a zum Zusehen: Dieselbe Kraft wirkt auf
+             zwei verschieden schwere Körper, die um die Wette laufen. Auf Wunsch mit
+             t-s- und t-v-Diagramm.</p>
+          <div class="tags"><span class="tag">Newton</span><span class="tag">Beschleunigung</span></div>
+          <div class="go"><span>Öffnen</span><span>→</span></div>
+        </div>
+      </a>
+
+      <a class="card" href="burgen.html">
+        <svg viewBox="0 0 320 180" role="img" aria-label="Zwei Burgen und die Wurfparabel eines Geschosses">
+          <title>Ballerburg mit Wurfparabel</title>
+          <path d="M0 150 Q80 128 150 146 T320 138 V180 H0 Z" fill="#1c2740"/>
+          <g fill="#5b6b8c">
+            <rect x="26" y="104" width="52" height="46"/>
+            <rect x="22" y="96" width="10" height="12"/><rect x="40" y="96" width="10" height="12"/>
+            <rect x="58" y="96" width="10" height="12"/><rect x="72" y="96" width="10" height="12"/>
+          </g>
+          <g fill="#7a5b5b">
+            <rect x="242" y="98" width="52" height="44"/>
+            <rect x="238" y="90" width="10" height="12"/><rect x="256" y="90" width="10" height="12"/>
+            <rect x="274" y="90" width="10" height="12"/><rect x="288" y="90" width="10" height="12"/>
+          </g>
+          <path d="M84 100 Q168 6 250 92" stroke="#ffc857" stroke-opacity=".75"
+                stroke-width="2" fill="none" stroke-dasharray="6 5"/>
+          <circle cx="168" cy="34" r="6" fill="#ffc857"/>
+          <g stroke="#ffc857" stroke-opacity=".5" stroke-width="1.4" fill="none">
+            <path d="M276 34 h20"/><path d="M276 42 h14"/>
+          </g>
+          <text x="300" y="30" text-anchor="end" font-family="system-ui" font-size="11" fill="#ffc857" fill-opacity=".8">Wind</text>
+        </svg>
+        <div class="body">
+          <h3>Burgen</h3>
+          <p>Ein Spiel nach Ballerburg-Art: Wurfparabel mit Schwerkraft und Wind, der
+             Schaden ergibt sich aus der kinetischen Energie beim Aufprall.</p>
+          <div class="tags"><span class="tag">Wurfparabel</span><span class="tag">Spiel</span></div>
+          <div class="go"><span>Öffnen</span><span>→</span></div>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- ================================================ Arbeitsblätter -->
+  <section id="material">
+    <h2>Arbeitsblätter</h2>
+    <p class="shead">Material zum Ausdrucken, passend zur Simulation „Feldstärke“.</p>
+    <div class="sheets">
+      <a class="sheet" href="arbeitsblatt-feldstaerke.docx">
+        <span class="ic" aria-hidden="true"></span>
+        <span>
+          <strong>Arbeitsblatt: Die elektrische Feldstärke</strong>
+          <span>Messreihe F(q) aufnehmen, im vorbereiteten Koordinatensystem auftragen und
+                die Feldstärke aus der Steigung bestimmen. Mit einem Abschnitt zur
+                Messunsicherheit. 5 Seiten.</span>
+        </span>
+      </a>
+      <a class="sheet" href="arbeitsblatt-feldstaerke-loesung.docx">
+        <span class="ic" aria-hidden="true"></span>
+        <span>
+          <strong>Lösungen (für die Lehrkraft)</strong>
+          <span>Ausgefüllte Wertetabellen, ausformulierte Lösungen und Hinweise zu
+                typischen Fehlern. 3 Seiten.</span>
+        </span>
+      </a>
+    </div>
+    <div class="note">
+      Die Arbeitsblätter gehen von den Voreinstellungen U = 2000 V und d = 10,0 cm aus.
+      Daraus folgt E = 20 kV/m, also F = 20 µN je nC – die Messpunkte liegen dann genau
+      auf der Diagonalen des abgedruckten Rasters.
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    Alle Seiten sind eigenständige HTML-Dateien mit eingebettetem CSS und JavaScript –
+    kein Server, keine Installation, keine externen Abhängigkeiten.
+    Quelltext: <a href="https://github.com/Schiller-Gym/physik">github.com/Schiller-Gym/physik</a>
+  </div>
+</footer>
+
+</body>
+</html>

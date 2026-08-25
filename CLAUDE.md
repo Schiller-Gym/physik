@@ -8,6 +8,7 @@ This is a collection of standalone HTML applications with embedded CSS and JavaS
 
 ## Applications
 
+- **index.html** - Landing page listing every simulation with a short description, a link and a hand drawn inline-SVG preview; also links the worksheets
 - **beschleunigung.html** - Basic equation of mechanics F = m*a (German): two masses pulled by the same force race to a finish line, with optional t-s and t-v diagrams
 - **burgen.html** - Castle defense game (Ballerburg-style) with projectile physics and damage calculations
 - **ablenkroehre.html** - Electron deflection tube (German): trajectory of an electron beam, adjustable accelerating and deflecting voltage
@@ -40,6 +41,7 @@ Each application is self-contained in a single HTML file with:
 
 ## Key Implementation Details
 
+- **index.html**: Pure HTML and CSS, no script. The preview images are inline SVG drawn by hand (viewBox 320x180), not screenshots - so they stay sharp, need no binary assets and keep the page self-contained. When a simulation changes noticeably, the matching SVG should be adjusted too.
 - **burgen.html**: Uses HTML5 Canvas for game rendering, implements projectile motion physics with gravity, wind, and damage calculations based on kinetic energy
 - **beschleunigung.html**: The only page here not written in the dark style of the others - it uses plain DOM elements on a light background instead of a canvas scene. Same force F (5..50 N) acts on two masses (1..10 kg); a = F/m and s = 0.5*a*t^2 drive two divs along their tracks, the pixel scale is 20 px per metre and the finish line sits at 750 px. Optional t-s and t-v diagrams are drawn on small canvases.
 - **feldlinien.html**: Extended bodies are discretised into sub-charges; the field is their Coulomb superposition (E = k*q/r^2, charges in nC, positions in metres). Bodies are built symmetric under z -> -z so E_z vanishes in the drawing plane and field lines stay in it. Conductors are solved with a boundary element method: surface = equipotential at fixed total charge, self-potential terms 2Kq/a (flat patch) and (2Kq/h)*arsinh(h/2rho) (wire), Gauss-Jordan on N+B unknowns, capped at MAX_UNKNOWNS. A ring is a wire loop and does not shield; the hollow sphere (drawn as its cross-section circle) does. Field-line seeds are distributed along the outline weighted by local charge density, so neutral conductors still show induced sources/sinks. Lines are traced with an adaptive-step midpoint (RK2) integrator. Optional |E| heat map and marching-squares equipotentials.
