@@ -20,7 +20,7 @@ This is a collection of standalone HTML applications with embedded CSS and JavaS
 ## Worksheets
 
 - **arbeitsblatt-feldstaerke.docx** - student worksheet for feldstaerke.html: record F(q), plot it on the prepared grid, read E off the slope
-- **arbeitsblatt-feldstaerke-loesung.docx** - solution sheet with the expected values and notes for the teacher
+- **arbeitsblatt-feldstaerke-loesung.docx** - solution sheet with the expected values and notes for the teacher. It is deliberately NOT linked from index.html, and .htaccess protects it with HTTP basic auth (user lehrer). AuthUserFile there still holds a placeholder and needs the absolute server path filled in. Note that this only takes effect on an Apache server: the file is still publicly downloadable from the GitHub repository, which the author is aware of and accepts.
 
 Sections 1 to 6 of the worksheet expect ideal data, so its preparation table tells students to switch the mode; section 7 on measurement uncertainty then switches back to real data. Its expected values were produced by running the page's own JavaScript (dukpy) and match the browser bit for bit. These are plain Word documents; edit them in Word. With U = 2000 V and d = 10 cm the settings give E = 20 kV/m, so F = 20 uN per nC and the measured points run from (0|0) to (10 nC|200 uN), exactly the diagonal of the printed grid.
 
