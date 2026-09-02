@@ -22,7 +22,7 @@ This is a collection of standalone HTML applications with embedded CSS and JavaS
 
 ## Worksheets
 
-- **arbeitsblatt-coulomb.docx** - student worksheet for coulomb.html, modelled on a classroom sheet about the torsion balance: the measuring method with a sketch, eight distances given (4, 5, 6, 8, 10, 14, 20, 30 cm) whose forces the students measure themselves at q1 = q2 = 20 nC, then power regression, linearisation over 1/r^2 and determination of k. The sketch is a PNG drawn with Pillow (scratchpad script), embedded at 300 dpi.
+- **arbeitsblatt-coulomb.docx** - student worksheet for coulomb.html, modelled on a classroom sheet about the torsion balance: the measuring method with a sketch, then eight distances the students pick themselves, measured at q1 = q2 = 20 nC, followed by power regression, linearisation over 1/r^2 and determination of k, which they compare against the value in the textbook (Metzler p. 195). The torsion balance sketch is a PNG drawn with Pillow, embedded at 300 dpi; the second image is a textbook excerpt added by the author. The docx has since been edited in Word, so regenerating it from the scratchpad script would discard those edits - change it in Word instead.
 - **arbeitsblatt-feldstaerke.docx** - student worksheet for feldstaerke.html: record F(q), plot it on the prepared grid, read E off the slope
 - **arbeitsblatt-feldstaerke-loesung.docx** - solution sheet with the expected values and notes for the teacher. It is deliberately NOT linked from index.html. There is no further access control: the file is publicly downloadable from the repository, which the author is aware of and accepts.
 
