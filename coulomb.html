@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Das Coulomb-Gesetz</title>
+<style>
+  :root{
+    --bg:#0b0f18; --panel:#131a27; --panel2:#1a2233; --line:#26314a;
+    --text:#e6ecf7; --muted:#8b98b3;
+    --pos:#ff5c6c; --neg:#4da3ff; --accent:#ffc857; --ok:#5ed39a;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+    display:flex;overflow:hidden;
+  }
+
+  #sidebar{
+    width:334px;min-width:334px;height:100%;
+    background:var(--panel);border-right:1px solid var(--line);
+    overflow-y:auto;padding:16px 16px 40px;
+  }
+  #sidebar::-webkit-scrollbar{width:9px;}
+  #sidebar::-webkit-scrollbar-thumb{background:#2a3550;border-radius:5px;}
+
+  h1{font-size:17px;margin:0 0 2px;}
+  .sub{font-size:12px;color:var(--muted);margin-bottom:16px;}
+
+  .group{
+    background:var(--panel2);border:1px solid var(--line);
+    border-radius:10px;padding:12px;margin-bottom:12px;
+  }
+  .group > h2{
+    font-size:11px;text-transform:uppercase;letter-spacing:1.1px;
+    color:var(--muted);margin:0 0 10px;font-weight:600;
+  }
+
+  .row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;}
+  .row label{font-size:12.5px;color:#c3cde0;}
+  .val{font-size:12.5px;color:var(--accent);font-variant-numeric:tabular-nums;}
+
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:4px;
+    background:#2c3752;border-radius:3px;outline:none;margin:5px 0 12px;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+    background:var(--accent);cursor:pointer;border:2px solid #1a2233;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:13px;height:13px;border-radius:50%;background:var(--accent);
+    cursor:pointer;border:2px solid #1a2233;
+  }
+
+  .check{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12.5px;color:#c3cde0;cursor:pointer;}
+  .check:last-child{margin-bottom:0;}
+  .check input{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;}
+
+  .btn{
+    width:100%;background:#212c42;border:1px solid #2f3b58;color:var(--text);
+    border-radius:8px;padding:9px;cursor:pointer;font-size:12.5px;transition:.13s;
+  }
+  .btn:hover{background:#2a3855;}
+  .btn.prim{background:#2c4a35;border-color:#4d9d6a;color:#c9f0d8;}
+  .btn.prim:hover{background:#35603f;}
+  .btn.danger:hover{background:#3a2430;border-color:#7a3444;color:#ffa8b3;}
+
+  select{
+    background:#0f1624;border:1px solid #2f3b58;color:var(--text);
+    border-radius:6px;padding:5px 6px;font-size:12px;width:100%;
+  }
+
+  .res{
+    background:#101827;border:1px solid #2a3550;border-radius:9px;
+    padding:10px 12px;margin-bottom:9px;
+  }
+  .res .lab{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.9px;}
+  .res .big{font-size:23px;color:var(--accent);font-variant-numeric:tabular-nums;margin-top:2px;}
+  .res .dir{font-size:12px;color:#c3cde0;margin-top:3px;}
+
+  .legend{font-size:11.5px;color:var(--muted);line-height:1.7;}
+  .legend b{color:#c3cde0;font-weight:600;}
+  .legend .f{color:var(--accent);font-variant-numeric:tabular-nums;}
+  .note{
+    background:#22283a;border-left:3px solid #4d7fd0;
+    padding:7px 9px;border-radius:0 6px 6px 0;margin-top:9px;
+    font-size:11.5px;line-height:1.6;color:#a9b6cf;
+  }
+
+  #stage{flex:1;height:100%;min-width:0;display:flex;flex-direction:column;}
+  #scenewrap{flex:1 1 auto;position:relative;min-height:0;}
+  #cv{display:block;position:absolute;inset:0;}
+  #meas{
+    flex:0 0 268px;border-top:1px solid var(--line);
+    background:#0e1420;display:flex;min-height:0;
+  }
+  #plotwrap{flex:1 1 auto;position:relative;min-width:0;}
+  #plot{display:block;position:absolute;inset:0;}
+  #tablewrap{
+    flex:0 0 300px;border-left:1px solid var(--line);
+    overflow-y:auto;padding:8px 10px;
+  }
+  #tablewrap::-webkit-scrollbar{width:8px;}
+  #tablewrap::-webkit-scrollbar-thumb{background:#2a3550;border-radius:4px;}
+  table{width:100%;border-collapse:collapse;font-size:11.5px;font-variant-numeric:tabular-nums;}
+  th{
+    color:var(--muted);font-weight:600;text-align:right;padding:3px 5px;
+    border-bottom:1px solid var(--line);position:sticky;top:0;background:#0e1420;
+  }
+  th:first-child{text-align:left;}
+  td{text-align:right;padding:3px 5px;border-bottom:1px solid #1b2436;color:#c3cde0;}
+  td:first-child{text-align:left;color:var(--muted);}
+  tr.hl td{color:var(--accent);}
+  td.del{color:#6f7c96;cursor:pointer;text-align:center;}
+  td.del:hover{color:var(--pos);}
+  .tempty{color:var(--muted);font-style:italic;font-size:11.5px;padding:8px 2px;}
+
+  @media (max-width:900px){
+    body{flex-direction:column;overflow:auto;}
+    #sidebar{width:100%;min-width:0;height:auto;max-height:44vh;border-right:none;border-bottom:1px solid var(--line);}
+    #stage{height:auto;}
+    #scenewrap{height:42vh;flex:none;}
+    #meas{flex-direction:column;flex:none;height:auto;}
+    #plotwrap{height:230px;flex:none;}
+    #tablewrap{flex:none;max-height:220px;border-left:none;border-top:1px solid var(--line);}
+  }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <h1>Das Coulomb-Gesetz</h1>
+  <div class="sub">Kraft zwischen zwei geladenen Kugeln</div>
+
+  <div class="group">
+    <h2>Messung</h2>
+    <div class="res">
+      <div class="lab">Kraft auf jede Kugel</div>
+      <div class="big" id="fVal">–</div>
+      <div class="dir" id="fDir">–</div>
+    </div>
+    <button class="btn prim" id="btnSave">Messwert speichern</button>
+    <div class="legend" style="margin-top:9px">
+      Der Kraftmesser zeigt wie ein echtes Gerät nicht exakt an: jeder Messwert
+      streut um bis zu <b>5 %</b>. Zu einer festen Einstellung gehört immer
+      derselbe Messwert – die Anzeige zappelt also nicht.
+    </div>
+  </div>
+
+  <div class="group">
+    <h2>Abstand</h2>
+    <div class="row"><label>Mittelpunktsabstand r</label><span class="val" id="rVal"></span></div>
+    <input type="range" id="r" min="4" max="30" step="0.5" value="10">
+    <div class="note">Verschiebe den Abstand von Hand und speichere zu jedem Wert eine
+      Messung. Die Punkte erscheinen sofort im Diagramm.</div>
+  </div>
+
+  <div class="group">
+    <h2>Ladungen</h2>
+    <div class="row"><label>Ladung q₁</label><span class="val" id="q1Val"></span></div>
+    <input type="range" id="q1" min="-50" max="50" step="1" value="20">
+    <div class="row"><label>Ladung q₂</label><span class="val" id="q2Val"></span></div>
+    <input type="range" id="q2" min="-50" max="50" step="1" value="20">
+  </div>
+
+  <div class="group">
+    <h2>Diagramm</h2>
+    <div class="row"><label>Größe auf der x-Achse</label></div>
+    <select id="xsel" style="margin-top:4px">
+      <option value="r">Abstand r</option>
+      <option value="invr2">1 / r²</option>
+      <option value="qq">Produkt q₁·q₂</option>
+    </select>
+    <button class="btn danger" id="btnClear" style="margin-top:9px">Tabelle leeren</button>
+    <div class="legend" id="fitInfo" style="margin-top:10px"></div>
+  </div>
+
+  <div class="group">
+    <h2>Darstellung</h2>
+    <label class="check"><input type="checkbox" id="cbField"> Feldlinien</label>
+    <label class="check"><input type="checkbox" id="cbArrows" checked> Kraftpfeile</label>
+    <label class="check"><input type="checkbox" id="cbDims" checked> Maße und Beschriftung</label>
+  </div>
+
+  <div class="group">
+    <h2>Physik</h2>
+    <div class="legend">
+      Zwei ruhende Punktladungen üben aufeinander die <b>Coulomb-Kraft</b> aus:<br><br>
+      <span class="f">F = k · q₁ · q₂ / r²</span><br>
+      mit <span class="f">k = 8,99·10⁹ N·m²/C²</span><br><br>
+      Beide Kugeln erfahren nach dem <b>dritten Newtonschen Gesetz</b> denselben
+      Betrag der Kraft, nur in entgegengesetzter Richtung. Gleiche Vorzeichen stoßen
+      sich ab, ungleiche ziehen sich an.<br><br>
+      Im <b>r-F-Diagramm</b> ergibt sich eine gekrümmte Kurve. Erst wenn man
+      <b>1/r²</b> auf die x-Achse legt, liegen die Punkte auf einer Ursprungsgeraden –
+      und aus deren Steigung lässt sich k bestimmen.
+    </div>
+    <div class="note">Modell: Die Kugeln werden als Punktladungen behandelt und
+      beeinflussen sich nicht gegenseitig durch Influenz. Bei kleinen Abständen ist
+      das nur noch näherungsweise richtig – der Kugelradius beträgt 0,6 cm. Die
+      Gewichtskraft bleibt unberücksichtigt.</div>
+  </div>
+</div>
+
+<div id="stage">
+  <div id="scenewrap"><canvas id="cv"></canvas></div>
+  <div id="meas">
+    <div id="plotwrap"><canvas id="plot"></canvas></div>
+    <div id="tablewrap">
+      <table id="tbl"><thead></thead><tbody></tbody></table>
+      <div class="tempty" id="tempty">Noch keine Messwerte. Abstand einstellen und
+        „Messwert speichern“ drücken.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   Coulomb-Gesetz.  Zwei Kugeln auf der x-Achse, Mittelpunkte im Abstand r.
+       F = k * q1 * q2 / r^2
+   Ladungen in nC, Abstand in cm, Kraft in µN.
+   F > 0 bedeutet Abstoßung (gleiche Vorzeichen), F < 0 Anziehung.
+
+   Der angezeigte Messwert traegt einen relativen Fehler von bis zu 5 %.
+   Er wird deterministisch aus der Einstellung berechnet: dieselbe
+   Einstellung liefert immer denselben Messwert, die Anzeige zappelt also
+   nicht, und alle Lernenden erhalten dieselben Zahlen.
+   ===================================================================== */
+const K_SI  = 8.9875517873681764e9;   // N*m²/C²
+const K_NC  = 8.9875517873681764;     // V*m je nC, fuer die Feldlinien
+const R_KUG = 0.006;                  // Kugelradius in m
+const ERR   = 0.05;                   // 5 % relativer Messfehler
+
+const state = { r:10, q1:20, q2:20 };
+
+const cv   = document.getElementById('cv');
+const ctx  = cv.getContext('2d');
+const pcv  = document.getElementById('plot');
+const pctx = pcv.getContext('2d');
+let W=0, H=0, PW=0, PH=0, DPR=1, PPM=1, OX=0, OY=0;
+let rows = [];
+const $ = id => document.getElementById(id);
+
+/* --------------------------- Messfehler -------------------------- */
+function hash32(vals){
+  let h = 2166136261 >>> 0;
+  for(const v of vals){
+    h = Math.imul((h ^ (v | 0)) >>> 0, 16777619) >>> 0;
+    h = Math.imul((h ^ (h >>> 16)) >>> 0, 2246822507) >>> 0;
+    h = Math.imul((h ^ (h >>> 13)) >>> 0, 3266489909) >>> 0;
+    h = (h ^ (h >>> 16)) >>> 0;
+  }
+  return h >>> 0;
+}
+const rand11 = vals => hash32(vals)/4294967296*2 - 1;
+
+function relErr(){
+  return ERR*rand11([Math.round(state.r*10), Math.round(state.q1),
+                     Math.round(state.q2), 7]);
+}
+
+/* ------------------------------ Physik --------------------------- */
+const rMet = () => state.r/100;                       // Abstand in m
+function forceTrue(){                                  // N, positiv = Abstoßung
+  return K_SI*(state.q1*1e-9)*(state.q2*1e-9)/(rMet()*rMet());
+}
+function forceRead(){ return forceTrue()*(1 + relErr()); }
+
+/* --------------------------- Formatierung ------------------------ */
+function fmt(v,n){ return (isFinite(v) ? v.toFixed(n) : '–').replace('.',','); }
+function sup(n){
+  const m={'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+  return String(n).split('').map(c=>m[c]||c).join('');
+}
+function sci(v,n){
+  const a=Math.abs(v);
+  if(a===0) return '0';
+  const e=Math.floor(Math.log10(a));
+  return fmt(v/Math.pow(10,e),n)+'·10'+sup(e);
+}
+function fmtF(F){                                      // N -> µN
+  const v=Math.abs(F)*1e6;
+  return fmt(v, v>=1000?0:v>=100?1:2)+' µN';
+}
+
+/* ============================== Szene ============================= */
+const RMAX = 0.30;
+function layout(){
+  PPM = Math.max(300, Math.min((W-190)/(RMAX+4*R_KUG), (H-90)/0.16));
+  OX = W/2; OY = H/2;
+}
+const px = x => OX + x*PPM;
+const py = y => OY - y*PPM;
+const wx = p => (p-OX)/PPM;
+const wy = p => (OY-p)/PPM;
+
+function charges(){
+  return [{x:-rMet()/2, y:0, q:state.q1}, {x:+rMet()/2, y:0, q:state.q2}];
+}
+
+let _ex=0,_ey=0,_dmin=1e9;
+function fieldAt(x,y){
+  let ex=0, ey=0, dmin=1e9;
+  for(const c of charges()){
+    const dx=x-c.x, dy=y-c.y;
+    let r2=dx*dx+dy*dy;
+    if(r2<dmin) dmin=r2;
+    const e2=R_KUG*R_KUG;
+    if(r2<e2) r2=e2;
+    const r=Math.sqrt(r2);
+    const f=K_NC*c.q/(r2*r);
+    ex+=f*dx; ey+=f*dy;
+  }
+  _ex=ex; _ey=ey; _dmin=Math.sqrt(dmin);
+}
+
+function traceLine(x,y,sign,box){
+  const pts=[x,y];
+  for(let i=0;i<1200;i++){
+    fieldAt(x,y);
+    let ex=_ex*sign, ey=_ey*sign;
+    let m=Math.hypot(ex,ey);
+    if(!isFinite(m)||m<1e-9) break;
+    const h=Math.min(Math.max(0.30*_dmin,0.0016),0.014);
+    const mx=x+ex/m*h*0.5, my=y+ey/m*h*0.5;
+    fieldAt(mx,my);
+    let e2x=_ex*sign, e2y=_ey*sign;
+    const m2=Math.hypot(e2x,e2y);
+    if(!isFinite(m2)||m2<1e-9) break;
+    x+=e2x/m2*h; y+=e2y/m2*h;
+    pts.push(x,y);
+    if(x<box.x0||x>box.x1||y<box.y0||y>box.y1) break;
+    for(const c of charges())
+      if(Math.hypot(x-c.x,y-c.y)<=R_KUG) return pts;
+  }
+  return pts;
+}
+
+function fieldLines(){
+  const box={x0:wx(-40),x1:wx(W+40),y0:wy(H+40),y1:wy(-40)};
+  const out=[];
+  for(const c of charges()){
+    const n=Math.max(0,Math.min(22,Math.round(Math.abs(c.q)/3)));
+    if(!n) continue;
+    const dir=c.q>0?1:-1;
+    for(let i=0;i<n;i++){
+      const a=2*Math.PI*(i+0.5)/n;
+      const sx=c.x+(R_KUG*1.25)*Math.cos(a), sy=c.y+(R_KUG*1.25)*Math.sin(a);
+      const pts=traceLine(sx,sy,dir,box);
+      if(pts.length>=6) out.push({pts,dir});
+    }
+  }
+  return out;
+}
+
+/* ============================= Zeichnen =========================== */
+function draw(){
+  layout();
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0b0f18';
+  ctx.fillRect(0,0,W,H);
+
+  if($('cbField').checked) drawField();
+  drawRail();
+  drawSpheres();
+  if($('cbArrows').checked) drawArrows();
+  if($('cbDims').checked) drawDims();
+  drawGauge();
+}
+
+function drawField(){
+  const ls=fieldLines();
+  ctx.lineJoin='round'; ctx.lineCap='round';
+  ctx.strokeStyle='rgba(230,238,255,0.42)';
+  ctx.lineWidth=1.1;
+  ctx.beginPath();
+  for(const l of ls){
+    const p=l.pts;
+    ctx.moveTo(px(p[0]),py(p[1]));
+    for(let i=2;i<p.length;i+=2) ctx.lineTo(px(p[i]),py(p[i+1]));
+  }
+  ctx.stroke();
+  ctx.fillStyle='rgba(230,238,255,0.7)';
+  for(const l of ls){
+    const p=l.pts, n=p.length/2;
+    if(n<14) continue;
+    for(const f of [0.3,0.62]){
+      const i=Math.max(0,Math.min(n-2,Math.round(n*f)));
+      const x1=px(p[2*i]), y1=py(p[2*i+1]);
+      const x2=px(p[2*i+2]), y2=py(p[2*i+3]);
+      let dx=x2-x1, dy=y2-y1;
+      const m=Math.hypot(dx,dy);
+      if(m<0.4) continue;
+      dx=dx/m*l.dir; dy=dy/m*l.dir;
+      ctx.beginPath();
+      ctx.moveTo(x1+dx*5, y1+dy*5);
+      ctx.lineTo(x1-dy*2.7, y1+dx*2.7);
+      ctx.lineTo(x1+dy*2.7, y1-dx*2.7);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+}
+
+function drawRail(){
+  ctx.strokeStyle='rgba(255,255,255,0.10)';
+  ctx.setLineDash([7,6]); ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(30,py(0)); ctx.lineTo(W-30,py(0)); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function sphereCol(q){ return q>0?'#ff5c6c':q<0?'#4da3ff':'#8b98b3'; }
+
+function drawSpheres(){
+  for(const c of charges()){
+    const x=px(c.x), y=py(c.y), R=Math.max(9,R_KUG*PPM);
+    const col=sphereCol(c.q);
+    const g=ctx.createRadialGradient(x,y,1,x,y,R*2.8);
+    g.addColorStop(0,col+'bb'); g.addColorStop(1,col+'00');
+    ctx.fillStyle=g;
+    ctx.beginPath(); ctx.arc(x,y,R*2.8,0,7); ctx.fill();
+    const g2=ctx.createRadialGradient(x-R*0.35,y-R*0.35,1,x,y,R);
+    g2.addColorStop(0,'#ffffff'); g2.addColorStop(0.25,col); g2.addColorStop(1,col);
+    ctx.fillStyle=g2;
+    ctx.beginPath(); ctx.arc(x,y,R,0,7); ctx.fill();
+    ctx.strokeStyle='#0b0f18'; ctx.lineWidth=1.6; ctx.stroke();
+    if(Math.abs(c.q)>0) sign(x,y,c.q,Math.min(R*1.1,13),'#0b0f18');
+  }
+}
+
+function sign(x,y,s,size,col){
+  ctx.save();
+  ctx.strokeStyle=col;
+  ctx.lineWidth=Math.max(1.5,size*0.24);
+  ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(x-size*0.45,y); ctx.lineTo(x+size*0.45,y);
+  if(s>0){ ctx.moveTo(x,y-size*0.45); ctx.lineTo(x,y+size*0.45); }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function FMAX(){
+  const q=parseFloat($('q1').max), rmin=parseFloat($('r').min)/100;
+  return K_SI*(q*1e-9)*(q*1e-9)/(rmin*rmin);
+}
+
+function drawArrows(){
+  const F=forceRead();
+  if(Math.abs(F)<1e-12) return;
+  const rep=F>0;                                   // Abstoßung
+  const L=18+82*Math.pow(Math.min(1,Math.abs(F)/FMAX()),0.35);
+  const R=Math.max(9,R_KUG*PPM);
+  ctx.strokeStyle='#ffc857'; ctx.fillStyle='#ffc857'; ctx.lineWidth=3;
+  for(const c of charges()){
+    const dirOut=(c.x<0? -1 : +1)*(rep?1:-1);      // nach außen oder innen
+    const x0=px(c.x)+dirOut*(R+5), y=py(0);
+    const x1=x0+dirOut*L;
+    ctx.beginPath(); ctx.moveTo(x0,y); ctx.lineTo(x1-dirOut*9,y); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x1,y); ctx.lineTo(x1-dirOut*11,y-6.5); ctx.lineTo(x1-dirOut*11,y+6.5);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.font='600 13px system-ui'; ctx.textAlign='center';
+  ctx.fillText('F = '+fmtF(F), px(0), py(0)-Math.max(9,R_KUG*PPM)-46);
+}
+
+function drawDims(){
+  const R=Math.max(9,R_KUG*PPM);
+  const y=py(0)+R+40;
+  ctx.save();
+  ctx.strokeStyle='rgba(139,152,179,.75)';
+  ctx.fillStyle='rgba(200,212,232,.9)';
+  ctx.lineWidth=1; ctx.font='12px system-ui'; ctx.textAlign='center';
+  const a=px(-rMet()/2), b=px(+rMet()/2);
+  ctx.beginPath();
+  ctx.moveTo(a,y); ctx.lineTo(b,y);
+  ctx.moveTo(a,y-5); ctx.lineTo(a,y+5);
+  ctx.moveTo(b,y-5); ctx.lineTo(b,y+5);
+  ctx.moveTo(a,py(0)+R+4); ctx.lineTo(a,y-4);
+  ctx.moveTo(b,py(0)+R+4); ctx.lineTo(b,y-4);
+  ctx.stroke();
+  ctx.fillText('r = '+fmt(state.r,1)+' cm',(a+b)/2,y+17);
+  ctx.fillStyle=sphereCol(state.q1);
+  ctx.fillText('q₁ = '+(state.q1>0?'+':'')+state.q1+' nC', a, py(0)-R-14);
+  ctx.fillStyle=sphereCol(state.q2);
+  ctx.fillText('q₂ = '+(state.q2>0?'+':'')+state.q2+' nC', b, py(0)-R-14);
+  ctx.restore();
+}
+
+function drawGauge(){
+  const F=Math.abs(forceRead());
+  const bx=16,by=16,bw=196,bh=62;
+  ctx.fillStyle='rgba(11,15,24,.82)';
+  ctx.strokeStyle='#26314a'; ctx.lineWidth=1;
+  ctx.fillRect(bx,by,bw,bh); ctx.strokeRect(bx+.5,by+.5,bw,bh);
+  ctx.fillStyle='#8b98b3'; ctx.font='11px system-ui'; ctx.textAlign='left';
+  ctx.fillText('KRAFTMESSER',bx+10,by+16);
+  ctx.fillStyle='#d08a2c'; ctx.textAlign='right';
+  ctx.fillText('± 5 %',bx+bw-10,by+16);
+  ctx.textAlign='left';
+  ctx.fillStyle='#ffc857'; ctx.font='600 18px system-ui';
+  ctx.fillText(fmtF(F),bx+10,by+38);
+  ctx.fillStyle='#1c2436'; ctx.fillRect(bx+10,by+46,bw-20,7);
+  ctx.fillStyle='#ffc857';
+  ctx.fillRect(bx+10,by+46,(bw-20)*Math.min(1,Math.pow(F/FMAX(),0.35)),7);
+}
+
+/* ============================ Diagramm ============================ */
+const AX = {
+  r:     { lab:'r in cm',      get:d => d.r,               unit:'cm' },
+  invr2: { lab:'1/r² in 1/m²', get:d => 1/((d.r/100)**2),  unit:'1/m²' },
+  qq:    { lab:'q₁·q₂ in nC²', get:d => d.q1*d.q2,         unit:'nC²' }
+};
+const YF = d => d.F*1e6;                                   // µN
+
+function niceStep(range,target){
+  const raw=range/target;
+  const p=Math.pow(10,Math.floor(Math.log10(raw)));
+  const m=raw/p;
+  return (m<=1?1:m<=2?2:m<=5?5:10)*p;
+}
+function fitOrigin(xs,ys){
+  let sxy=0,sxx=0;
+  for(let i=0;i<xs.length;i++){ sxy+=xs[i]*ys[i]; sxx+=xs[i]*xs[i]; }
+  return sxx<1e-12?null:sxy/sxx;
+}
+function fitResidual(xs,ys,k){
+  let num=0,den=0;
+  for(let i=0;i<xs.length;i++){ const rr=ys[i]-k*xs[i]; num+=rr*rr; den+=ys[i]*ys[i]; }
+  return den>0?Math.sqrt(num/den):0;
+}
+
+function drawPlot(){
+  pctx.clearRect(0,0,PW,PH);
+  pctx.fillStyle='#0e1420'; pctx.fillRect(0,0,PW,PH);
+  const xk=$('xsel').value, ax=AX[xk];
+  const L=62,Rp=18,T=18,B=38;
+  const w=PW-L-Rp, h=PH-T-B;
+  if(w<40||h<30) return;
+
+  const xs=rows.map(ax.get), ys=rows.map(YF);
+  let x0=0,x1=1,y0=0,y1=1;
+  if(rows.length){
+    x0=Math.min(0,...xs); x1=Math.max(0,...xs);
+    y0=Math.min(0,...ys); y1=Math.max(0,...ys);
+  }
+  if(x1-x0<1e-12) x1=x0+1;
+  if(y1-y0<1e-12) y1=y0+1;
+  x1+=(x1-x0)*0.08; y1+=(y1-y0)*0.12;
+
+  const X=v=>L+(v-x0)/(x1-x0)*w;
+  const Y=v=>T+h-(v-y0)/(y1-y0)*h;
+
+  const sx=niceStep(x1-x0,6), sy=niceStep(y1-y0,5);
+  pctx.font='11px system-ui'; pctx.strokeStyle='rgba(255,255,255,.06)';
+  pctx.fillStyle='#8b98b3'; pctx.lineWidth=1;
+  pctx.textAlign='center'; pctx.textBaseline='top';
+  for(let v=Math.ceil(x0/sx)*sx; v<=x1+1e-9; v+=sx){
+    const p=Math.round(X(v))+.5;
+    pctx.beginPath(); pctx.moveTo(p,T); pctx.lineTo(p,T+h); pctx.stroke();
+    pctx.fillText(fmt(v, sx<1?2:sx<10?1:0), p, T+h+6);
+  }
+  pctx.textAlign='right'; pctx.textBaseline='middle';
+  for(let v=Math.ceil(y0/sy)*sy; v<=y1+1e-9; v+=sy){
+    const p=Math.round(Y(v))+.5;
+    pctx.beginPath(); pctx.moveTo(L,p); pctx.lineTo(L+w,p); pctx.stroke();
+    pctx.fillText(fmt(v, sy<1?2:sy<10?1:0), L-7, p);
+  }
+  pctx.strokeStyle='rgba(255,255,255,.18)';
+  pctx.strokeRect(L+.5,T+.5,w,h);
+  pctx.fillStyle='#c3cde0'; pctx.font='12px system-ui';
+  pctx.textAlign='right'; pctx.textBaseline='alphabetic';
+  pctx.fillText(ax.lab,L+w,PH-8);
+  pctx.save();
+  pctx.translate(14,T+6); pctx.rotate(-Math.PI/2);
+  pctx.textAlign='right'; pctx.fillText('F in µN',0,0);
+  pctx.restore();
+
+  // Ursprungsgerade nur, wenn die Punkte wirklich darauf liegen
+  if(rows.length>=2){
+    const k=fitOrigin(xs,ys);
+    if(k!==null && fitResidual(xs,ys,k)<0.12){
+      pctx.strokeStyle='rgba(94,211,154,.75)'; pctx.lineWidth=1.6;
+      pctx.setLineDash([6,4]);
+      pctx.beginPath(); pctx.moveTo(X(x0),Y(k*x0)); pctx.lineTo(X(x1),Y(k*x1));
+      pctx.stroke(); pctx.setLineDash([]);
+    }
+  }
+
+  rows.forEach((d,i)=>{
+    const p=X(ax.get(d)), q=Y(YF(d));
+    pctx.fillStyle = i===rows.length-1 ? '#ffc857' : '#4da3ff';
+    pctx.beginPath(); pctx.arc(p,q,i===rows.length-1?5:4,0,7); pctx.fill();
+    pctx.strokeStyle='#0e1420'; pctx.lineWidth=1.4; pctx.stroke();
+  });
+
+  if(!rows.length){
+    pctx.fillStyle='#8b98b3'; pctx.font='12px system-ui';
+    pctx.textAlign='center'; pctx.textBaseline='middle';
+    pctx.fillText('Abstand einstellen und „Messwert speichern“ drücken.',L+w/2,T+h/2);
+  }
+}
+
+/* ============================= Tabelle ============================ */
+function syncTable(){
+  const head=$('tbl').tHead, body=$('tbl').tBodies[0];
+  $('tempty').style.display=rows.length?'none':'block';
+  head.innerHTML=rows.length
+    ? '<tr><th>Nr.</th><th>r/cm</th><th>q₁/nC</th><th>q₂/nC</th><th>F/µN</th><th></th></tr>':'';
+  body.innerHTML='';
+  rows.forEach((d,i)=>{
+    const tr=document.createElement('tr');
+    if(i===rows.length-1) tr.className='hl';
+    tr.innerHTML='<td>'+(i+1)+'</td><td>'+fmt(d.r,1)+'</td><td>'+d.q1+'</td>'
+               + '<td>'+d.q2+'</td><td>'+fmt(Math.abs(d.F)*1e6,1)+'</td>'
+               + '<td class="del" title="löschen">×</td>';
+    tr.lastChild.addEventListener('click',()=>{
+      rows.splice(i,1); syncTable(); drawPlot(); syncFit();
+    });
+    body.appendChild(tr);
+  });
+  if(rows.length) $('tablewrap').scrollTop=$('tablewrap').scrollHeight;
+}
+
+function saveRow(){
+  rows.push({ r:state.r, q1:state.q1, q2:state.q2, F:forceRead() });
+  syncTable(); drawPlot(); syncFit();
+}
+
+function syncFit(){
+  const el=$('fitInfo'), xk=$('xsel').value;
+  if(rows.length<2){
+    el.innerHTML='Ab zwei Messwerten wird geprüft, ob die Punkte auf einer '
+                +'Ursprungsgeraden liegen.';
+    return;
+  }
+  const ax=AX[xk];
+  const xs=rows.map(ax.get), ys=rows.map(YF);
+  const k=fitOrigin(xs,ys);
+  if(k===null){ el.innerHTML='Keine Steigung bestimmbar.'; return; }
+  const res=fitResidual(xs,ys,k);
+
+  if(res>=0.12){
+    let t='<b>Keine Proportionalität</b> – die Punkte liegen nicht auf einer '
+         +'Ursprungsgeraden (Restabweichung '+fmt(res*100,0)+' %).';
+    if(xk==='r') t+='<br><br>Die Kurve fällt zu steil ab. Probiere <b>1/r²</b> '
+                   +'auf der x-Achse.';
+    el.innerHTML=t;
+    return;
+  }
+
+  let t='F ist <b>proportional</b> zu '+ax.lab.split(' ')[0]
+       +'.<br>Steigung: <span class="f">k = '+sci(k,3)+' µN·'+ax.unit.replace('1/','')
+       +'</span>';
+
+  if(xk==='invr2'){
+    const same=rows.every(d=>d.q1*d.q2===rows[0].q1*rows[0].q2);
+    if(same){
+      const qq=rows[0].q1*rows[0].q2*1e-18;            // C²
+      const kC=k*1e-6/qq;
+      t+='<br><br>Aus der Steigung folgt<br><span class="f">k = Steigung/(q₁·q₂) = '
+        +sci(kC,3)+' N·m²/C²</span><br>Literaturwert: 8,99·10⁹ N·m²/C².';
+    } else {
+      t+='<br><br>Für die Bestimmung von k müssen bei allen Messungen dieselben '
+        +'Ladungen eingestellt sein.';
+    }
+  }
+  if(xk==='qq'){
+    const same=rows.every(d=>d.r===rows[0].r);
+    t+= same
+      ? '<br><br>Die Steigung ist k/r² – F wächst also proportional zum Produkt der Ladungen.'
+      : '<br><br>Für diese Auswertung muss bei allen Messungen derselbe Abstand eingestellt sein.';
+  }
+  el.innerHTML=t;
+}
+
+/* ============================== Anzeige =========================== */
+function syncAll(){
+  $('rVal').textContent=fmt(state.r,1)+' cm';
+  $('q1Val').textContent=(state.q1>0?'+':'')+state.q1+' nC';
+  $('q2Val').textContent=(state.q2>0?'+':'')+state.q2+' nC';
+
+  const F=forceRead();
+  $('fVal').textContent=fmtF(F);
+  $('fDir').textContent = (state.q1===0||state.q2===0)
+    ? 'Eine Ladung ist null – keine Kraft'
+    : (F>0 ? 'Abstoßung – gleiche Vorzeichen'
+           : 'Anziehung – ungleiche Vorzeichen');
+  draw();
+}
+
+/* ================================ UI ============================== */
+['r','q1','q2'].forEach(k=>{
+  $(k).addEventListener('input',e=>{
+    state[k]=parseFloat(e.target.value);
+    syncAll();
+  });
+});
+$('btnSave').addEventListener('click',saveRow);
+$('btnClear').addEventListener('click',()=>{ rows=[]; syncTable(); drawPlot(); syncFit(); });
+$('xsel').addEventListener('change',()=>{ drawPlot(); syncFit(); });
+['cbField','cbArrows','cbDims'].forEach(id=>$(id).addEventListener('change',draw));
+
+/* =============================== Start ============================ */
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  const a=cv.parentElement.getBoundingClientRect();
+  W=Math.max(340,Math.floor(a.width)); H=Math.max(220,Math.floor(a.height));
+  cv.width=Math.floor(W*DPR); cv.height=Math.floor(H*DPR);
+  cv.style.width=W+'px'; cv.style.height=H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+
+  const b=pcv.parentElement.getBoundingClientRect();
+  PW=Math.max(220,Math.floor(b.width)); PH=Math.max(140,Math.floor(b.height));
+  pcv.width=Math.floor(PW*DPR); pcv.height=Math.floor(PH*DPR);
+  pcv.style.width=PW+'px'; pcv.style.height=PH+'px';
+  pctx.setTransform(DPR,0,0,DPR,0,0);
+
+  draw(); drawPlot();
+}
+window.addEventListener('resize',resize);
+
+resize();
+syncAll();
+syncTable();
+drawPlot();
+syncFit();
+</script>
+</body>
+</html>
