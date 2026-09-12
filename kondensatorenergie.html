@@ -227,7 +227,7 @@
       <div class="kv" id="kvC"></div>
     </div>
     <div class="panel">
-      <h3>Q-U-Diagramm <span class="sub">— jede Säule ist eine Ladungsportion</span></h3>
+      <h3>Q-U-Diagramm <span class="sub">— jede Säule ist eine Ladungsportion, die Zahl darin ihre Energie ΔE in J</span></h3>
       <canvas id="dgC" height="330"></canvas>
       <div class="kv" id="kvC2"></div>
     </div>
@@ -506,7 +506,7 @@ function drawWh(cvId, hCur, F, col){
 function drawC(){
   const cv=$('cvC'); if(!cv.clientWidth) return;
   const {c,w,h}=setup(cv);
-  const top=42, bot=h-52, th=10, x0=34, x1=w-34;
+  const top=50, bot=h-58, th=10, x0=34, x1=w-34;
   const Q=Qof(S2.steps), U=Uof(S2.steps);
 
   const full=S2.steps/S2.n;
@@ -523,8 +523,9 @@ function drawC(){
     sign(c,x,bot+th/2,-1,11,'#0b0f18');
   }
   if(nsig===0){
-    c.fillStyle='#8b98b3'; c.font='12px system-ui'; c.textAlign='center';
-    c.fillText('ungeladen',(x0+x1)/2,top-th-9);
+    c.fillStyle='#8b98b3'; c.font='13px system-ui'; c.textAlign='center';
+    c.fillText('ungeladen – zwischen den Platten liegt keine Spannung',
+               (x0+x1)/2,(top+bot)/2+5);
   }
 
   // Feld zwischen den Platten
@@ -546,11 +547,12 @@ function drawC(){
     sign(c,w/2,y,+1,11,'#0b0f18');
   }
 
+  const yBot = bot+th+28;
   c.fillStyle='#c3cde0'; c.font='600 14px system-ui'; c.textAlign='center';
-  c.fillText('Q = '+fmt(Q,3)+' C', w/2, top-th-22);
-  c.fillText('U = Q/C = '+fmt(U,3)+' V', w/2, bot+th+30);
-  c.fillStyle='#8b98b3'; c.font='12px system-ui';
-  c.fillText(S2.steps+' von '+S2.n+' Portionen verschoben', w/2, h-14);
+  c.fillText('Q = '+fmt(Q,3)+' C', w/2, top-th-16);
+  c.fillText('U = Q/C = '+fmt(U,3)+' V', w/2, yBot);
+  c.fillStyle='#8b98b3'; c.font='12px system-ui'; c.textAlign='left';
+  c.fillText(S2.steps+' von '+S2.n+' Portionen', x0, yBot);
 }
 
 /* ==================== Teil 2: Q-U-Saeulendiagramm ================= */
@@ -580,13 +582,39 @@ function drawQU(){
 
   // Saeulen: Breite dq, Hoehe U_i  ->  Flaeche = Energie der Portion
   const bw=pw*dq()/QTOT;
+  let zuSchmal=false;
   for(let i=0;i<S2.steps;i++){
-    const x=X(Qof(i)), y=Y(Uof(i));
-    c.fillStyle=(i===S2.steps-1)?'rgba(255,200,87,.55)':'rgba(77,163,255,.38)';
-    c.fillRect(x, y, Math.max(bw-1,1), T+ph-y);
-    c.strokeStyle=(i===S2.steps-1)?'#ffc857':'rgba(140,190,255,.7)';
+    const x=X(Qof(i)), y=Y(Uof(i)), bh=T+ph-y, letzte=(i===S2.steps-1);
+    c.fillStyle=letzte?'rgba(255,200,87,.55)':'rgba(77,163,255,.38)';
+    c.fillRect(x, y, Math.max(bw-1,1), bh);
+    c.strokeStyle=letzte?'#ffc857':'rgba(140,190,255,.7)';
     c.lineWidth=1;
-    c.strokeRect(x+.5, y+.5, Math.max(bw-1,1), T+ph-y);
+    c.strokeRect(x+.5, y+.5, Math.max(bw-1,1), bh);
+
+    // Energie der Portion in die Saeule schreiben, sofern sie hineinpasst
+    const dE=Uof(i)*dq();
+    if(dE>0){
+      const txt=fmt(dE, dE<0.01?3:2);
+      c.font='10px system-ui'; c.textAlign='center'; c.textBaseline='middle';
+      if(c.measureText(txt).width<=bw-6){
+        if(bh>=17){                                  // Platz in der Saeule
+          c.fillStyle=letzte?'#3a2c10':'#0d1626';
+          c.fillText(txt, x+bw/2, y+9);
+          c.fillStyle=letzte?'#ffe6ab':'#dce9ff';
+          c.fillText(txt, x+bw/2, y+8);
+        } else {                                     // Saeule zu flach: darueber
+          c.fillStyle='#9fb0cc';
+          c.fillText(txt, x+bw/2, y-7);
+        }
+      } else {
+        zuSchmal=true;                               // passt nicht hinein
+      }
+    }
+  }
+  c.textBaseline='alphabetic';
+  if(zuSchmal){
+    c.fillStyle='#8b98b3'; c.font='11px system-ui'; c.textAlign='left';
+    c.fillText('Säulen zu schmal für die Zahlen – siehe Wertetabelle', L+8, T+14);
   }
 
   // Gerade U = Q/C
