@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Energie im Kondensator</title>
+<style>
+  :root{
+    --bg:#0b0f18; --panel:#131a27; --panel2:#1a2233; --line:#26314a;
+    --text:#e6ecf7; --muted:#8b98b3;
+    --pos:#ff5c6c; --neg:#4da3ff; --accent:#ffc857; --ok:#5ed39a; --mass:#b6c4dc;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;background:var(--bg);color:var(--text);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;line-height:1.55;
+  }
+  .wrap{max-width:1220px;margin:0 auto;padding:0 22px;}
+
+  header{
+    padding:34px 0 24px;border-bottom:1px solid var(--line);
+    background:radial-gradient(700px 260px at 20% -20%, rgba(77,163,255,.12), transparent 70%);
+  }
+  h1{margin:0 0 4px;font-size:26px;}
+  .lead{margin:0;color:var(--muted);font-size:14px;max-width:70ch;}
+
+  section{padding:26px 0 6px;}
+  h2{
+    font-size:12px;text-transform:uppercase;letter-spacing:1.3px;
+    color:var(--muted);margin:0 0 3px;font-weight:600;
+  }
+  .shead{color:var(--muted);font-size:13.5px;margin:0 0 16px;max-width:80ch;}
+
+  .bar{
+    display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:11px;padding:12px 16px;margin-bottom:16px;
+  }
+  .ctl{min-width:170px;flex:1 1 170px;}
+  .ctl .row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
+  .ctl label{font-size:12.5px;color:#c3cde0;}
+  .ctl .val{font-size:12.5px;color:var(--accent);font-variant-numeric:tabular-nums;}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:4px;
+    background:#2c3752;border-radius:3px;outline:none;margin:6px 0 0;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+    background:var(--accent);cursor:pointer;border:2px solid #1a2233;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:13px;height:13px;border-radius:50%;background:var(--accent);
+    cursor:pointer;border:2px solid #1a2233;
+  }
+  select{
+    background:#0f1624;border:1px solid #2f3b58;color:var(--text);
+    border-radius:6px;padding:5px 7px;font-size:12.5px;width:100%;margin-top:5px;
+  }
+
+  .btn{
+    background:#212c42;border:1px solid #2f3b58;color:var(--text);
+    border-radius:8px;padding:9px 15px;cursor:pointer;font-size:13px;transition:.13s;
+  }
+  .btn:hover{background:#2a3855;}
+  .btn.prim{background:#2c4a35;border-color:#4d9d6a;color:#c9f0d8;}
+  .btn.prim:hover{background:#35603f;}
+  .btn.prim:disabled{opacity:.45;cursor:default;background:#2c4a35;}
+  .btn.danger:hover{background:#3a2430;border-color:#7a3444;color:#ffa8b3;}
+
+  .duo{display:grid;gap:18px;grid-template-columns:1fr 1fr;}
+  @media (max-width:920px){ .duo{grid-template-columns:1fr;} }
+
+  .panel{
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:13px;overflow:hidden;display:flex;flex-direction:column;
+  }
+  .panel > h3{
+    margin:0;padding:11px 16px;font-size:14.5px;
+    border-bottom:1px solid var(--line);background:var(--panel2);
+  }
+  .panel h3 .sub{font-weight:400;color:var(--muted);font-size:12.5px;}
+  canvas{display:block;width:100%;}
+  .kv{
+    padding:10px 16px 13px;font-size:12.5px;color:var(--muted);
+    border-top:1px solid var(--line);line-height:1.85;
+  }
+  .kv b{color:#c3cde0;font-variant-numeric:tabular-nums;font-weight:600;}
+  .kv .f{color:var(--accent);font-variant-numeric:tabular-nums;}
+  .kv .g{color:var(--ok);font-variant-numeric:tabular-nums;}
+
+  .hidebox{
+    background:var(--panel);border:1px dashed #3a4763;border-radius:13px;
+    padding:34px 24px;text-align:center;color:var(--muted);font-size:13.5px;
+  }
+  .hidebox .btn{margin-top:14px;}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums;}
+  th{
+    color:var(--muted);font-weight:600;text-align:right;padding:4px 8px;
+    border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);
+  }
+  th:first-child{text-align:left;}
+  td{text-align:right;padding:3px 8px;border-bottom:1px solid #1b2436;color:#c3cde0;}
+  td:first-child{text-align:left;color:var(--muted);}
+  tr.hl td{color:var(--accent);}
+  #tabwrap{max-height:250px;overflow-y:auto;padding:0 16px 12px;}
+  #tabwrap::-webkit-scrollbar{width:8px;}
+  #tabwrap::-webkit-scrollbar-thumb{background:#2a3550;border-radius:4px;}
+
+  .note{
+    background:#141c2c;border-left:3px solid #3a5580;border-radius:0 8px 8px 0;
+    padding:11px 15px;font-size:12.5px;color:#a9b6cf;margin-top:14px;
+  }
+  .note b{color:#c3cde0;}
+  .btnrow{display:flex;flex-wrap:wrap;gap:9px;padding:12px 16px;border-top:1px solid var(--line);}
+  #copyArea{
+    width:100%;height:0;opacity:0;position:absolute;left:-9999px;
+  }
+  footer{border-top:1px solid var(--line);margin-top:34px;padding:20px 0 36px;
+         color:var(--muted);font-size:12.5px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>Energie im elektrischen Feld und im Kondensator</h1>
+    <p class="lead">Zwei Teile: zuerst der Vergleich zwischen dem Anheben einer Masse im
+      Schwerefeld und dem Verschieben einer Ladung im Plattenkondensator, danach die
+      Aufladung eines Kondensators in einzelnen Ladungsportionen.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- ==================================================== TEIL 1 -->
+<section>
+  <h2>Teil 1</h2>
+  <p class="shead">Hebe die Masse mit der Maus nach oben. Wie viel Arbeit ist dafür nötig?
+     Das Diagramm zeichnet die verrichtete Arbeit W über der Höhe h mit.</p>
+
+  <div class="bar">
+    <div class="ctl">
+      <div class="row"><label>Masse m</label><span class="val" id="mVal"></span></div>
+      <input type="range" id="m" min="0.1" max="2" step="0.05" value="1">
+    </div>
+    <div class="ctl">
+      <div class="row"><label>Ortsfaktor g</label><span class="val" id="gVal"></span></div>
+      <input type="range" id="g" min="0" max="25" step="0.1" value="9.81">
+    </div>
+    <div class="ctl" id="ctlU" hidden>
+      <div class="row"><label>Spannung U</label><span class="val" id="uVal"></span></div>
+      <input type="range" id="u" min="0" max="2000" step="10" value="1000">
+    </div>
+    <div class="ctl" id="ctlQ" hidden>
+      <div class="row"><label>Probeladung q</label><span class="val" id="qVal"></span></div>
+      <input type="range" id="q" min="0.1" max="5" step="0.1" value="2">
+    </div>
+    <button class="btn" id="btnReset1">Höhen zurücksetzen</button>
+  </div>
+
+  <div class="duo">
+    <div class="panel">
+      <h3>Im Schwerefeld <span class="sub">— Masse anheben</span></h3>
+      <canvas id="cvG" height="330"></canvas>
+      <canvas id="dgG" height="196"></canvas>
+      <div class="kv" id="kvG"></div>
+    </div>
+
+    <div id="hideE" class="hidebox">
+      Der zweite Aufbau ist noch verborgen.<br>
+      Kläre zuerst am Schwerefeld, wovon die nötige Arbeit abhängt.
+      <br><button class="btn prim" id="btnShowE">Kondensator einblenden</button>
+    </div>
+
+    <div class="panel" id="panelE" hidden>
+      <h3>Im elektrischen Feld <span class="sub">— Ladung anheben</span></h3>
+      <canvas id="cvE" height="330"></canvas>
+      <canvas id="dgE" height="196"></canvas>
+      <div class="kv" id="kvE"></div>
+    </div>
+  </div>
+
+  <div class="note" id="note1">
+    Beide Kräfte sind mit demselben Maßstab gezeichnet – gleich lange Pfeile bedeuten
+    also gleich große Kräfte.
+  </div>
+</section>
+
+<!-- ==================================================== TEIL 2 -->
+<section>
+  <h2>Teil 2</h2>
+  <p class="shead">Ein zunächst ungeladener Kondensator wird aufgeladen, indem nacheinander
+     gleich große Ladungsportionen Δq von der einen Platte auf die andere geschoben werden.
+     Mit jeder Portion wächst die Ladung Q – und damit die Spannung U = Q/C, gegen die die
+     nächste Portion geschoben werden muss.</p>
+
+  <div class="bar">
+    <div class="ctl">
+      <div class="row"><label>Kapazität C</label><span class="val" id="cVal"></span></div>
+      <input type="range" id="cap" min="0.1" max="2" step="0.1" value="0.5">
+    </div>
+    <div class="ctl">
+      <div class="row"><label>Anzahl der Portionen</label><span class="val" id="nVal"></span></div>
+      <select id="nsel">
+        <option value="10" selected>10 Portionen  (Δq = 0,1 C)</option>
+        <option value="20">20 Portionen  (Δq = 0,05 C)</option>
+        <option value="50">50 Portionen  (Δq = 0,02 C)</option>
+        <option value="100">100 Portionen  (Δq = 0,01 C)</option>
+      </select>
+    </div>
+    <div class="ctl" style="flex:0 0 auto;min-width:0">
+      <button class="btn prim" id="btnStep">Ladung Δq verschieben</button>
+    </div>
+    <div class="ctl" style="flex:0 0 auto;min-width:0">
+      <button class="btn" id="btnAll">Alle auf einmal</button>
+    </div>
+    <div class="ctl" style="flex:0 0 auto;min-width:0">
+      <button class="btn danger" id="btnReset2">Zurücksetzen</button>
+    </div>
+  </div>
+
+  <div class="duo">
+    <div class="panel">
+      <h3>Kondensator <span class="sub">— Ladung wandert von unten nach oben</span></h3>
+      <canvas id="cvC" height="330"></canvas>
+      <div class="kv" id="kvC"></div>
+    </div>
+    <div class="panel">
+      <h3>Q-U-Diagramm <span class="sub">— jede Säule ist eine Ladungsportion</span></h3>
+      <canvas id="dgC" height="330"></canvas>
+      <div class="kv" id="kvC2"></div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:18px">
+    <h3>Wertetabelle <span class="sub">— zum Auswerten mit Excel</span></h3>
+    <div id="tabwrap">
+      <table id="tbl"><thead></thead><tbody></tbody></table>
+      <div id="tempty" style="color:#8b98b3;font-style:italic;font-size:12.5px;padding:10px 0">
+        Noch keine Ladung verschoben.
+      </div>
+    </div>
+    <div class="btnrow">
+      <button class="btn" id="btnCopy">Tabelle in die Zwischenablage</button>
+      <button class="btn" id="btnCsv">Als CSV speichern</button>
+      <span id="copyMsg" style="align-self:center;font-size:12.5px;color:var(--ok)"></span>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>Zum Weiterdenken:</b> Die Summe aller Säulenflächen ist die insgesamt nötige Energie.
+    Verkleinere Δq und beobachte, wie sich diese Summe verändert – wogegen läuft sie?
+    Welche Fläche im Q-U-Diagramm beschreibt sie im Grenzfall?
+  </div>
+</section>
+
+</main>
+
+<footer><div class="wrap">
+  Alle Werte sind exakt gerechnet, ohne Messfehler. Die Ladungsportionen sind bewusst
+  riesig gewählt (Δq im Bereich von Coulomb), damit die Zahlen im Kopf nachvollziehbar bleiben.
+</div></footer>
+
+<textarea id="copyArea" readonly></textarea>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   TEIL 1  Analogie Schwerefeld <-> Plattenkondensator
+     Gravitation : F = m*g            W = m*g*h
+     E-Feld      : F = q*U/d          W = q*U*h/d,  bei h = d also W = q*U
+   Der Plattenabstand d ist gleich der maximalen Hubhoehe, damit beide
+   Seiten dieselbe Hoehenachse haben.
+
+   TEIL 2  Aufladung in Portionen
+     nach i Portionen:  Q_i = i*dq,  U_i = Q_i/C
+     Energie fuer die naechste Portion:  dE = U_i * dq
+     Summe -> 0,5*C*U²  (exakt: Summe = (1 - 1/n) * 0,5*C*U²)
+   ===================================================================== */
+
+const HMAX = 0.50;          // m, zugleich Plattenabstand
+const QTOT = 1.0;           // C, Gesamtladung in Teil 2
+const $ = id => document.getElementById(id);
+
+const S1 = { m:1, g:9.81, U:1000, q:2, hG:0, hE:0, shown:false };
+const S2 = { C:0.5, n:10, steps:0, anim:0 };
+
+/* --------------------------- Formatierung ------------------------ */
+function fmt(v,n){ return (isFinite(v)?v.toFixed(n):'–').replace('.',','); }
+function sup(n){
+  const m={'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+  return String(n).split('').map(c=>m[c]||c).join('');
+}
+
+/* ============================ Physik ============================== */
+const forceG = () => S1.m*S1.g;                       // N
+const forceE = () => (S1.q*1e-3)*S1.U/HMAX;           // N
+const workG  = () => forceG()*S1.hG;                  // J
+const workE  = () => forceE()*S1.hE;                  // J
+const fieldE = () => S1.U/HMAX;                       // V/m
+
+const dq   = () => QTOT/S2.n;
+const Qof  = i => i*dq();
+const Uof  = i => Qof(i)/S2.C;
+const sumE = () => { let s=0; for(let i=0;i<S2.steps;i++) s+=Uof(i)*dq(); return s; };
+const Eexact = () => 0.5*S2.C*Math.pow(Qof(S2.steps)/S2.C,2);
+
+/* ====================== Zeichenhilfsmittel ======================== */
+function setup(cv){
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  const w=cv.clientWidth||600, h=parseInt(cv.getAttribute('height'),10);
+  cv.width=Math.floor(w*dpr); cv.height=Math.floor(h*dpr);
+  cv.style.height=h+'px';
+  const c=cv.getContext('2d');
+  c.setTransform(dpr,0,0,dpr,0,0);
+  c.clearRect(0,0,w,h);
+  c.fillStyle='#0b0f18'; c.fillRect(0,0,w,h);
+  return {c,w,h};
+}
+function arrow(c,x,y0,y1,col,lw){
+  const dir=Math.sign(y1-y0)||1, head=Math.min(13,Math.abs(y1-y0)*0.45);
+  c.strokeStyle=col; c.fillStyle=col; c.lineWidth=lw;
+  c.beginPath(); c.moveTo(x,y0); c.lineTo(x,y1-dir*head*0.9); c.stroke();
+  c.beginPath();
+  c.moveTo(x,y1); c.lineTo(x-head*0.55,y1-dir*head); c.lineTo(x+head*0.55,y1-dir*head);
+  c.closePath(); c.fill();
+}
+function sign(c,x,y,s,size,col){
+  c.save(); c.strokeStyle=col; c.lineWidth=Math.max(1.4,size*0.24); c.lineCap='round';
+  c.beginPath(); c.moveTo(x-size*0.45,y); c.lineTo(x+size*0.45,y);
+  if(s>0){ c.moveTo(x,y-size*0.45); c.lineTo(x,y+size*0.45); }
+  c.stroke(); c.restore();
+}
+/* gemeinsamer Kraftmaßstab, damit die Pfeile vergleichbar sind */
+function forceScale(){
+  const fmax=Math.max(forceG(), S1.shown?forceE():0, 1e-6);
+  return 96/fmax;                                     // px je Newton
+}
+
+/* ======================== Teil 1: Szenen ========================== */
+function sceneGeom(w,h){
+  const top=34, bot=h-40;
+  return { top, bot, span:bot-top, x:w*0.42, y:v=>bot-(v/HMAX)*(bot-top) };
+}
+
+function drawG(){
+  const cv=$('cvG'); if(!cv.clientWidth) return;
+  const {c,w,h}=setup(cv);
+  const G=sceneGeom(w,h);
+
+  // Boden
+  c.strokeStyle='#3a4763'; c.lineWidth=2;
+  c.beginPath(); c.moveTo(30,G.bot); c.lineTo(w-30,G.bot); c.stroke();
+  c.strokeStyle='rgba(139,152,179,.45)'; c.lineWidth=1;
+  for(let x=32;x<w-32;x+=13){
+    c.beginPath(); c.moveTo(x,G.bot); c.lineTo(x-9,G.bot+9); c.stroke();
+  }
+
+  // Hoehenmaß
+  const y=G.y(S1.hG);
+  c.strokeStyle='rgba(139,152,179,.7)'; c.lineWidth=1;
+  c.setLineDash([4,4]);
+  c.beginPath(); c.moveTo(G.x-46,y); c.lineTo(G.x+70,y); c.stroke();
+  c.setLineDash([]);
+  const xd=G.x-58;
+  c.beginPath();
+  c.moveTo(xd,G.bot); c.lineTo(xd,y);
+  c.moveTo(xd-5,G.bot); c.lineTo(xd+5,G.bot);
+  c.moveTo(xd-5,y); c.lineTo(xd+5,y);
+  c.stroke();
+  c.fillStyle='#c3cde0'; c.font='12px system-ui'; c.textAlign='right';
+  c.fillText('h = '+fmt(S1.hG*100,1)+' cm', xd-8, (G.bot+y)/2+4);
+
+  // Masse
+  const bw=Math.max(46,Math.min(76,34+S1.m*22)), bh=30;
+  c.fillStyle='#b6c4dc';
+  c.fillRect(G.x-bw/2, y-bh, bw, bh);
+  c.strokeStyle='#0b0f18'; c.lineWidth=1.6; c.strokeRect(G.x-bw/2,y-bh,bw,bh);
+  c.fillStyle='#16202f'; c.font='600 13px system-ui'; c.textAlign='center';
+  c.fillText(fmt(S1.m,2)+' kg', G.x, y-bh/2+5);
+
+  // Gewichtskraft
+  const L=forceG()*forceScale();
+  if(L>4){
+    arrow(c, G.x+bw/2+26, y-bh/2, y-bh/2+L, '#ff8a5c', 3);
+    c.fillStyle='#ff8a5c'; c.font='600 13px system-ui'; c.textAlign='left';
+    c.fillText('F = m·g = '+fmt(forceG(),2)+' N', G.x+bw/2+36, y-bh/2+Math.min(L,60)/2+5);
+  }
+  c.fillStyle='#8b98b3'; c.font='11.5px system-ui'; c.textAlign='left';
+  c.fillText('Zum Anheben ist eine gleich große Kraft nach oben nötig.',18,h-14);
+  cv.style.cursor='grab';
+}
+
+function drawE(){
+  const cv=$('cvE'); if(!cv || cv.hidden || !cv.clientWidth) return;
+  const {c,w,h}=setup(cv);
+  const G=sceneGeom(w,h);
+  const th=9;
+
+  // Platten: oben +, unten -
+  c.fillStyle='#ff5c6c'; c.fillRect(30,G.top-th,w-60,th);
+  c.fillStyle='#4da3ff'; c.fillRect(30,G.bot,w-60,th);
+  for(let i=0;i<7;i++){
+    const x=30+(w-60)*(i+0.5)/7;
+    sign(c,x,G.top-th/2,+1,10,'#0b0f18');
+    sign(c,x,G.bot+th/2,-1,10,'#0b0f18');
+  }
+
+  // Feldlinien
+  c.strokeStyle='rgba(230,238,255,.16)'; c.lineWidth=1;
+  c.fillStyle='rgba(230,238,255,.24)';
+  for(let i=0;i<9;i++){
+    const x=30+(w-60)*(i+0.5)/9;
+    c.beginPath(); c.moveTo(x,G.top+2); c.lineTo(x,G.bot-2); c.stroke();
+    const ym=(G.top+G.bot)/2;
+    c.beginPath(); c.moveTo(x,ym+6); c.lineTo(x-3.2,ym-2); c.lineTo(x+3.2,ym-2);
+    c.closePath(); c.fill();
+  }
+
+  // Hoehenmaß
+  const y=G.y(S1.hE);
+  c.strokeStyle='rgba(139,152,179,.7)'; c.lineWidth=1;
+  c.setLineDash([4,4]);
+  c.beginPath(); c.moveTo(G.x-46,y); c.lineTo(G.x+70,y); c.stroke();
+  c.setLineDash([]);
+  const xd=G.x-58;
+  c.beginPath();
+  c.moveTo(xd,G.bot); c.lineTo(xd,y);
+  c.moveTo(xd-5,G.bot); c.lineTo(xd+5,G.bot);
+  c.moveTo(xd-5,y); c.lineTo(xd+5,y);
+  c.stroke();
+  c.fillStyle='#c3cde0'; c.font='12px system-ui'; c.textAlign='right';
+  c.fillText('h = '+fmt(S1.hE*100,1)+' cm', xd-8, (G.bot+y)/2+4);
+
+  // Probeladung
+  const R=Math.max(11,Math.min(20,8+S1.q*2.6));
+  const gr=c.createRadialGradient(G.x,y,1,G.x,y,R*2.4);
+  gr.addColorStop(0,'#ff5c6ccc'); gr.addColorStop(1,'#ff5c6c00');
+  c.fillStyle=gr; c.beginPath(); c.arc(G.x,y,R*2.4,0,7); c.fill();
+  c.fillStyle='#ff5c6c'; c.beginPath(); c.arc(G.x,y,R,0,7); c.fill();
+  c.strokeStyle='#0b0f18'; c.lineWidth=1.6; c.stroke();
+  sign(c,G.x,y,+1,R*1.1,'#0b0f18');
+
+  const L=forceE()*forceScale();
+  if(L>4){
+    arrow(c, G.x+R+26, y, y+L, '#ff8a5c', 3);
+    c.fillStyle='#ff8a5c'; c.font='600 13px system-ui'; c.textAlign='left';
+    c.fillText('F = q·U/d = '+fmt(forceE(),2)+' N', G.x+R+36, y+Math.min(L,60)/2+5);
+  }
+  c.fillStyle='#8b98b3'; c.font='11.5px system-ui'; c.textAlign='left';
+  c.fillText('Plattenabstand d = '+fmt(HMAX*100,0)+' cm', 18, h-14);
+  cv.style.cursor='grab';
+}
+
+/* ====================== Teil 1: W-h-Diagramme ===================== */
+function wMaxCommon(){
+  const a=forceG()*HMAX, b=S1.shown?forceE()*HMAX:0;
+  return Math.max(a,b,0.2);
+}
+function niceStep(range,target){
+  const raw=range/target, p=Math.pow(10,Math.floor(Math.log10(raw))), m=raw/p;
+  return (m<=1?1:m<=2?2:m<=5?5:10)*p;
+}
+
+function drawWh(cvId, hCur, F, col){
+  const cv=$(cvId); if(!cv || cv.hidden || !cv.clientWidth) return;
+  const {c,w,h}=setup(cv);
+  const L=56,R=16,T=16,B=34, pw=w-L-R, ph=h-T-B;
+  if(pw<40||ph<30) return;
+  const ymax=wMaxCommon()*1.08;
+  const X=v=>L+v/HMAX*pw, Y=v=>T+ph-v/ymax*ph;
+
+  const sx=niceStep(HMAX,5), sy=niceStep(ymax,4);
+  c.font='11px system-ui'; c.strokeStyle='rgba(255,255,255,.06)'; c.fillStyle='#8b98b3';
+  c.lineWidth=1; c.textAlign='center'; c.textBaseline='top';
+  for(let v=0;v<=HMAX+1e-9;v+=sx){
+    const p=Math.round(X(v))+.5;
+    c.beginPath(); c.moveTo(p,T); c.lineTo(p,T+ph); c.stroke();
+    c.fillText(fmt(v*100,0),p,T+ph+6);
+  }
+  c.textAlign='right'; c.textBaseline='middle';
+  for(let v=0;v<=ymax+1e-9;v+=sy){
+    const p=Math.round(Y(v))+.5;
+    c.beginPath(); c.moveTo(L,p); c.lineTo(L+pw,p); c.stroke();
+    c.fillText(fmt(v, sy<1?2:sy<10?1:0),L-7,p);
+  }
+  c.strokeStyle='rgba(255,255,255,.20)'; c.strokeRect(L+.5,T+.5,pw,ph);
+  c.fillStyle='#c3cde0'; c.font='12px system-ui';
+  c.textAlign='right'; c.textBaseline='alphabetic';
+  c.fillText('h in cm',L+pw,h-8);
+  c.save(); c.translate(13,T+4); c.rotate(-Math.PI/2);
+  c.textAlign='right'; c.fillText('W in J',0,0); c.restore();
+
+  // volle Gerade blass, zurueckgelegter Teil kraeftig
+  c.strokeStyle='rgba(255,255,255,.16)'; c.lineWidth=1.3;
+  c.beginPath(); c.moveTo(X(0),Y(0)); c.lineTo(X(HMAX),Y(Math.min(F*HMAX,ymax))); c.stroke();
+  c.strokeStyle=col; c.lineWidth=2.6;
+  c.beginPath(); c.moveTo(X(0),Y(0)); c.lineTo(X(hCur),Y(Math.min(F*hCur,ymax))); c.stroke();
+  c.fillStyle=col;
+  c.beginPath(); c.arc(X(hCur),Y(Math.min(F*hCur,ymax)),4.5,0,7); c.fill();
+}
+
+/* ======================== Teil 2: Szene =========================== */
+function drawC(){
+  const cv=$('cvC'); if(!cv.clientWidth) return;
+  const {c,w,h}=setup(cv);
+  const top=42, bot=h-52, th=10, x0=34, x1=w-34;
+  const Q=Qof(S2.steps), U=Uof(S2.steps);
+
+  const full=S2.steps/S2.n;
+  c.fillStyle='#ff5c6c'; c.globalAlpha=0.25+0.75*full;
+  c.fillRect(x0,top-th,x1-x0,th);
+  c.fillStyle='#4da3ff'; c.fillRect(x0,bot,x1-x0,th);
+  c.globalAlpha=1;
+
+  // Ladungszeichen, Anzahl proportional zum Ladungszustand
+  const nsig=Math.round(full*9);
+  for(let i=0;i<nsig;i++){
+    const x=x0+(x1-x0)*(i+0.5)/Math.max(nsig,1);
+    sign(c,x,top-th/2,+1,11,'#0b0f18');
+    sign(c,x,bot+th/2,-1,11,'#0b0f18');
+  }
+  if(nsig===0){
+    c.fillStyle='#8b98b3'; c.font='12px system-ui'; c.textAlign='center';
+    c.fillText('ungeladen',(x0+x1)/2,top-th-9);
+  }
+
+  // Feld zwischen den Platten
+  if(full>0){
+    c.strokeStyle='rgba(230,238,255,'+(0.05+0.18*full).toFixed(3)+')'; c.lineWidth=1;
+    for(let i=0;i<9;i++){
+      const x=x0+(x1-x0)*(i+0.5)/9;
+      c.beginPath(); c.moveTo(x,top+2); c.lineTo(x,bot-2); c.stroke();
+    }
+  }
+
+  // wandernde Portion
+  if(S2.anim>0){
+    const t=1-S2.anim, y=bot-(bot-top)*t;
+    const gr=c.createRadialGradient(w/2,y,1,w/2,y,26);
+    gr.addColorStop(0,'#ffc857dd'); gr.addColorStop(1,'#ffc85700');
+    c.fillStyle=gr; c.beginPath(); c.arc(w/2,y,26,0,7); c.fill();
+    c.fillStyle='#ffc857'; c.beginPath(); c.arc(w/2,y,9,0,7); c.fill();
+    sign(c,w/2,y,+1,11,'#0b0f18');
+  }
+
+  c.fillStyle='#c3cde0'; c.font='600 14px system-ui'; c.textAlign='center';
+  c.fillText('Q = '+fmt(Q,3)+' C', w/2, top-th-22);
+  c.fillText('U = Q/C = '+fmt(U,3)+' V', w/2, bot+th+30);
+  c.fillStyle='#8b98b3'; c.font='12px system-ui';
+  c.fillText(S2.steps+' von '+S2.n+' Portionen verschoben', w/2, h-14);
+}
+
+/* ==================== Teil 2: Q-U-Saeulendiagramm ================= */
+function drawQU(){
+  const cv=$('dgC'); if(!cv.clientWidth) return;
+  const {c,w,h}=setup(cv);
+  const L=58,R=18,T=18,B=36, pw=w-L-R, ph=h-T-B;
+  if(pw<40||ph<30) return;
+  const Umax=(QTOT/S2.C)*1.08;
+  const X=v=>L+v/QTOT*pw, Y=v=>T+ph-v/Umax*ph;
+
+  const sx=niceStep(QTOT,5), sy=niceStep(Umax,4);
+  c.font='11px system-ui'; c.strokeStyle='rgba(255,255,255,.06)';
+  c.fillStyle='#8b98b3'; c.lineWidth=1;
+  c.textAlign='center'; c.textBaseline='top';
+  for(let v=0;v<=QTOT+1e-9;v+=sx){
+    const p=Math.round(X(v))+.5;
+    c.beginPath(); c.moveTo(p,T); c.lineTo(p,T+ph); c.stroke();
+    c.fillText(fmt(v,sx<1?1:0),p,T+ph+6);
+  }
+  c.textAlign='right'; c.textBaseline='middle';
+  for(let v=0;v<=Umax+1e-9;v+=sy){
+    const p=Math.round(Y(v))+.5;
+    c.beginPath(); c.moveTo(L,p); c.lineTo(L+pw,p); c.stroke();
+    c.fillText(fmt(v,sy<1?2:1),L-7,p);
+  }
+
+  // Saeulen: Breite dq, Hoehe U_i  ->  Flaeche = Energie der Portion
+  const bw=pw*dq()/QTOT;
+  for(let i=0;i<S2.steps;i++){
+    const x=X(Qof(i)), y=Y(Uof(i));
+    c.fillStyle=(i===S2.steps-1)?'rgba(255,200,87,.55)':'rgba(77,163,255,.38)';
+    c.fillRect(x, y, Math.max(bw-1,1), T+ph-y);
+    c.strokeStyle=(i===S2.steps-1)?'#ffc857':'rgba(140,190,255,.7)';
+    c.lineWidth=1;
+    c.strokeRect(x+.5, y+.5, Math.max(bw-1,1), T+ph-y);
+  }
+
+  // Gerade U = Q/C
+  c.strokeStyle='rgba(94,211,154,.85)'; c.lineWidth=1.8;
+  c.beginPath(); c.moveTo(X(0),Y(0)); c.lineTo(X(QTOT),Y(QTOT/S2.C)); c.stroke();
+
+  c.strokeStyle='rgba(255,255,255,.20)'; c.lineWidth=1;
+  c.strokeRect(L+.5,T+.5,pw,ph);
+  c.fillStyle='#c3cde0'; c.font='12px system-ui';
+  c.textAlign='right'; c.textBaseline='alphabetic';
+  c.fillText('Q in C',L+pw,h-8);
+  c.save(); c.translate(14,T+4); c.rotate(-Math.PI/2);
+  c.textAlign='right'; c.fillText('U in V',0,0); c.restore();
+}
+
+/* ============================ Tabelle ============================= */
+function syncTable(){
+  const head=$('tbl').tHead, body=$('tbl').tBodies[0];
+  $('tempty').style.display=S2.steps?'none':'block';
+  head.innerHTML=S2.steps
+    ? '<tr><th>Nr.</th><th>Δq in C</th><th>Q in C</th><th>U in V</th>'
+      +'<th>ΔE in J</th><th>Summe in J</th></tr>' : '';
+  body.innerHTML='';
+  let s=0;
+  for(let i=0;i<S2.steps;i++){
+    const dE=Uof(i)*dq(); s+=dE;
+    const tr=document.createElement('tr');
+    if(i===S2.steps-1) tr.className='hl';
+    tr.innerHTML='<td>'+(i+1)+'</td><td>'+fmt(dq(),3)+'</td><td>'+fmt(Qof(i),3)+'</td>'
+      +'<td>'+fmt(Uof(i),3)+'</td><td>'+fmt(dE,4)+'</td><td>'+fmt(s,4)+'</td>';
+    body.appendChild(tr);
+  }
+  if(S2.steps) $('tabwrap').scrollTop=$('tabwrap').scrollHeight;
+}
+
+function tableText(sep){
+  const L=[['Nr','dq in C','Q in C','U in V','dE in J','Summe in J'].join(sep)];
+  let s=0;
+  for(let i=0;i<S2.steps;i++){
+    const dE=Uof(i)*dq(); s+=dE;
+    L.push([i+1, dq(), Qof(i), Uof(i), dE, s]
+      .map((v,j)=>j===0?v:String(v.toFixed(6)).replace('.',',')).join(sep));
+  }
+  return L.join('\n');
+}
+
+/* ============================= Anzeigen =========================== */
+function sync1(){
+  $('mVal').textContent=fmt(S1.m,2)+' kg';
+  $('gVal').textContent=fmt(S1.g,2)+' N/kg';
+  $('uVal').textContent=fmt(S1.U,0)+' V';
+  $('qVal').textContent=fmt(S1.q,1)+' mC';
+
+  $('kvG').innerHTML=
+      'Kraft &nbsp;<b>F = m·g = '+fmt(S1.m,2)+' kg · '+fmt(S1.g,2)+' N/kg = '+fmt(forceG(),2)+' N</b><br>'
+    + 'Arbeit <b>W = F·h = '+fmt(forceG(),2)+' N · '+fmt(S1.hG,3)+' m = <span class="f">'
+      +fmt(workG(),3)+' J</span></b><br>'
+    + '<span style="color:#6f7c96">also W = m·g·h</span>';
+
+  if(S1.shown){
+    $('kvE').innerHTML=
+        'Feldstärke <b>E = U/d = '+fmt(fieldE(),0)+' V/m</b><br>'
+      + 'Kraft &nbsp;<b>F = q·E = '+fmt(S1.q,1)+' mC · '+fmt(fieldE(),0)+' V/m = '+fmt(forceE(),2)+' N</b><br>'
+      + 'Arbeit <b>W = F·h = <span class="f">'+fmt(workE(),3)+' J</span></b>'
+      + (S1.hE>=HMAX-1e-9 ? ' &nbsp;<span class="g">= q·U</span>' : '')
+      + '<br><span style="color:#6f7c96">über den ganzen Plattenabstand: W = q·U = '
+      + fmt(S1.q*1e-3*S1.U,3)+' J</span>';
+
+    const dF=Math.abs(forceG()-forceE());
+    $('note1').innerHTML = dF < 0.05
+      ? 'Beide Kräfte sind jetzt <b>gleich groß</b> – die Pfeile sind gleich lang und '
+        +'beide Diagramme zeigen dieselbe Gerade.'
+      : 'Beide Kräfte sind mit demselben Maßstab gezeichnet – gleich lange Pfeile bedeuten '
+        +'also gleich große Kräfte. Aktuell unterscheiden sie sich um '+fmt(dF,2)+' N.';
+  }
+  drawG(); drawE();
+  drawWh('dgG',S1.hG,forceG(),'#ff8a5c');
+  drawWh('dgE',S1.hE,forceE(),'#7dffc4');
+}
+
+function sync2(){
+  $('cVal').textContent=fmt(S2.C,1)+' F';
+  $('nVal').textContent='Δq = '+fmt(dq(),3)+' C';
+  $('btnStep').disabled = S2.steps>=S2.n;
+  $('btnAll').disabled  = S2.steps>=S2.n;
+
+  const s=sumE(), ex=Eexact(), U=Uof(S2.steps);
+  $('kvC').innerHTML=
+      'Ladung &nbsp;<b>Q = '+S2.steps+' · '+fmt(dq(),3)+' C = '+fmt(Qof(S2.steps),3)+' C</b><br>'
+    + 'Spannung <b>U = Q/C = '+fmt(Qof(S2.steps),3)+' C / '+fmt(S2.C,1)+' F = <span class="f">'
+      +fmt(U,3)+' V</span></b>'
+    + (S2.steps<S2.n
+        ? '<br>Nächste Portion: <b>ΔE = U·Δq = '+fmt(U*dq(),4)+' J</b>'
+        : '<br><span class="g">Alle Portionen verschoben.</span>');
+
+  $('kvC2').innerHTML=
+      'Summe der Säulenflächen &nbsp;<b><span class="f">'+fmt(s,4)+' J</span></b><br>'
+    + '½·C·U² &nbsp;<b><span class="g">'+fmt(ex,4)+' J</span></b>'
+    + (ex>0 ? '<br>Verhältnis <b>'+fmt(s/ex,4)+'</b> '
+              +'<span style="color:#6f7c96">(genau 1 − 1/n = '+fmt(1-1/S2.n,4)+')</span>'
+            : '');
+  drawC(); drawQU(); syncTable();
+}
+
+/* ============================== Ziehen ============================ */
+function dragSetup(cvId, key){
+  const cv=$(cvId);
+  let drag=false;
+  const hFrom=e=>{
+    const r=cv.getBoundingClientRect();
+    const G=sceneGeom(cv.clientWidth, parseInt(cv.getAttribute('height'),10));
+    const y=e.clientY-r.top;
+    return Math.max(0,Math.min(HMAX,(G.bot-y)/G.span*HMAX));
+  };
+  cv.addEventListener('pointerdown',e=>{
+    drag=true; cv.setPointerCapture(e.pointerId);
+    S1[key]=hFrom(e); cv.style.cursor='grabbing'; sync1();
+  });
+  cv.addEventListener('pointermove',e=>{ if(drag){ S1[key]=hFrom(e); sync1(); } });
+  const end=()=>{ if(drag){ drag=false; cv.style.cursor='grab'; } };
+  cv.addEventListener('pointerup',end);
+  cv.addEventListener('pointercancel',end);
+}
+
+/* ================================ UI ============================== */
+['m','g','u','q'].forEach(id=>{
+  $(id).addEventListener('input',e=>{
+    S1[id==='u'?'U':id]=parseFloat(e.target.value);
+    sync1();
+  });
+});
+$('btnReset1').addEventListener('click',()=>{ S1.hG=0; S1.hE=0; sync1(); });
+$('btnShowE').addEventListener('click',()=>{
+  S1.shown=true;
+  $('hideE').hidden=true; $('panelE').hidden=false;
+  $('ctlU').hidden=false; $('ctlQ').hidden=false;
+  requestAnimationFrame(sync1);
+});
+
+$('cap').addEventListener('input',e=>{ S2.C=parseFloat(e.target.value); sync2(); });
+$('nsel').addEventListener('change',e=>{
+  S2.n=parseInt(e.target.value,10); S2.steps=0; sync2();
+});
+function stepOnce(){
+  if(S2.steps>=S2.n) return;
+  S2.steps++;
+  S2.anim=1;
+  const t0=performance.now();
+  (function tick(now){
+    S2.anim=Math.max(0,1-(now-t0)/380);
+    drawC();
+    if(S2.anim>0) requestAnimationFrame(tick); else sync2();
+  })(t0);
+  sync2();
+}
+$('btnStep').addEventListener('click',stepOnce);
+$('btnAll').addEventListener('click',()=>{ S2.steps=S2.n; S2.anim=0; sync2(); });
+$('btnReset2').addEventListener('click',()=>{ S2.steps=0; S2.anim=0; sync2(); });
+
+function flash(msg){
+  $('copyMsg').textContent=msg;
+  setTimeout(()=>{ $('copyMsg').textContent=''; },2600);
+}
+$('btnCopy').addEventListener('click',async()=>{
+  if(!S2.steps){ flash('Noch keine Daten.'); return; }
+  const txt=tableText('\t');
+  try{
+    await navigator.clipboard.writeText(txt);
+    flash('Kopiert – in Excel einfügen.');
+  }catch(err){
+    const ta=$('copyArea');
+    ta.value=txt; ta.style.position='fixed'; ta.style.left='0'; ta.style.opacity='0';
+    ta.select();
+    flash(document.execCommand('copy') ? 'Kopiert – in Excel einfügen.'
+                                       : 'Kopieren nicht möglich, bitte CSV verwenden.');
+    ta.style.position='absolute'; ta.style.left='-9999px';
+  }
+});
+$('btnCsv').addEventListener('click',()=>{
+  if(!S2.steps){ flash('Noch keine Daten.'); return; }
+  const blob=new Blob(['﻿'+tableText(';')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='kondensator-aufladung.csv';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  flash('CSV gespeichert.');
+});
+
+/* =============================== Start ============================ */
+dragSetup('cvG','hG');
+dragSetup('cvE','hE');
+window.addEventListener('resize',()=>{ sync1(); sync2(); });
+sync1();
+sync2();
+</script>
+</body>
+</html>
