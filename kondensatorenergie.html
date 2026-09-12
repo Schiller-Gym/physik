@@ -88,12 +88,6 @@
   .kv .f{color:var(--accent);font-variant-numeric:tabular-nums;}
   .kv .g{color:var(--ok);font-variant-numeric:tabular-nums;}
 
-  .hidebox{
-    background:var(--panel);border:1px dashed #3a4763;border-radius:13px;
-    padding:34px 24px;text-align:center;color:var(--muted);font-size:13.5px;
-  }
-  .hidebox .btn{margin-top:14px;}
-
   table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums;}
   th{
     color:var(--muted);font-weight:600;text-align:right;padding:4px 8px;
@@ -136,8 +130,9 @@
 <!-- ==================================================== TEIL 1 -->
 <section>
   <h2>Teil 1</h2>
-  <p class="shead">Hebe die Masse mit der Maus nach oben. Wie viel Arbeit ist dafür nötig?
-     Das Diagramm zeichnet die verrichtete Arbeit W über der Höhe h mit.</p>
+  <p class="shead">Links eine Masse im Schwerefeld, rechts eine Ladung zwischen zwei
+     Kondensatorplatten. Ziehe beide mit der Maus nach oben – die Diagramme zeichnen die
+     dafür nötige Arbeit W über der Höhe h mit.</p>
 
   <div class="bar">
     <div class="ctl">
@@ -148,11 +143,11 @@
       <div class="row"><label>Ortsfaktor g</label><span class="val" id="gVal"></span></div>
       <input type="range" id="g" min="0" max="25" step="0.1" value="9.81">
     </div>
-    <div class="ctl" id="ctlU" hidden>
+    <div class="ctl" id="ctlU">
       <div class="row"><label>Spannung U</label><span class="val" id="uVal"></span></div>
       <input type="range" id="u" min="0" max="2000" step="10" value="1000">
     </div>
-    <div class="ctl" id="ctlQ" hidden>
+    <div class="ctl" id="ctlQ">
       <div class="row"><label>Probeladung q</label><span class="val" id="qVal"></span></div>
       <input type="range" id="q" min="0.1" max="5" step="0.1" value="2">
     </div>
@@ -167,13 +162,7 @@
       <div class="kv" id="kvG"></div>
     </div>
 
-    <div id="hideE" class="hidebox">
-      Der zweite Aufbau ist noch verborgen.<br>
-      Kläre zuerst am Schwerefeld, wovon die nötige Arbeit abhängt.
-      <br><button class="btn prim" id="btnShowE">Kondensator einblenden</button>
-    </div>
-
-    <div class="panel" id="panelE" hidden>
+    <div class="panel" id="panelE">
       <h3>Im elektrischen Feld <span class="sub">— Ladung anheben</span></h3>
       <canvas id="cvE" height="330"></canvas>
       <canvas id="dgE" height="196"></canvas>
@@ -284,7 +273,7 @@ const HMAX = 0.50;          // m, zugleich Plattenabstand
 const QTOT = 1.0;           // C, Gesamtladung in Teil 2
 const $ = id => document.getElementById(id);
 
-const S1 = { m:1, g:9.81, U:1000, q:2, hG:0, hE:0, shown:false };
+const S1 = { m:1, g:9.81, U:1000, q:2, hG:0, hE:0 };
 const S2 = { C:0.5, n:10, steps:0, anim:0 };
 
 /* --------------------------- Formatierung ------------------------ */
@@ -335,7 +324,7 @@ function sign(c,x,y,s,size,col){
 }
 /* gemeinsamer Kraftmaßstab, damit die Pfeile vergleichbar sind */
 function forceScale(){
-  const fmax=Math.max(forceG(), S1.shown?forceE():0, 1e-6);
+  const fmax=Math.max(forceG(), forceE(), 1e-6);
   return 96/fmax;                                     // px je Newton
 }
 
@@ -456,7 +445,7 @@ function drawE(){
 
 /* ====================== Teil 1: W-h-Diagramme ===================== */
 function wMaxCommon(){
-  const a=forceG()*HMAX, b=S1.shown?forceE()*HMAX:0;
+  const a=forceG()*HMAX, b=forceE()*HMAX;
   return Math.max(a,b,0.2);
 }
 function niceStep(range,target){
@@ -674,22 +663,21 @@ function sync1(){
       +fmt(workG(),3)+' J</span></b><br>'
     + '<span style="color:#6f7c96">also W = m·g·h</span>';
 
-  if(S1.shown){
-    $('kvE').innerHTML=
+  $('kvE').innerHTML=
         'Feldstärke <b>E = U/d = '+fmt(fieldE(),0)+' V/m</b><br>'
       + 'Kraft &nbsp;<b>F = q·E = '+fmt(S1.q,1)+' mC · '+fmt(fieldE(),0)+' V/m = '+fmt(forceE(),2)+' N</b><br>'
       + 'Arbeit <b>W = F·h = <span class="f">'+fmt(workE(),3)+' J</span></b>'
       + (S1.hE>=HMAX-1e-9 ? ' &nbsp;<span class="g">= q·U</span>' : '')
       + '<br><span style="color:#6f7c96">über den ganzen Plattenabstand: W = q·U = '
-      + fmt(S1.q*1e-3*S1.U,3)+' J</span>';
+    + fmt(S1.q*1e-3*S1.U,3)+' J</span>';
 
-    const dF=Math.abs(forceG()-forceE());
-    $('note1').innerHTML = dF < 0.05
-      ? 'Beide Kräfte sind jetzt <b>gleich groß</b> – die Pfeile sind gleich lang und '
-        +'beide Diagramme zeigen dieselbe Gerade.'
-      : 'Beide Kräfte sind mit demselben Maßstab gezeichnet – gleich lange Pfeile bedeuten '
-        +'also gleich große Kräfte. Aktuell unterscheiden sie sich um '+fmt(dF,2)+' N.';
-  }
+  const dF=Math.abs(forceG()-forceE());
+  $('note1').innerHTML = dF < 0.05
+    ? 'Beide Kräfte sind jetzt <b>gleich groß</b> – die Pfeile sind gleich lang und '
+      +'beide Diagramme zeigen dieselbe Gerade.'
+    : 'Beide Kräfte sind mit demselben Maßstab gezeichnet – gleich lange Pfeile bedeuten '
+      +'also gleich große Kräfte. Aktuell unterscheiden sie sich um '+fmt(dF,2)+' N.';
+
   drawG(); drawE();
   drawWh('dgG',S1.hG,forceG(),'#ff8a5c');
   drawWh('dgE',S1.hE,forceE(),'#7dffc4');
@@ -747,13 +735,6 @@ function dragSetup(cvId, key){
   });
 });
 $('btnReset1').addEventListener('click',()=>{ S1.hG=0; S1.hE=0; sync1(); });
-$('btnShowE').addEventListener('click',()=>{
-  S1.shown=true;
-  $('hideE').hidden=true; $('panelE').hidden=false;
-  $('ctlU').hidden=false; $('ctlQ').hidden=false;
-  requestAnimationFrame(sync1);
-});
-
 $('cap').addEventListener('input',e=>{ S2.C=parseFloat(e.target.value); sync2(); });
 $('nsel').addEventListener('change',e=>{
   S2.n=parseInt(e.target.value,10); S2.steps=0; sync2();
