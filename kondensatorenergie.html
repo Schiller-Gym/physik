@@ -157,15 +157,15 @@
   <div class="duo">
     <div class="panel">
       <h3>Im Schwerefeld <span class="sub">— Masse anheben</span></h3>
-      <canvas id="cvG" height="330"></canvas>
-      <canvas id="dgG" height="196"></canvas>
+      <canvas id="cvG" height="330" data-h="330"></canvas>
+      <canvas id="dgG" height="196" data-h="196"></canvas>
       <div class="kv" id="kvG"></div>
     </div>
 
     <div class="panel" id="panelE">
       <h3>Im elektrischen Feld <span class="sub">— Ladung anheben</span></h3>
-      <canvas id="cvE" height="330"></canvas>
-      <canvas id="dgE" height="196"></canvas>
+      <canvas id="cvE" height="330" data-h="330"></canvas>
+      <canvas id="dgE" height="196" data-h="196"></canvas>
       <div class="kv" id="kvE"></div>
     </div>
   </div>
@@ -212,12 +212,12 @@
   <div class="duo">
     <div class="panel">
       <h3>Kondensator <span class="sub">— Ladung wandert von unten nach oben</span></h3>
-      <canvas id="cvC" height="330"></canvas>
+      <canvas id="cvC" height="330" data-h="330"></canvas>
       <div class="kv" id="kvC"></div>
     </div>
     <div class="panel">
       <h3>Q-U-Diagramm <span class="sub">— jede Säule ist eine Ladungsportion, die Zahl darin ihre Energie ΔE in J</span></h3>
-      <canvas id="dgC" height="330"></canvas>
+      <canvas id="dgC" height="330" data-h="330"></canvas>
       <div class="kv" id="kvC2"></div>
     </div>
   </div>
@@ -299,9 +299,15 @@ const Eexact = () => 0.5*S2.C*Math.pow(Qof(S2.steps)/S2.C,2);
 /* ====================== Zeichenhilfsmittel ======================== */
 function setup(cv){
   const dpr=Math.min(window.devicePixelRatio||1,2);
-  const w=cv.clientWidth||600, h=parseInt(cv.getAttribute('height'),10);
-  cv.width=Math.floor(w*dpr); cv.height=Math.floor(h*dpr);
+  const w=cv.clientWidth||600;
+  // Die logische Hoehe steht in data-h. Sie darf NICHT aus dem height-Attribut
+  // gelesen werden: cv.height=... schreibt genau dieses Attribut, sodass die
+  // Hoehe bei jedem Neuzeichnen um dpr wachsen wuerde.
+  const h=parseInt(cv.dataset.h,10);
   cv.style.height=h+'px';
+  const bw=Math.round(w*dpr), bh=Math.round(h*dpr);
+  if(cv.width!==bw)  cv.width=bw;
+  if(cv.height!==bh) cv.height=bh;
   const c=cv.getContext('2d');
   c.setTransform(dpr,0,0,dpr,0,0);
   c.clearRect(0,0,w,h);
