@@ -80,6 +80,8 @@
   }
   .panel h3 .sub{font-weight:400;color:var(--muted);font-size:12.5px;}
   canvas{display:block;width:100%;}
+  /* Nur die ziehbaren Szenen: sonst wuerde die Geste zum Seitenscrollen. */
+  canvas.zieh{touch-action:none;}
   .kv{
     padding:10px 16px 13px;font-size:12.5px;color:var(--muted);
     border-top:1px solid var(--line);line-height:1.85;
@@ -157,14 +159,14 @@
   <div class="duo">
     <div class="panel">
       <h3>Im Schwerefeld <span class="sub">— Masse anheben</span></h3>
-      <canvas id="cvG" height="330" data-h="330"></canvas>
+      <canvas id="cvG" class="zieh" height="330" data-h="330"></canvas>
       <canvas id="dgG" height="196" data-h="196"></canvas>
       <div class="kv" id="kvG"></div>
     </div>
 
     <div class="panel" id="panelE">
       <h3>Im elektrischen Feld <span class="sub">— Ladung anheben</span></h3>
-      <canvas id="cvE" height="330" data-h="330"></canvas>
+      <canvas id="cvE" class="zieh" height="330" data-h="330"></canvas>
       <canvas id="dgE" height="196" data-h="196"></canvas>
       <div class="kv" id="kvE"></div>
     </div>
@@ -719,15 +721,20 @@ function dragSetup(cvId, key){
   let drag=false;
   const hFrom=e=>{
     const r=cv.getBoundingClientRect();
-    const G=sceneGeom(cv.clientWidth, parseInt(cv.getAttribute('height'),10));
-    const y=e.clientY-r.top;
+    // Dieselbe logische Hoehe wie beim Zeichnen. Nicht das height-Attribut
+    // lesen: darin steht die Pixelpuffergroesse, also h mal dpr.
+    const H=parseInt(cv.dataset.h,10);
+    const G=sceneGeom(cv.clientWidth, H);
+    // Falls die Box skaliert dargestellt wird (Seitenzoom), mitskalieren
+    const y=(e.clientY-r.top)*(r.height ? H/r.height : 1);
     return Math.max(0,Math.min(HMAX,(G.bot-y)/G.span*HMAX));
   };
   cv.addEventListener('pointerdown',e=>{
+    e.preventDefault();
     drag=true; cv.setPointerCapture(e.pointerId);
     S1[key]=hFrom(e); cv.style.cursor='grabbing'; sync1();
   });
-  cv.addEventListener('pointermove',e=>{ if(drag){ S1[key]=hFrom(e); sync1(); } });
+  cv.addEventListener('pointermove',e=>{ if(drag){ e.preventDefault(); S1[key]=hFrom(e); sync1(); } });
   const end=()=>{ if(drag){ drag=false; cv.style.cursor='grab'; } };
   cv.addEventListener('pointerup',end);
   cv.addEventListener('pointercancel',end);
