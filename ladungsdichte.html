@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flächenladungsdichte</title>
+  <style>
+    :root {
+      --bg: #0b0f18;
+      --panel: #121a29;
+      --panel2: #1a2233;
+      --line: #27344d;
+      --text: #e6ecf7;
+      --muted: #9aa9c4;
+      --accent: #ffc857;
+      --pos: #ff5c6c;
+      --neg: #4da3ff;
+      --ok: #5ed39a;
+      --shadow: rgba(0,0,0,0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 340px;
+      min-width: 340px;
+      background: var(--panel);
+      border-right: 1px solid var(--line);
+      padding: 18px 18px 28px;
+      overflow-y: auto;
+    }
+
+    .sidebar h1 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: -0.03em;
+    }
+
+    .subtitle {
+      margin: 4px 0 18px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .panel {
+      background: var(--panel2);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 12px 10px;
+      margin-bottom: 14px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+    }
+
+    .panel h2 {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 12.5px;
+    }
+
+    .row label {
+      color: #d6dff3;
+    }
+
+    .value {
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      margin: 4px 0 12px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .readout {
+      background: rgba(255,255,255,0.015);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+    }
+
+    .readout .label {
+      font-size: 11px;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .readout .big {
+      font-size: clamp(20px, 3vw, 30px);
+      font-weight: 700;
+      margin-top: 3px;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .readout .small {
+      margin-top: 5px;
+      font-size: 12px;
+      color: #dce7fb;
+    }
+
+    .formula {
+      margin-top: 8px;
+      color: #d5dfef;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .formula strong {
+      color: #f4f7ff;
+    }
+
+    .stage {
+      flex: 1;
+      position: relative;
+      min-width: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0));
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    @media (max-width: 860px) {
+      body {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        min-width: 0;
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .stage {
+        height: 60vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    <h1>Flächenladungsdichte</h1>
+    <div class="subtitle">Ladung und Fläche lassen sich variieren. Die Dichte wird direkt als Farbintensität visualisiert.</div>
+
+    <section class="panel">
+      <h2>Ergebnis</h2>
+      <div class="readout">
+        <div class="label">Ladung je Platte Q</div>
+        <div class="big" id="qText">0,00 nC</div>
+        <div class="small" id="qSign">+Q auf linker Platte, -Q auf rechter Platte</div>
+      </div>
+      <div class="readout">
+        <div class="label">Plattenfläche A</div>
+        <div class="big" id="aText">0,00 cm²</div>
+        <div class="small" id="aMeta">0,00 × 10⁻⁴ m²</div>
+      </div>
+      <div class="readout">
+        <div class="label">Flächenladungsdichte σ</div>
+        <div class="big" id="sigmaText">0,00 µC/m²</div>
+        <div class="small" id="sigmaMeta">σ = Q / A</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Einstellungen</h2>
+
+      <div class="row">
+        <label for="charge">Ladung je Platte</label>
+        <span class="value" id="chargeValue">0,00 nC</span>
+      </div>
+      <input id="charge" type="range" min="-20" max="20" step="0.5" value="6" />
+
+      <div class="row">
+        <label for="area">Plattenfläche A</label>
+        <span class="value" id="areaValue">50,00 cm²</span>
+      </div>
+      <input id="area" type="range" min="5" max="200" step="1" value="50" />
+    </section>
+
+    <section class="panel">
+      <h2>Definition</h2>
+      <div class="formula">
+        <strong>σ = Q / A</strong><br />
+        Q = Gesamtladung<br />
+        A = Fläche der geladenen Platte<br />
+        σ = Flächenladungsdichte
+      </div>
+    </section>
+  </aside>
+
+  <main class="stage">
+    <canvas id="simCanvas"></canvas>
+  </main>
+
+  <script>
+    const chargeInput = document.getElementById('charge');
+    const areaInput = document.getElementById('area');
+
+    const qText = document.getElementById('qText');
+    const qSign = document.getElementById('qSign');
+    const aText = document.getElementById('aText');
+    const aMeta = document.getElementById('aMeta');
+    const sigmaText = document.getElementById('sigmaText');
+    const sigmaMeta = document.getElementById('sigmaMeta');
+    const chargeValue = document.getElementById('chargeValue');
+    const areaValue = document.getElementById('areaValue');
+
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const state = {
+      charge: Number(chargeInput.value),
+      area: Number(areaInput.value)
+    };
+
+    function formatNumber(value, digits = 2) {
+      return Number(value).toLocaleString('de-DE', {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+      });
+    }
+
+    function update() {
+      const Q_c = Math.abs(state.charge) * 1e-9; // C, Betrag je Platte
+      const A_m2 = state.area * 1e-4; // m² (1 cm² = 1e-4 m²)
+      const sigma = Q_c / A_m2; // C/m², Betrag der Flächenladungsdichte
+      const sigma_uC_m2 = sigma * 1e6;
+
+      qText.textContent = `${formatNumber(Math.abs(state.charge), 2)} nC`;
+      qSign.textContent = state.charge >= 0
+        ? '+Q auf linker Platte, -Q auf rechter Platte'
+        : '-Q auf linker Platte, +Q auf rechter Platte';
+      qSign.style.color = '#dfeaff';
+
+      aText.textContent = `${formatNumber(state.area, 2)} cm²`;
+      aMeta.textContent = `${formatNumber(A_m2, 6)} m²`;
+
+      sigmaText.textContent = `${formatNumber(sigma_uC_m2, 2)} µC/m²`;
+      sigmaMeta.textContent = `σ = ${formatNumber(sigma_uC_m2, 2)} µC/m²`;
+      sigmaMeta.style.color = '#dfeaff';
+
+      chargeValue.textContent = `${formatNumber(state.charge, 2)} nC`;
+      areaValue.textContent = `${formatNumber(state.area, 2)} cm²`;
+
+      drawSimulation(Q_c, A_m2, sigma);
+    }
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const ratio = window.devicePixelRatio || 1;
+      canvas.width = rect.width * ratio;
+      canvas.height = rect.height * ratio;
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      update();
+    }
+
+    function drawSimulation(Q_c, A_m2, sigma) {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      const cx = width / 2;
+      const cy = height / 2;
+
+      const plateLength = 90 + (state.area / 200) * 150;
+      const plateHeight = 90 + (state.area / 200) * 100;
+      const gap = 110;
+      const leftX = cx - gap / 2 - plateLength;
+      const rightX = cx + gap / 2;
+      const plateY = cy - plateHeight / 2;
+
+      ctx.clearRect(0, 0, width, height);
+
+      const bg = ctx.createRadialGradient(cx, cy, 40, cx, cy, width * 0.9);
+      bg.addColorStop(0, 'rgba(77,163,255,0.08)');
+      bg.addColorStop(0.5, 'rgba(255,92,108,0.04)');
+      bg.addColorStop(1, 'rgba(11,15,24,1)');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, width, height);
+
+      // Feldbereich zwischen den Platten
+      ctx.fillStyle = 'rgba(255,255,255,0.02)';
+      ctx.fillRect(cx - gap / 2, plateY - 20, gap, plateHeight + 40);
+
+      // Plattenhintergrund
+      ctx.fillStyle = 'rgba(0,0,0,0.28)';
+      ctx.fillRect(leftX + 8, plateY + 12, plateLength, plateHeight);
+      ctx.fillRect(rightX + 8, plateY + 12, plateLength, plateHeight);
+
+      // linke Platte (+Q)
+      const leftColor = state.charge >= 0 ? '#ff5c6c' : '#4da3ff';
+      const rightColor = state.charge >= 0 ? '#4da3ff' : '#ff5c6c';
+
+      const fillPlate = (x, y, w, h, color) => {
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, w, h);
+
+        const cols = 10;
+        const rows = 8;
+        const cellW = w / cols;
+        const cellH = h / rows;
+        const sigmaNorm = Math.min(1, Math.abs(sigma) / 1.8e-6);
+
+        for (let row = 0; row < rows; row++) {
+          for (let col = 0; col < cols; col++) {
+            const px = x + col * cellW;
+            const py = y + row * cellH;
+            const alpha = 0.12 + 0.8 * sigmaNorm * (0.5 + ((row + col) % 3) / 10);
+            ctx.fillStyle = color.replace(')', `, ${alpha})`).replace('rgb', 'rgba');
+            if (color.startsWith('#')) {
+              const hex = color.slice(1);
+              const r = parseInt(hex.slice(0, 2), 16);
+              const g = parseInt(hex.slice(2, 4), 16);
+              const b = parseInt(hex.slice(4, 6), 16);
+              ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+            ctx.fillRect(px, py, cellW - 1, cellH - 1);
+          }
+        }
+      };
+
+      fillPlate(leftX, plateY, plateLength, plateHeight, leftColor);
+      fillPlate(rightX, plateY, plateLength, plateHeight, rightColor);
+
+      // Plattenbeschriftung
+      ctx.fillStyle = '#e6ecf7';
+      ctx.font = '600 14px Segoe UI';
+      ctx.textAlign = 'center';
+      ctx.fillText('+' + formatNumber(Math.abs(state.charge), 2) + ' nC', leftX + plateLength / 2, plateY - 14);
+      ctx.fillText('-' + formatNumber(Math.abs(state.charge), 2) + ' nC', rightX + plateLength / 2, plateY - 14);
+
+      ctx.font = '500 13px Segoe UI';
+      ctx.fillStyle = '#d7e4ff';
+      ctx.textAlign = 'left';
+      ctx.fillText(`A = ${formatNumber(state.area, 2)} cm²`, 24, 26);
+      ctx.fillText(`σ = ${formatNumber(Math.abs(sigma * 1e6), 2)} µC/m²`, 24, 48);
+
+      // Dichte-Skala rechts
+      const barX = width - 60;
+      const barY = 60;
+      const barW = 18;
+      const barH = height - 140;
+      const sigmaNorm = Math.min(1, Math.abs(sigma) / 1.8e-6);
+      const grad = ctx.createLinearGradient(0, barY + barH, 0, barY);
+      grad.addColorStop(0, '#7ab7ff');
+      grad.addColorStop(1, '#ff7a88');
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.fillRect(barX, barY, barW, barH);
+      ctx.fillStyle = grad;
+      ctx.fillRect(barX, barY + barH * (1 - sigmaNorm), barW, barH * sigmaNorm);
+      ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+      ctx.strokeRect(barX, barY, barW, barH);
+
+      ctx.fillStyle = '#dfeaff';
+      ctx.font = '500 11px Segoe UI';
+      ctx.textAlign = 'center';
+      ctx.fillText('σ', barX + barW / 2, barY - 12);
+      ctx.fillText('niedrig', barX + barW / 2, barY + barH + 18);
+      ctx.fillText('hoch', barX + barW / 2, barY - 24);
+
+      // Symmetrieachse
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.setLineDash([6, 5]);
+      ctx.beginPath();
+      ctx.moveTo(cx, plateY - 20);
+      ctx.lineTo(cx, plateY + plateHeight + 20);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    chargeInput.addEventListener('input', (e) => {
+      state.charge = Number(e.target.value);
+      update();
+    });
+
+    areaInput.addEventListener('input', (e) => {
+      state.area = Number(e.target.value);
+      update();
+    });
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+  </script>
+</body>
+</html>
