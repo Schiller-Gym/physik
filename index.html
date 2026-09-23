@@ -421,6 +421,97 @@
     <p class="shead">Was das Feld mit bewegten Ladungen macht.</p>
     <div class="grid">
 
+      <a class="card" href="elektronenstrahlerzeugung.html">
+        <svg viewBox="0 0 320 180" role="img" aria-label="Glühwendel mit Elektronenwolke im Wehneltzylinder, danach Anode und gebündelter Strahl auf dem Leuchtschirm">
+          <title>Elektronenstrahlerzeugung</title>
+          <rect x="10" y="26" width="300" height="128" rx="14"
+                fill="#7896d2" fill-opacity=".04" stroke="#8caad7" stroke-opacity=".22"/>
+          <path d="M40 90 H296" stroke="#e6ecf7" stroke-opacity=".10" stroke-dasharray="6 5"/>
+
+          <!-- Wehneltzylinder: nach rechts offener Topf mit Blende -->
+          <g fill="#4da3ff" fill-opacity=".22" stroke="#4da3ff" stroke-opacity=".6">
+            <rect x="30" y="50" width="66" height="7"/>
+            <rect x="30" y="123" width="66" height="7"/>
+            <rect x="30" y="50" width="7" height="80"/>
+            <rect x="89" y="57" width="7" height="23"/>
+            <rect x="89" y="100" width="7" height="23"/>
+          </g>
+          <g stroke="#cfe4ff" stroke-opacity=".7" stroke-width="1.6" stroke-linecap="round">
+            <path d="M46 53.5 H54"/><path d="M62 53.5 H70"/><path d="M78 53.5 H86"/>
+            <path d="M46 126.5 H54"/><path d="M62 126.5 H70"/><path d="M78 126.5 H86"/>
+          </g>
+
+          <!-- Glühwendel mit Glimmen -->
+          <defs>
+            <radialGradient id="esGlow">
+              <stop offset="0" stop-color="#ff9a4d" stop-opacity=".34"/>
+              <stop offset="1" stop-color="#ff9a4d" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <circle cx="58" cy="99" r="20" fill="url(#esGlow)"/>
+          <path d="M58 80 q9 5 0 9.5 q-9 4.5 0 9.5 q9 5 0 9.5 q-9 4.5 0 9.5"
+                stroke="#ffd79a" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+
+          <!-- Elektronenwolke -->
+          <g fill="#7eb4ff">
+            <circle cx="76" cy="86" r="1.9"/><circle cx="80" cy="97" r="1.9"/>
+            <circle cx="72" cy="107" r="1.7"/><circle cx="44" cy="94" r="1.7"/>
+            <circle cx="47" cy="110" r="1.6"/><circle cx="70" cy="118" r="1.6"/>
+            <circle cx="84" cy="90" r="1.9"/><circle cx="58" cy="118" r="1.6"/>
+          </g>
+
+          <!-- Anode mit Loch -->
+          <rect x="112" y="44" width="7" height="40" fill="#ff5c6c" fill-opacity=".3" stroke="#ff5c6c" stroke-opacity=".7"/>
+          <rect x="112" y="96" width="7" height="40" fill="#ff5c6c" fill-opacity=".3" stroke="#ff5c6c" stroke-opacity=".7"/>
+          <g stroke="#ffd6dc" stroke-opacity=".8" stroke-width="1.6" stroke-linecap="round">
+            <path d="M111 62 H120"/><path d="M115.5 57.5 V66.5"/>
+            <path d="M111 118 H120"/><path d="M115.5 113.5 V122.5"/>
+          </g>
+
+          <!-- gebündelter Strahl -->
+          <path d="M119 83 L268 88 L268 92 L119 97 Z" fill="#7dffc4" fill-opacity=".13"/>
+          <g stroke="#7dffc4" stroke-opacity=".55" stroke-width="1.6" stroke-linecap="round">
+            <path d="M134 87 l-12 -.5"/><path d="M172 88 l-12 -.4"/>
+            <path d="M212 89 l-12 -.3"/><path d="M250 90 l-12 -.2"/>
+            <path d="M152 95 l-12 .4"/><path d="M196 93 l-12 .3"/><path d="M234 92 l-12 .2"/>
+          </g>
+          <g fill="#eafff5">
+            <circle cx="134" cy="87" r="1.9"/><circle cx="172" cy="88" r="1.9"/>
+            <circle cx="212" cy="89" r="1.9"/><circle cx="250" cy="90" r="1.9"/>
+            <circle cx="152" cy="95" r="1.8"/><circle cx="196" cy="93" r="1.8"/>
+            <circle cx="234" cy="92" r="1.8"/>
+          </g>
+
+          <!-- Leuchtschirm mit scharfem Fleck -->
+          <rect x="268" y="38" width="6" height="104" fill="#7dffc4" fill-opacity=".14"
+                stroke="#7dffc4" stroke-opacity=".5"/>
+          <circle cx="271" cy="90" r="11" fill="#7dffc4" fill-opacity=".26"/>
+          <circle cx="271" cy="90" r="3.4" fill="#eafff5"/>
+
+          <!-- Lupe auf das obere Ende der Wendel: Gitter und freie Elektronen -->
+          <circle cx="58" cy="70" r="13" fill="#0b0f18" fill-opacity=".72"/>
+          <g fill="#ff5c6c" fill-opacity=".22" stroke="#ff8c96" stroke-opacity=".85" stroke-width="1.1">
+            <circle cx="52" cy="74" r="2.9"/><circle cx="64" cy="74" r="2.9"/>
+          </g>
+          <g stroke="#ff8c96" stroke-opacity=".85" stroke-width="1" stroke-linecap="round">
+            <path d="M50 74 H54"/><path d="M52 72 V76"/>
+            <path d="M62 74 H66"/><path d="M64 72 V76"/>
+          </g>
+          <g fill="#7eb4ff"><circle cx="54" cy="64" r="1.7"/><circle cx="63" cy="65" r="1.7"/></g>
+          <circle cx="58" cy="70" r="13" fill="none" stroke="#ffc857" stroke-opacity=".85" stroke-width="2"/>
+          <path d="M67.5 79.5 l7 7" stroke="#ffc857" stroke-opacity=".85" stroke-width="2.6" stroke-linecap="round"/>
+        </svg>
+        <div class="body">
+          <h3>Elektronenstrahlerzeugung</h3>
+          <p>Wie ein Elektronenstrahl entsteht: Die Lupe zeigt die Elektronen, die im
+             geheizten Draht kriechen und ihn schließlich verlassen. Aus der Wolke um die
+             Glühwendel saugt die Anode sie ab, der Wehneltzylinder bündelt sie – und bei
+             zu negativer Wehneltspannung sperrt der Strahl.</p>
+          <div class="tags"><span class="tag">Glühelektrischer Effekt</span><span class="tag">Wehneltzylinder</span><span class="tag">Elektronenkanone</span></div>
+          <div class="go"><span>Öffnen</span><span>→</span></div>
+        </div>
+      </a>
+
       <a class="card" href="ablenkroehre.html">
         <svg viewBox="0 0 320 180" role="img" aria-label="Elektronenstrahl wird zwischen zwei Platten abgelenkt und trifft den Schirm">
           <title>Elektronenablenkröhre</title>

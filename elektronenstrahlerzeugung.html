@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elektronenstrahlerzeugung</title>
+<style>
+  :root{
+    --bg:#0b0f18; --panel:#131a27; --panel2:#1a2233; --line:#26314a;
+    --text:#e6ecf7; --muted:#8b98b3;
+    --pos:#ff5c6c; --neg:#4da3ff; --accent:#ffc857;
+    --beam:#7dffc4; --warn:#ffb45c; --glow:#ff9a4d;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+    display:flex;overflow:hidden;
+  }
+
+  #sidebar{
+    width:340px;min-width:340px;height:100%;
+    background:var(--panel);border-right:1px solid var(--line);
+    overflow-y:auto;padding:16px 16px 40px;
+  }
+  #sidebar::-webkit-scrollbar{width:9px;}
+  #sidebar::-webkit-scrollbar-thumb{background:#2a3550;border-radius:5px;}
+
+  h1{font-size:17px;margin:0 0 2px;}
+  .sub{font-size:12px;color:var(--muted);margin-bottom:16px;}
+
+  .group{
+    background:var(--panel2);border:1px solid var(--line);
+    border-radius:10px;padding:12px;margin-bottom:12px;
+  }
+  .group > h2{
+    font-size:11px;text-transform:uppercase;letter-spacing:1.1px;
+    color:var(--muted);margin:0 0 10px;font-weight:600;
+  }
+
+  .row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:4px;}
+  .row label{font-size:12.5px;color:#c3cde0;}
+  .val{font-size:12.5px;color:var(--accent);font-variant-numeric:tabular-nums;}
+
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:4px;
+    background:#2c3752;border-radius:3px;outline:none;margin:5px 0 12px;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+    background:var(--accent);cursor:pointer;border:2px solid #1a2233;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:13px;height:13px;border-radius:50%;background:var(--accent);
+    cursor:pointer;border:2px solid #1a2233;
+  }
+
+  .check{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12.5px;color:#c3cde0;cursor:pointer;}
+  .check:last-child{margin-bottom:0;}
+  .check input{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;}
+
+  .state{
+    display:grid;grid-template-columns:auto 1fr;gap:6px 10px;
+    font-size:12.5px;align-items:baseline;
+  }
+  .state .k{color:var(--muted);}
+  .state .v{color:#e6ecf7;}
+  .state .v.beam{color:var(--beam);}
+  .state .v.hot{color:var(--glow);}
+
+  .bar{height:5px;border-radius:3px;background:#0e1524;border:1px solid #2a3550;overflow:hidden;margin-top:3px;}
+  .bar > i{display:block;height:100%;border-radius:3px;}
+  .blab{margin-top:9px;font-size:11px;color:var(--muted);}
+
+  .legend{font-size:11.5px;color:var(--muted);line-height:1.7;}
+  .legend b{color:#c3cde0;font-weight:600;}
+  .legend .f{color:var(--accent);}
+  .note{
+    background:#22283a;border-left:3px solid #4d7fd0;
+    padding:7px 9px;border-radius:0 6px 6px 0;margin-top:9px;
+    font-size:11.5px;line-height:1.6;color:#a9b6cf;
+  }
+  .warn{
+    background:#3a2f18;border-left:3px solid #d08a2c;color:#ffd98a;
+    padding:8px 10px;border-radius:0 6px 6px 0;margin-bottom:9px;
+    font-size:12px;line-height:1.55;
+  }
+
+  #stage{flex:1;position:relative;height:100%;min-width:0;}
+  canvas{display:block;position:absolute;inset:0;}
+
+  @media (max-width:900px){
+    body{flex-direction:column;overflow:auto;}
+    #sidebar{width:100%;min-width:0;height:auto;max-height:46vh;border-right:none;border-bottom:1px solid var(--line);}
+    #stage{height:54vh;flex:none;}
+  }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <h1>Elektronenstrahlerzeugung</h1>
+  <div class="sub">Glühelektrischer Effekt, Wehneltzylinder und Beschleunigung</div>
+
+  <div id="warnBox" class="warn" style="display:none"></div>
+
+  <div class="group">
+    <h2>Zustand</h2>
+    <div class="state">
+      <span class="k">Glühwendel</span><span class="v hot" id="stGlow">–</span>
+      <span class="k">Elektronenwolke</span><span class="v" id="stCloud">–</span>
+      <span class="k">Elektronenstrahl</span><span class="v beam" id="stBeam">–</span>
+      <span class="k">Leuchtfleck</span><span class="v" id="stSpot">–</span>
+    </div>
+    <div class="blab">Strahlstärke</div>
+    <div class="bar"><i id="barI" style="width:0%;background:linear-gradient(90deg,#3d8f6f,#7dffc4);"></i></div>
+    <div class="blab">Bündelung</div>
+    <div class="bar"><i id="barF" style="width:0%;background:linear-gradient(90deg,#8a6a2c,#ffc857);"></i></div>
+  </div>
+
+  <div class="group">
+    <h2>Heizkreis</h2>
+    <div class="row"><label>Heizspannung U<sub>H</sub></label><span class="val" id="uhVal"></span></div>
+    <input type="range" id="uh" min="0" max="8" step="0.1" value="5.5">
+    <div class="note">Die Heizspannung treibt den Strom durch die Wendel. Der Strom heizt den
+      Draht – erst wenn er heiß genug ist, können Elektronen ihn überhaupt verlassen.</div>
+  </div>
+
+  <div class="group">
+    <h2>Wehneltzylinder</h2>
+    <div class="row"><label>Wehneltspannung U<sub>W</sub></label><span class="val" id="uwVal"></span></div>
+    <input type="range" id="uw" min="-120" max="0" step="1" value="-35">
+    <div class="note">Der Zylinder liegt <b>negativ</b> gegenüber der Glühwendel. Er drückt die
+      Elektronen zur Achse – der Strahl wird gebündelt. Wird er zu negativ, kommt gar nichts
+      mehr durch: der Strahl <b>sperrt</b>.</div>
+  </div>
+
+  <div class="group">
+    <h2>Beschleunigung</h2>
+    <div class="row"><label>Beschleunigungsspannung U<sub>B</sub></label><span class="val" id="ubVal"></span></div>
+    <input type="range" id="ub" min="0" max="5000" step="25" value="2000">
+    <div class="note">Die Anode liegt <b>positiv</b> gegenüber der Wendel. Sie saugt Elektronen
+      aus der Wolke ab und beschleunigt sie zum Loch in ihrer Mitte.</div>
+  </div>
+
+  <div class="group">
+    <h2>Darstellung</h2>
+    <label class="check"><input type="checkbox" id="cbLupe" checked> Lupe auf die Glühwendel</label>
+    <label class="check"><input type="checkbox" id="cbWField" checked> Wirkung des Wehneltzylinders</label>
+    <label class="check"><input type="checkbox" id="cbLabels" checked> Beschriftung</label>
+    <label class="check"><input type="checkbox" id="cbRun" checked> Animation läuft</label>
+  </div>
+
+  <div class="group">
+    <h2>Physik</h2>
+    <div class="legend">
+      <b>Im Draht</b> sitzen die Atomrümpfe fest im Gitter, die Außenelektronen sind frei
+      beweglich. Liegt eine Spannung an, zittern sie weiter wild durcheinander und wandern
+      dabei <b>ganz langsam</b> in eine Richtung – das ist der Strom.<br><br>
+
+      <b>Glühelektrischer Effekt:</b> Je heißer der Draht, desto heftiger das Zittern. Wird ein
+      Elektron so schnell, dass seine Energie die <span class="f">Austrittsarbeit</span> des
+      Metalls übersteigt, verlässt es den Draht. Es bleibt aber in der Nähe: der zurückbleibende
+      Draht ist positiv geladen und zieht es wieder an. So entsteht die
+      <span class="f">Elektronenwolke</span> (Raumladung) um die Wendel.<br><br>
+
+      <b>Anodenspannung:</b> Die positive Anode saugt Elektronen aus der Wolke ab und
+      beschleunigt sie. Im Strahl sind sie <b>millionenfach schneller</b> als beim Driften im
+      Draht – der Gegensatz zwischen dem Kriechen in der Lupe und dem Rasen im Strahl ist der
+      Kern dieser Darstellung.<br><br>
+
+      <b>Wehneltzylinder:</b> ein negativ geladener Topf um die Wendel, mit einem Loch in der
+      Achse. Elektronen werden von ihm abgestoßen, also zur Achse gedrängt – er wirkt wie eine
+      <span class="f">Linse</span>. Zugleich ist er ein <span class="f">Ventil</span>: je
+      negativer, desto weniger Elektronen kommen durch, bis der Strahl ganz sperrt.<br><br>
+
+      Die schärfste Bündelung liegt <b>kurz vor der Sperrspannung</b>. Darüber hinaus wird der
+      Strahl <b>überfokussiert</b>: er kreuzt sich zu früh und läuft bis zum Schirm wieder
+      auseinander. Und je größer U<sub>B</sub>, desto negativer muss U<sub>W</sub> werden, um
+      dieselbe Wirkung zu erzielen.
+    </div>
+    <div class="note"><b>Modell:</b> Diese Seite rechnet nicht, sie zeigt. Wolkendichte,
+      Strahlstärke, Bündelung und Geschwindigkeiten sind <b>qualitativ</b> dargestellt – die
+      Tendenzen stimmen, die Zahlenwerte sind nicht maßstäblich. Gezeichnet wird ein
+      Längsschnitt durch die evakuierte Röhre.</div>
+  </div>
+</div>
+
+<div id="stage"><canvas id="cv"></canvas></div>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   Elektronenstrahlerzeugung - qualitative Darstellung.
+
+   Bewusst OHNE Rechnung: es werden keine Messwerte behauptet.  Alle
+   Kennzahlen unten sind auf 0..1 normierte Stellgroessen, die Dichte,
+   Helligkeit, Tempo und Strahlform steuern.  Die Tendenzen entsprechen
+   dem Experiment:
+
+     - Emission setzt erst oberhalb einer Heizschwelle ein und waechst
+       dann steil (glueheelektrischer Effekt).
+     - Die Wolke ist am dichtesten ohne Beschleunigungsspannung; U_B
+       saugt sie ab.
+     - Der Wehneltzylinder ist Linse und Ventil zugleich; die
+       Sperrspannung waechst mit U_B.
+     - Die schaerfste Buendelung liegt kurz vor der Sperrung, danach
+       ist der Strahl ueberfokussiert.
+
+   Szenenkoordinaten: x nach rechts, y nach oben, Ursprung auf der
+   Rohrachse am linken Rohrende.  Einheiten sind reine Zeichenmasse.
+   ===================================================================== */
+
+/* --------------------------- Geometrie --------------------------- */
+const X_TUBE0 = -1.0;      // linkes Rohrende
+const X_F     =  4.0;      // Gluehwendel
+const X_WL    =  1.5;      // Wehneltzylinder, linke Wand
+const X_WR    =  6.4;      // Wehneltzylinder, Blende (rechts)
+const R_WO    =  3.4;      // halbe Hoehe des Zylinders
+const R_WA    =  1.05;     // halbe Blendenoeffnung
+const X_A     = 12.0;      // Anode
+const R_AO    =  4.0;      // halbe Hoehe der Anode
+const R_AH    =  0.75;     // halber Lochdurchmesser
+const X_SC    = 33.0;      // Leuchtschirm
+const R_SC    =  5.0;      // halbe Schirmhoehe
+const TUBE    =  7.0;      // halbe Rohrhoehe; laesst Platz fuer die
+                           // Beschriftung ueber Anode und Schirm
+const R_COIL  =  2.2;      // halbe Hoehe der Wendel
+const L_BEAM  = X_SC - X_A;
+
+const U_FOC   = 0.72;      // u, bei dem der Fleck am kleinsten ist
+const ALPHA0  = 0.165;     // Strahldivergenz ohne Wehneltwirkung
+const R_BLUR  = 0.26;      // kleinster darstellbarer Fleckradius
+
+const state = { uh:5.5, uw:-35, ub:2000 };
+
+const cv  = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const $   = id => document.getElementById(id);
+let W = 0, H = 0, DPR = 1, PPU = 1, OX = 0, OY = 0;
+
+/* ===================== Qualitatives Modell ======================= */
+const clamp = (v,a,b) => v < a ? a : (v > b ? b : v);
+
+/* Emission: Schwelle bei 1,5 V, danach steiler Anstieg. */
+function emission(){
+  return clamp(Math.pow(Math.max(0, state.uh - 1.5)/6.5, 2.0), 0, 1);
+}
+/* Gluehtemperatur als Farbmass. */
+function heat(){
+  return clamp(Math.pow(state.uh/8, 0.62), 0, 1);
+}
+/* Absaugwirkung der Anode: ab wenigen hundert Volt voll wirksam. */
+function suction(){
+  return 1 - Math.exp(-state.ub/250);
+}
+/* Sperrspannung: waechst mit der Beschleunigungsspannung. */
+function uCut(){
+  return 20 + 0.017*state.ub;
+}
+/* Wehneltwirkung, 0 = ohne, 1 = Sperrung erreicht. */
+function wehnelt(){
+  return clamp(Math.abs(state.uw)/uCut(), 0, 1.6);
+}
+/* Strahlstaerke (Teilchenrate), 0..1. */
+function beamStrength(){
+  const u = wehnelt();
+  if(u >= 1) return 0;
+  return emission()*suction()*Math.pow(1 - u, 1.3);
+}
+/* Dichte der Wolke: Emission fuellt sie, U_B leert sie. */
+function cloudDensity(){
+  return emission()*(1 - 0.62*suction());
+}
+/* Oeffnungswinkel des Strahls hinter der Anode.  Positiv = divergent.
+   Bei u = U_FOC trifft der Strahl den Schirm in einem Punkt. */
+function beamAngle(){
+  return ALPHA0 - (ALPHA0 + R_AH/L_BEAM)*(wehnelt()/U_FOC);
+}
+/* Strahlradius an der Stelle x (x >= X_A). */
+function beamR(x){
+  return Math.abs(R_AH + beamAngle()*(x - X_A));
+}
+/* Fleckradius auf dem Schirm, mit Unschaerfe-Untergrenze. */
+function spotR(){
+  const r = beamR(X_SC);
+  return Math.sqrt(r*r + R_BLUR*R_BLUR);
+}
+/* Buendelungsguete 0..1 fuer die Anzeige. */
+function focusQuality(){
+  const worst = R_AH + ALPHA0*L_BEAM;
+  return clamp(1 - (spotR() - R_BLUR)/(worst - R_BLUR), 0, 1);
+}
+/* Kreuzungspunkt, falls der Strahl konvergiert und sich vor dem
+   Schirm schneidet. */
+function crossoverX(){
+  const a = beamAngle();
+  if(a >= -1e-6) return null;
+  const x = X_A + R_AH/(-a);
+  return x < X_SC ? x : null;
+}
+/* Sichtbares Strahltempo: proportional zu sqrt(U_B), so dass die
+   Geschwindigkeit wenigstens richtig skaliert. */
+function beamSpeed(){
+  return 9 + 62*Math.sqrt(state.ub/5000);
+}
+
+/* Gluehfarbe als Funktion der Temperatur. */
+function glowColor(t, alpha){
+  const stops = [
+    [0.00,  40,  14,  10],
+    [0.30, 150,  32,  12],
+    [0.55, 226,  78,  20],
+    [0.78, 255, 158,  52],
+    [1.00, 255, 240, 198]
+  ];
+  let i = 0;
+  while(i < stops.length - 2 && t > stops[i+1][0]) i++;
+  const a = stops[i], b = stops[i+1];
+  const f = (t - a[0])/(b[0] - a[0]);
+  const r = Math.round(a[1] + (b[1] - a[1])*f);
+  const g = Math.round(a[2] + (b[2] - a[2])*f);
+  const bl= Math.round(a[3] + (b[3] - a[3])*f);
+  return 'rgba(' + r + ',' + g + ',' + bl + ',' + alpha + ')';
+}
+
+/* ============================ Teilchen =========================== */
+/* Wolke: Elektronen, die den Draht verlassen haben und von ihm wieder
+   angezogen werden.  Sie leben eine Weile und werden dann ersetzt. */
+const cloud = [];
+const CLOUD_MAX = 210;
+
+function spawnCloud(p){
+  const ang = Math.random()*Math.PI*2;
+  const r   = 0.15 + Math.random()*0.35;
+  p.x  = X_F + Math.cos(ang)*r;
+  p.y  = (Math.random()*2 - 1)*R_COIL;
+  p.vx = Math.cos(ang)*(0.5 + Math.random()*1.4);
+  p.vy = Math.sin(ang)*(0.5 + Math.random()*1.4);
+  p.t  = 0;
+  p.life = 1.2 + Math.random()*2.2;
+  return p;
+}
+for(let i = 0; i < CLOUD_MAX; i++){
+  const p = spawnCloud({});
+  p.t = Math.random()*p.life;
+  cloud.push(p);
+}
+
+function stepCloud(dt){
+  const dens = cloudDensity();
+  const n    = Math.round(CLOUD_MAX*dens);
+  const pull = 2.6 + 5.0*suction();        // Ruecktrieb + Absaugen
+  for(let i = 0; i < CLOUD_MAX; i++){
+    const p = cloud[i];
+    p.active = i < n;
+    if(!p.active) continue;
+    // Rueckkehr zum Draht (Raumladung haelt die Elektronen fest)
+    const dx = p.x - X_F;
+    p.vx -= pull*dx*dt;
+    p.vy -= pull*0.35*(p.y - clamp(p.y, -R_COIL, R_COIL))*dt;
+    // Absaugen nach rechts, sobald die Anode Spannung hat
+    p.vx += 1.5*suction()*dt;
+    // Der negative Zylinder draengt zur Achse
+    p.vy -= wehnelt()*0.9*Math.sign(p.y)*dt;
+    p.vx *= (1 - 1.3*dt);                   // Daempfung haelt die Wolke zusammen
+    p.vy *= (1 - 1.3*dt);
+    p.x += p.vx*dt;
+    p.y += p.vy*dt;
+    p.t += dt;
+    if(p.t > p.life || p.x > X_WR - 0.2 || Math.abs(p.y) > R_WO - 0.3) spawnCloud(p);
+  }
+}
+
+/* Strahl: jedes Teilchen laeuft auf einer festen Bahn, die durch den
+   normierten Startversatz f in [-1,1] bestimmt ist.
+       X_F  -> X_WR : langsames Herauskriechen aus der Wolke
+       X_WR -> X_A  : Beschleunigung im Feld der Anode
+       ab X_A       : geradlinig mit dem Oeffnungswinkel beamAngle()  */
+const beam = [];
+let spawnAcc = 0;
+
+function beamY(f, x){
+  if(x <= X_WR){
+    const t = clamp((x - X_F)/(X_WR - X_F), 0, 1);
+    return f*(R_COIL*0.55*(1 - t) + R_WA*t);
+  }
+  if(x <= X_A){
+    const t = (x - X_WR)/(X_A - X_WR);
+    return f*(R_WA + (R_AH - R_WA)*t);
+  }
+  return f*(R_AH + beamAngle()*(x - X_A));
+}
+function beamV(x){
+  const vmax = beamSpeed();
+  const v0 = 3.4 + 2.4*suction();
+  if(x <= X_WR) return v0;
+  if(x <= X_A){
+    const t = (x - X_WR)/(X_A - X_WR);
+    return v0 + (vmax - v0)*Math.sqrt(t);
+  }
+  return vmax;
+}
+function stepBeam(dt){
+  // Hohe Rate, damit die lange schnelle Strecke sichtbar besetzt ist -
+  // in der langsamen Strecke vor der Blende staut sich sonst fast alles.
+  const rate = 420*beamStrength();
+  spawnAcc += rate*dt;
+  while(spawnAcc >= 1 && beam.length < 400){
+    spawnAcc -= 1;
+    beam.push({ f: Math.random()*2 - 1, x: X_F + Math.random()*0.4 });
+  }
+  if(rate === 0) spawnAcc = 0;
+  for(let i = beam.length - 1; i >= 0; i--){
+    const p = beam[i];
+    p.x += beamV(p.x)*dt;
+    if(p.x > X_SC) beam.splice(i, 1);
+  }
+}
+
+/* Lupe: eigenes kleines Teilchensystem in Einheitskoordinaten
+   (0..1 waagerecht, 0..1 senkrecht innerhalb des Drahtbandes). */
+const lupeEl = [];
+const LUPE_N = 34;
+for(let i = 0; i < LUPE_N; i++){
+  lupeEl.push({ x: Math.random(), y: Math.random(), px: Math.random(), py: Math.random(),
+                out: 0, oy: 0, ov: 0 });
+}
+function stepLupe(dt){
+  const t     = heat();
+  const drift = 0.055 + 0.30*(state.uh/8);     // Driftgeschwindigkeit
+  const therm = 0.25 + 2.3*t;                  // Zitterbewegung
+  const esc   = 2.4*emission();                // Austrittsrate
+  for(const e of lupeEl){
+    if(e.out > 0){
+      // ausgetreten: fliegt in den Vakuumraum und wird vom positiv
+      // zurueckbleibenden Draht wieder eingefangen
+      e.ov -= 0.55*dt;
+      e.oy += e.ov*dt;
+      e.x  += drift*0.35*dt;
+      if(e.oy <= 0){ e.out = 0; e.oy = 0; e.y = 0.96; }
+      if(e.x > 1) e.x -= 1;
+      continue;
+    }
+    e.px += (Math.random() - 0.5)*therm*dt*3;
+    e.py += (Math.random() - 0.5)*therm*dt*3;
+    e.px *= 0.90; e.py *= 0.90;
+    e.x += (drift + e.px*0.35)*dt;
+    e.y += e.py*0.5*dt;
+    if(e.x > 1) e.x -= 1;
+    if(e.x < 0) e.x += 1;
+    e.y = clamp(e.y, 0.05, 0.97);
+    if(e.y > 0.80 && Math.random() < esc*dt){
+      e.out = 1; e.oy = 0.001; e.ov = 0.55 + Math.random()*0.45;
+    }
+  }
+}
+
+/* ============================ Layout ============================= */
+function layout(){
+  const vw = (X_SC + 3.2) - X_TUBE0;
+  const vh = 2*TUBE + 3.4;
+  PPU = Math.min((W - 40)/vw, (H - 30)/vh);
+  OX  = (W - vw*PPU)/2 - X_TUBE0*PPU;
+  OY  = H/2 + 0.6*PPU;
+}
+const px = x => OX + x*PPU;
+const py = y => OY - y*PPU;
+
+/* ============================ Zeichnen =========================== */
+function draw(){
+  layout();
+  ctx.fillStyle = '#0b0f18';
+  ctx.fillRect(0, 0, W, H);
+
+  drawTube();
+  drawHeater();
+  if($('cbWField').checked) drawWehneltField();
+  drawWehnelt();
+  drawAnode();
+  drawScreen();
+  drawCoil();
+  drawCloud();          // nach der Wendel, sonst verschluckt das Glimmen sie
+  drawBeam();
+  drawSpot();
+  if($('cbLabels').checked) drawLabels();
+  if($('cbLupe').checked) drawLupe();
+}
+
+function roundRect(x0, y0, x1, y1, r){
+  ctx.beginPath();
+  ctx.moveTo(x0 + r, y0);
+  ctx.lineTo(x1 - r, y0); ctx.quadraticCurveTo(x1, y0, x1, y0 + r);
+  ctx.lineTo(x1, y1 - r); ctx.quadraticCurveTo(x1, y1, x1 - r, y1);
+  ctx.lineTo(x0 + r, y1); ctx.quadraticCurveTo(x0, y1, x0, y1 - r);
+  ctx.lineTo(x0, y0 + r); ctx.quadraticCurveTo(x0, y0, x0 + r, y0);
+  ctx.closePath();
+}
+
+function drawTube(){
+  const x0 = px(X_TUBE0), x1 = px(X_SC + 2.2);
+  const yt = py(TUBE), yb = py(-TUBE);
+  ctx.fillStyle   = 'rgba(120,150,210,0.035)';
+  ctx.strokeStyle = 'rgba(140,170,215,0.22)';
+  ctx.lineWidth   = 1.5;
+  roundRect(x0, yt, x1, yb, 18);
+  ctx.fill(); ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.09)';
+  ctx.setLineDash([7,6]); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(px(X_F), py(0)); ctx.lineTo(px(X_SC), py(0)); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Unten links - oben links sitzt die Lupentafel.
+  ctx.fillStyle = 'rgba(139,152,179,0.55)';
+  ctx.font = '11px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+  ctx.fillText('evakuierte Röhre', x0 + 12, yb - 8);
+}
+
+/* Heizkreis unterhalb der Roehre, mit laufenden Ladungspfeilen. */
+let phase = 0;
+function drawHeater(){
+  const yBus = py(-TUBE) + 0.9*PPU;
+  const xL = px(X_F) - 1.5*PPU, xR = px(X_F) + 1.5*PPU;
+  const on = state.uh > 0.05;
+  const col = on ? 'rgba(255,200,87,0.75)' : 'rgba(139,152,179,0.4)';
+
+  ctx.strokeStyle = col; ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.moveTo(xL, py(-R_COIL)); ctx.lineTo(xL, yBus); ctx.lineTo(xR, yBus);
+  ctx.lineTo(xR, py(-R_COIL));
+  ctx.stroke();
+
+  // Batteriesymbol
+  const xb = (xL + xR)/2;
+  ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.moveTo(xb - 7, yBus - 9); ctx.lineTo(xb - 7, yBus + 9); ctx.stroke();
+  ctx.lineWidth = 4.5;
+  ctx.beginPath(); ctx.moveTo(xb + 4, yBus - 5); ctx.lineTo(xb + 4, yBus + 5); ctx.stroke();
+
+  labelVpx('H', ' = ' + fmt(state.uh,1) + ' V', xb, yBus + 18,
+           on ? 'rgba(255,200,87,0.85)' : 'rgba(139,152,179,0.5)');
+
+  if(!on) return;
+  // laufende Ladungstraeger auf der linken Zuleitung
+  const n = 5;
+  ctx.fillStyle = 'rgba(126,180,255,0.85)';
+  for(let i = 0; i < n; i++){
+    const t = ((phase*0.25*(0.3 + state.uh/8) + i/n) % 1);
+    const y = py(-R_COIL) + t*(yBus - py(-R_COIL));
+    ctx.beginPath(); ctx.arc(xL, y, 2.4, 0, 6.2832); ctx.fill();
+    const y2 = yBus - t*(yBus - py(-R_COIL));
+    ctx.beginPath(); ctx.arc(xR, y2, 2.4, 0, 6.2832); ctx.fill();
+  }
+}
+
+/* Gluehwendel als Spirale. */
+function drawCoil(){
+  const t = heat();
+  const n = 220, turns = 7;
+  const pts = [];
+  for(let i = 0; i <= n; i++){
+    const s = i/n;
+    const y = -R_COIL + 2*R_COIL*s;
+    const x = X_F + 0.46*Math.sin(s*turns*Math.PI*2);
+    pts.push([px(x), py(y)]);
+  }
+  if(t > 0.02){
+    const g = ctx.createRadialGradient(px(X_F), py(0), 1, px(X_F), py(0), 3.0*PPU);
+    g.addColorStop(0, glowColor(t, 0.42*t + 0.06));
+    g.addColorStop(1, glowColor(t, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(px(X_F), py(0), 3.0*PPU, 0, 6.2832); ctx.fill();
+  }
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.strokeStyle = glowColor(t, 0.30);
+  ctx.lineWidth = 7;
+  strokePts(pts);
+  ctx.strokeStyle = glowColor(Math.min(1, t + 0.12), 0.98);
+  ctx.lineWidth = 2.6;
+  strokePts(pts);
+  ctx.lineCap = 'butt';
+}
+function strokePts(pts){
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for(let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.stroke();
+}
+
+/* Wehneltzylinder: Topf mit Blende, Faerbung nach |U_W|. */
+function drawWehnelt(){
+  const u = clamp(wehnelt(), 0, 1);
+  const wall = 0.42;
+  ctx.fillStyle   = 'rgba(77,163,255,' + (0.14 + 0.34*u) + ')';
+  ctx.strokeStyle = 'rgba(77,163,255,' + (0.45 + 0.45*u) + ')';
+  ctx.lineWidth = 1.4;
+  const parts = [
+    [X_WL, X_WR, R_WO, R_WO - wall],                 // oben
+    [X_WL, X_WR, -(R_WO - wall), -R_WO],             // unten
+    [X_WL, X_WL + wall, R_WO - wall, -(R_WO - wall)] // Rueckwand
+  ];
+  for(const q of parts){
+    ctx.beginPath();
+    ctx.rect(px(q[0]), py(q[2]), (q[1]-q[0])*PPU, (q[2]-q[3])*PPU);
+    ctx.fill(); ctx.stroke();
+  }
+  // Blende: senkrechte Platte von der Oeffnung bis zur Zylinderwand
+  for(const s of [1,-1]){
+    const yA = s > 0 ?  (R_WO - wall) : -R_WA;          // obere Kante
+    const yB = s > 0 ?   R_WA        : -(R_WO - wall);  // untere Kante
+    ctx.beginPath();
+    ctx.rect(px(X_WR - wall), py(yA), wall*PPU, (yA - yB)*PPU);
+    ctx.fill(); ctx.stroke();
+  }
+  // Minuszeichen
+  if(u > 0.02){
+    ctx.strokeStyle = 'rgba(200,225,255,' + (0.3 + 0.6*u) + ')';
+    ctx.lineWidth = 2;
+    for(const s of [1,-1]){
+      for(let i = 0; i < 3; i++){
+        const x = px(X_WL + 1.0 + i*1.5);
+        const y = py(s*(R_WO - wall/2));
+        ctx.beginPath(); ctx.moveTo(x - 5, y); ctx.lineTo(x + 5, y); ctx.stroke();
+      }
+    }
+  }
+}
+
+/* Wirkung des Zylinders: Pfeile zur Achse, Staerke nach |U_W|. */
+function drawWehneltField(){
+  const u = clamp(wehnelt(), 0, 1);
+  if(u < 0.03) return;
+  ctx.strokeStyle = 'rgba(77,163,255,' + (0.18 + 0.42*u) + ')';
+  ctx.fillStyle   = 'rgba(77,163,255,' + (0.18 + 0.42*u) + ')';
+  ctx.lineWidth = 1.3;
+  for(const s of [1,-1]){
+    for(let i = 0; i < 4; i++){
+      const x  = X_WL + 1.2 + i*1.25;
+      const y0 = s*(R_WO - 0.7);
+      const y1 = s*(R_WA + 0.25 + (1 - u)*0.7);
+      arrow(px(x), py(y0), px(x), py(y1));
+    }
+  }
+  // gekruemmte Aequipotentialandeutung vor der Blende
+  ctx.strokeStyle = 'rgba(77,163,255,' + (0.12 + 0.24*u) + ')';
+  ctx.setLineDash([4,4]);
+  for(let i = 1; i <= 3; i++){
+    const b = R_WA + i*0.75;
+    ctx.beginPath();
+    ctx.moveTo(px(X_WR - 0.2), py(b));
+    ctx.quadraticCurveTo(px(X_WR + 1.4 + i*0.5), py(0), px(X_WR - 0.2), py(-b));
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+}
+function arrow(x0, y0, x1, y1){
+  const a = Math.atan2(y1 - y0, x1 - x0), h = 6;
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - h*Math.cos(a - 0.4), y1 - h*Math.sin(a - 0.4));
+  ctx.lineTo(x1 - h*Math.cos(a + 0.4), y1 - h*Math.sin(a + 0.4));
+  ctx.closePath(); ctx.fill();
+}
+
+/* Anode: Lochblende, Faerbung nach U_B. */
+function drawAnode(){
+  const u = clamp(state.ub/5000, 0, 1);
+  ctx.fillStyle   = 'rgba(255,92,108,' + (0.16 + 0.34*u) + ')';
+  ctx.strokeStyle = 'rgba(255,92,108,' + (0.5 + 0.4*u) + ')';
+  ctx.lineWidth = 1.4;
+  const w = 0.42;
+  for(const s of [1,-1]){
+    const yA = s > 0 ?  R_AO : -R_AH;                   // obere Kante
+    const yB = s > 0 ?  R_AH : -R_AO;                   // untere Kante
+    ctx.beginPath();
+    ctx.rect(px(X_A - w/2), py(yA), w*PPU, (yA - yB)*PPU);
+    ctx.fill(); ctx.stroke();
+  }
+  if(u > 0.02){
+    ctx.strokeStyle = 'rgba(255,214,220,' + (0.3 + 0.6*u) + ')';
+    ctx.lineWidth = 2;
+    for(const s of [1,-1]){
+      const y = py(s*(R_AH + (R_AO - R_AH)/2));
+      const x = px(X_A);
+      ctx.beginPath(); ctx.moveTo(x - 5, y); ctx.lineTo(x + 5, y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x, y - 5); ctx.lineTo(x, y + 5); ctx.stroke();
+    }
+  }
+  // Beschleunigungsfeld zwischen Zylinder und Anode
+  if(u > 0.02){
+    ctx.strokeStyle = 'rgba(255,92,108,' + (0.10 + 0.20*u) + ')';
+    ctx.fillStyle   = 'rgba(255,92,108,' + (0.10 + 0.20*u) + ')';
+    ctx.lineWidth = 1.1;
+    for(let i = -2; i <= 2; i++){
+      const y = py(i*1.5);
+      arrow(px(X_A - 0.9), y, px(X_WR + 0.7), y);
+    }
+  }
+}
+
+function drawScreen(){
+  ctx.fillStyle   = 'rgba(125,255,196,0.10)';
+  ctx.strokeStyle = 'rgba(125,255,196,0.45)';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.rect(px(X_SC), py(R_SC), 0.45*PPU, 2*R_SC*PPU);
+  ctx.fill(); ctx.stroke();
+}
+
+function drawSpot(){
+  const I = beamStrength();
+  if(I <= 0) return;
+  const r  = spotR()*PPU;
+  const xS = px(X_SC) + 0.22*PPU;
+  // Helligkeit: dieselbe Zahl Elektronen auf kleinere Flaeche = heller
+  const dens = clamp(I*Math.pow(R_BLUR/spotR(), 0.85), 0, 1);
+  const g = ctx.createRadialGradient(xS, py(0), 0.5, xS, py(0), Math.max(4, r*1.9));
+  g.addColorStop(0,   'rgba(214,255,238,' + (0.35 + 0.6*dens) + ')');
+  g.addColorStop(0.5, 'rgba(125,255,196,' + (0.18 + 0.35*dens) + ')');
+  g.addColorStop(1,   'rgba(125,255,196,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(xS, py(0), Math.max(4, r*1.9), 0, 6.2832); ctx.fill();
+  ctx.fillStyle = 'rgba(234,255,245,' + (0.5 + 0.5*dens) + ')';
+  ctx.beginPath(); ctx.arc(xS, py(0), Math.max(1.5, r*0.55), 0, 6.2832); ctx.fill();
+}
+
+function drawCloud(){
+  const dens = cloudDensity();
+  if(dens <= 0.001) return;
+  for(const p of cloud){
+    if(!p.active) continue;
+    const fade = Math.sin(Math.PI*clamp(p.t/p.life, 0, 1));
+    ctx.fillStyle = 'rgba(126,180,255,' + (0.25 + 0.55*fade) + ')';
+    ctx.beginPath(); ctx.arc(px(p.x), py(p.y), 2.1, 0, 6.2832); ctx.fill();
+  }
+}
+
+function drawBeam(){
+  const I = beamStrength();
+  if(I <= 0) return;
+  // Strahlhuellkurve hinter der Anode.  Abgetastet statt als Viereck,
+  // damit ein konvergierender Strahl hinter dem Kreuzungspunkt wieder
+  // auseinanderlaeuft, statt sich zur Schleife zu verknoten.
+  const N = 48;
+  ctx.fillStyle = 'rgba(125,255,196,' + (0.05 + 0.10*I) + ')';
+  ctx.beginPath();
+  for(let i = 0; i <= N; i++){
+    const x = X_A + L_BEAM*i/N;
+    if(i === 0) ctx.moveTo(px(x), py(beamR(x))); else ctx.lineTo(px(x), py(beamR(x)));
+  }
+  for(let i = N; i >= 0; i--){
+    const x = X_A + L_BEAM*i/N;
+    ctx.lineTo(px(x), py(-beamR(x)));
+  }
+  ctx.closePath(); ctx.fill();
+
+  for(const p of beam){
+    const y = beamY(p.f, p.x);
+    const fast = p.x > X_A;
+    if(fast){
+      // Bewegungsspur zuerst, damit der Kopf des Teilchens obenauf liegt
+      const dx = beamSpeed()*0.022;
+      const y2 = beamY(p.f, Math.max(X_A, p.x - dx));
+      const g = ctx.createLinearGradient(px(p.x), py(y), px(p.x - dx), py(y2));
+      g.addColorStop(0, 'rgba(125,255,196,0.75)');
+      g.addColorStop(1, 'rgba(125,255,196,0)');
+      ctx.strokeStyle = g; ctx.lineWidth = 2.4; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(px(p.x), py(y));
+      ctx.lineTo(px(Math.max(X_A, p.x - dx)), py(y2));
+      ctx.stroke();
+      ctx.lineCap = 'butt';
+    }
+    ctx.fillStyle = fast ? 'rgba(214,255,238,0.95)' : 'rgba(150,215,255,0.85)';
+    ctx.beginPath(); ctx.arc(px(p.x), py(y), fast ? 2.4 : 2.1, 0, 6.2832); ctx.fill();
+  }
+  // Kreuzungspunkt markieren, aber nicht dicht am Schirm - dort faellt er
+  // mit dem Leuchtfleck zusammen und die Marke stoert nur.
+  const xc = crossoverX();
+  if(xc !== null && xc > X_A + 0.5 && xc < X_SC - 3.5){
+    ctx.strokeStyle = 'rgba(255,200,87,0.45)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(px(xc), py(1.6)); ctx.lineTo(px(xc), py(-1.6)); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+/* --------------------------- Beschriftung ------------------------ */
+const F_LBL = '11.5px "Segoe UI",system-ui,sans-serif';
+const F_SUB = '8.5px "Segoe UI",system-ui,sans-serif';
+
+function label(text, x, y, align, color){
+  ctx.fillStyle = color || 'rgba(195,205,224,0.85)';
+  ctx.font = F_LBL;
+  ctx.textAlign = align || 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, px(x), py(y));
+}
+
+/* Spannungsangabe mit tiefgestelltem Index.  Unicode hat keine
+   Tiefstellung fuer W und B, also wird der Index mit kleinerer Schrift
+   und etwas Versatz selbst gesetzt.  xc/yc sind Pixelkoordinaten, der
+   Text wird um xc zentriert. */
+function labelVpx(sub, rest, xc, yc, color){
+  ctx.fillStyle = color;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.font = F_LBL; const w1 = ctx.measureText('U').width;
+  ctx.font = F_SUB; const w2 = ctx.measureText(sub).width;
+  ctx.font = F_LBL; const w3 = ctx.measureText(rest).width;
+  const x0 = xc - (w1 + w2 + w3)/2;
+  ctx.font = F_LBL; ctx.fillText('U', x0, yc);
+  ctx.font = F_SUB; ctx.fillText(sub, x0 + w1, yc + 3.5);
+  ctx.font = F_LBL; ctx.fillText(rest, x0 + w1 + w2, yc);
+}
+function labelV(sub, rest, x, y, color){
+  labelVpx(sub, rest, px(x), py(y), color);
+}
+function tick(x, y0, y1){
+  ctx.strokeStyle = 'rgba(139,152,179,0.4)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(px(x), py(y0)); ctx.lineTo(px(x), py(y1)); ctx.stroke();
+}
+
+function drawLabels(){
+  // Wendel und Wolke stehen INNEN im Zylinder, zwischen Wendelende und
+  // Zylinderwand; die Heizzuleitungen laufen links und rechts daran
+  // vorbei.  Alles andere steht ausserhalb.
+  label('Glühwendel', X_F, -R_COIL - 0.3, 'center', 'rgba(255,154,77,0.9)');
+  if(cloudDensity() > 0.02)
+    label('Elektronenwolke', X_F, R_COIL + 0.3, 'center', 'rgba(126,180,255,0.9)');
+  label('Wehneltzylinder', (X_WL + X_WR)/2, R_WO + 0.75, 'center', 'rgba(77,163,255,0.9)');
+  labelV('W', ' = ' + fmtV(state.uw) + ' V', (X_WL + X_WR)/2, R_WO + 1.55, 'rgba(77,163,255,0.7)');
+  label('Anode', X_A, R_AO + 0.7, 'center', 'rgba(255,92,108,0.9)');
+  labelV('B', ' = ' + fmtV(state.ub) + ' V', X_A, R_AO + 1.5, 'rgba(255,92,108,0.7)');
+  if(state.ub > 100) label('E-Feld', (X_WR + X_A)/2, 3.6, 'center', 'rgba(255,92,108,0.65)');
+  label('Leuchtschirm', X_SC - 0.3, R_SC + 0.8, 'right', 'rgba(125,255,196,0.9)');
+  if(beamStrength() > 0){
+    label('Elektronenstrahl', (X_A + X_SC)/2, -R_SC - 0.7, 'center', 'rgba(125,255,196,0.75)');
+    // Dicht am Schirm wuerde die Marke die Schirmbeschriftung treffen.
+    const xc = crossoverX();
+    if(xc !== null && xc > X_A + 0.5 && xc < X_SC - 3.5){
+      tick(xc, 1.6, 2.1);
+      label('Kreuzungspunkt', xc, 2.55, 'center', 'rgba(255,200,87,0.8)');
+    }
+  }
+}
+
+/* ------------------------------ Lupe ----------------------------- */
+/* Kreis ueber der Wendel, dazu ein vergroesserter Ausschnitt oben
+   links.  Der Ausschnitt zeigt dieselbe Stelle mikroskopisch. */
+function drawLupe(){
+  const cx = px(X_F + 0.3), cy = py(R_COIL*0.40);
+  const cr = Math.max(15, 0.78*PPU);
+
+  // Ausschnitt-Tafel: direkt ueber der Roehre, damit sie nicht
+  // losgeloest im Leeren schwebt.
+  const iw = Math.min(330, Math.max(200, W*0.30));
+  const ih = iw*0.56;
+  const ix = Math.max(14, Math.min(px(X_TUBE0), W - iw - 14));
+  const iy = Math.max(8, py(TUBE) - ih - 14);
+
+  // Verbindung Kreis -> Tafel
+  ctx.strokeStyle = 'rgba(255,200,87,0.32)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx - cr*0.75, cy - cr*0.66); ctx.lineTo(ix + 8, iy + ih);
+  ctx.moveTo(cx + cr*0.75, cy - cr*0.66); ctx.lineTo(ix + iw - 8, iy + ih);
+  ctx.stroke();
+
+  // Lupenkreis - dunkler Saum, damit er sich vom Gluehen abhebt
+  ctx.strokeStyle = 'rgba(11,15,24,0.75)';
+  ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.arc(cx, cy, cr, 0, 6.2832); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,200,87,0.9)';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(cx, cy, cr, 0, 6.2832); ctx.stroke();
+
+  // Tafel
+  ctx.fillStyle = 'rgba(12,18,31,0.94)';
+  ctx.strokeStyle = 'rgba(255,200,87,0.45)';
+  ctx.lineWidth = 1.4;
+  roundRect(ix, iy, ix + iw, iy + ih, 10);
+  ctx.fill(); ctx.stroke();
+
+  ctx.save();
+  roundRect(ix + 1, iy + 1, ix + iw - 1, iy + ih - 1, 9);
+  ctx.clip();
+  drawLupeInner(ix, iy, iw, ih);
+  ctx.restore();
+}
+
+function drawLupeInner(ix, iy, iw, ih){
+  const t      = heat();
+  const yTop   = iy + ih*0.40;            // Drahtoberflaeche
+  const yBot   = iy + ih;
+  const band   = yBot - yTop;
+  const toX    = u => ix + 6 + u*(iw - 12);
+  const toY    = v => yBot - 6 - v*(band - 10);   // v = 0 unten, 1 oben
+
+  // Vakuum oberhalb
+  ctx.fillStyle = 'rgba(126,180,255,0.05)';
+  ctx.fillRect(ix + 1, iy + 1, iw - 2, yTop - iy);
+  // Metall
+  const mg = ctx.createLinearGradient(0, yTop, 0, yBot);
+  mg.addColorStop(0, glowColor(t, 0.20));
+  mg.addColorStop(1, glowColor(t, 0.07));
+  ctx.fillStyle = mg;
+  ctx.fillRect(ix + 1, yTop, iw - 2, yBot - yTop);
+  ctx.strokeStyle = glowColor(Math.min(1, t + 0.2), 0.6);
+  ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(ix + 1, yTop); ctx.lineTo(ix + iw - 1, yTop); ctx.stroke();
+
+  // Atomruempfe im Gitter, Zitteramplitude nach Temperatur
+  const nx = 8, ny = 3, amp = 1.2 + 4.2*t;
+  ctx.lineWidth = 1;
+  for(let i = 0; i < nx; i++){
+    for(let j = 0; j < ny; j++){
+      const bx = toX((i + 0.5)/nx);
+      const by = toY(0.16 + j*0.30);
+      const ph = phase*2.6 + i*1.7 + j*2.9;
+      const x  = bx + Math.sin(ph)*amp;
+      const y  = by + Math.cos(ph*1.31)*amp*0.7;
+      ctx.fillStyle   = 'rgba(255,92,108,0.20)';
+      ctx.strokeStyle = 'rgba(255,140,150,0.75)';
+      ctx.beginPath(); ctx.arc(x, y, 5.2, 0, 6.2832); ctx.fill(); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x - 2.6, y); ctx.lineTo(x + 2.6, y);
+      ctx.moveTo(x, y - 2.6); ctx.lineTo(x, y + 2.6);
+      ctx.stroke();
+    }
+  }
+
+  // freie Elektronen
+  for(const e of lupeEl){
+    const x = toX(e.x);
+    let y, a;
+    if(e.out > 0){ y = yTop - e.oy*(yTop - iy - 6); a = 0.9; }
+    else { y = toY(e.y*0.88 + 0.06); a = 0.85; }
+    ctx.fillStyle = 'rgba(126,180,255,' + a + ')';
+    ctx.beginPath(); ctx.arc(x, y, 2.5, 0, 6.2832); ctx.fill();
+  }
+
+  // Driftrichtung
+  if(state.uh > 0.05){
+    ctx.strokeStyle = 'rgba(126,180,255,0.55)';
+    ctx.fillStyle   = 'rgba(126,180,255,0.55)';
+    ctx.lineWidth = 1.2;
+    const ya = yBot - 7;
+    arrow(toX(0.30), ya, toX(0.30) + 26, ya);
+    ctx.fillStyle = 'rgba(139,152,179,0.8)';
+    ctx.font = '10px "Segoe UI",system-ui,sans-serif';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('Drift: sehr langsam', toX(0.30) + 32, ya);
+  }
+
+  // Titel und Legende
+  ctx.font = '10.5px "Segoe UI",system-ui,sans-serif';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillStyle = 'rgba(255,200,87,0.85)';
+  ctx.fillText('Blick in den Draht', ix + 8, iy + 6);
+  ctx.fillStyle = 'rgba(139,152,179,0.85)';
+  ctx.textAlign = 'right';
+  ctx.fillText(emission() > 0.01 ? 'Elektronen treten aus' : 'zu kalt – kein Austritt',
+               ix + iw - 8, iy + 6);
+}
+
+/* --------------------------- Formatierung ------------------------ */
+function fmt(v, n){ return (isFinite(v) ? v.toFixed(n) : '–').replace('.', ','); }
+/* Ganze Volt mit typografischem Minus. */
+function fmtV(v){ return String(Math.round(v)).replace('-', '−'); }
+
+/* ============================== Text ============================= */
+function words(){
+  const t = heat(), e = emission(), I = beamStrength();
+  const u = wehnelt(), d = cloudDensity(), q = focusQuality();
+
+  let glow;
+  if(state.uh < 0.05)      glow = 'kalt, stromlos';
+  else if(t < 0.30)        glow = 'warm, noch dunkel';
+  else if(t < 0.52)        glow = 'dunkelrot';
+  else if(t < 0.70)        glow = 'rot glühend';
+  else if(t < 0.87)        glow = 'orange glühend';
+  else                     glow = 'hell gelbweiß glühend';
+
+  let cl;
+  if(e < 0.008)            cl = 'keine – der Draht ist zu kalt';
+  else if(d < 0.05)        cl = 'kaum sichtbar, sofort abgesaugt';
+  else if(d < 0.18)        cl = 'schwach';
+  else if(d < 0.45)        cl = 'deutlich';
+  else                     cl = 'dicht';
+
+  let bm;
+  if(e < 0.008)            bm = 'kein Strahl – keine Elektronen';
+  else if(u >= 1)          bm = 'gesperrt – Wehneltspannung zu negativ';
+  else if(suction() < 0.05)bm = 'kein Strahl – keine Beschleunigung';
+  else if(I < 0.02)        bm = 'sehr schwach';
+  else if(I < 0.08)        bm = 'schwach';
+  else if(I < 0.25)        bm = 'deutlich';
+  else                     bm = 'kräftig';
+
+  let sp;
+  if(I <= 0)               sp = 'kein Fleck';
+  else if(q > 0.92)        sp = 'kleiner, scharfer Punkt';
+  else if(q > 0.72)        sp = 'gut gebündelt';
+  else if(q > 0.40)        sp = 'unscharfer Fleck';
+  else                     sp = 'großer, blasser Fleck';
+
+  return { glow, cl, bm, sp, I, q };
+}
+
+function syncAll(){
+  $('uhVal').textContent = fmt(state.uh,1) + ' V';
+  $('uwVal').textContent = fmtV(state.uw) + ' V';
+  $('ubVal').textContent = fmtV(state.ub) + ' V';
+
+  const w = words();
+  $('stGlow').textContent  = w.glow;
+  $('stCloud').textContent = w.cl;
+  $('stBeam').textContent  = w.bm;
+  $('stSpot').textContent  = w.sp;
+  $('barI').style.width = (100*Math.pow(w.I, 0.6)).toFixed(0) + '%';
+  $('barF').style.width = (100*(w.I > 0 ? w.q : 0)).toFixed(0) + '%';
+
+  const wb = $('warnBox');
+  const u = wehnelt();
+  if(emission() < 0.008){
+    wb.style.display = 'block';
+    wb.innerHTML = '<b>Der Draht ist zu kalt.</b> Die Elektronen zittern zwar, aber keines '
+      + 'bringt genug Energie auf, um die Austrittsarbeit zu überwinden. Heizspannung erhöhen.';
+  } else if(state.ub < 30){
+    wb.style.display = 'block';
+    wb.innerHTML = '<b>Ohne Beschleunigungsspannung bleibt die Wolke.</b> Die ausgetretenen '
+      + 'Elektronen werden vom positiv zurückbleibenden Draht wieder eingefangen – es fließt '
+      + 'kein Strahl.';
+  } else if(u >= 1){
+    wb.style.display = 'block';
+    wb.innerHTML = '<b>Der Strahl ist gesperrt.</b> U<sub>W</sub> ist so negativ, dass kein '
+      + 'Elektron mehr durch die Blende kommt. Die Sperrspannung liegt hier bei rund '
+      + '−' + Math.round(uCut()) + ' V – sie steigt mit der Beschleunigungsspannung.';
+  } else if(u > U_FOC + 0.14){
+    wb.style.display = 'block';
+    wb.innerHTML = '<b>Überfokussiert.</b> Der Strahl kreuzt sich schon vor dem Schirm und '
+      + 'läuft danach wieder auseinander. U<sub>W</sub> etwas weniger negativ machen.';
+  } else {
+    wb.style.display = 'none';
+  }
+
+  if(!$('cbRun').checked) draw();
+}
+
+/* ================================ UI ============================== */
+$('uh').addEventListener('input', e => { state.uh = parseFloat(e.target.value); syncAll(); });
+$('uw').addEventListener('input', e => { state.uw = parseFloat(e.target.value); syncAll(); });
+$('ub').addEventListener('input', e => { state.ub = parseFloat(e.target.value); syncAll(); });
+['cbLupe','cbWField','cbLabels'].forEach(id => $(id).addEventListener('change', () => {
+  if(!$('cbRun').checked) draw();
+}));
+$('cbRun').addEventListener('change', () => { last = performance.now(); draw(); });
+
+/* =============================== Lauf ============================= */
+function resize(){
+  const r = cv.parentElement.getBoundingClientRect();
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = Math.max(360, Math.floor(r.width));
+  H = Math.max(260, Math.floor(r.height));
+  cv.width = Math.floor(W*DPR); cv.height = Math.floor(H*DPR);
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  draw();
+}
+window.addEventListener('resize', resize);
+
+let last = performance.now();
+function frame(now){
+  const dt = Math.min(0.05, (now - last)/1000);
+  last = now;
+  if($('cbRun').checked){
+    phase += dt;
+    stepCloud(dt);
+    stepBeam(dt);
+    stepLupe(dt);
+    draw();
+  }
+  requestAnimationFrame(frame);
+}
+
+resize();
+syncAll();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
