@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict');const {create,rotate}=require('../grains.js');
+const make=(theta)=>({x:20,y:30,theta,mobility:1});
+let p=make(Math.PI/4);for(let i=0;i<300;i++)rotate(p,{ex:1,ey:0},1/60,1);assert(Math.abs(p.theta)<.002);assert(p.x===20&&p.y===30);
+let a=make(.7),b=make(.7);for(let i=0;i<60;i++)rotate(a,{ex:1,ey:0},1/60,1);for(let i=0;i<30;i++)rotate(b,{ex:1,ey:0},1/30,1);assert(Math.abs(a.theta-b.theta)<1e-12);
+let flip=make(.7),normal=make(.7);rotate(flip,{ex:-1,ey:0},1,1);rotate(normal,{ex:1,ey:0},1,1);assert(Math.abs(flip.theta-normal.theta)<1e-12);
+let none=make(.7);rotate(none,null,1,1);rotate(none,{ex:0,ey:0},1,1);assert(none.theta===.7);
+let weak=make(.7),strong=make(.7);rotate(weak,{ex:.5,ey:0},1,1);rotate(strong,{ex:1,ey:0},1,1);assert(strong.theta<weak.theta);
+let aligned=make(Math.PI),perpendicular=make(Math.PI/2);rotate(aligned,{ex:1,ey:0},1,1);rotate(perpendicular,{ex:1,ey:0},1,1);assert(aligned.theta===Math.PI&&perpendicular.theta===Math.PI/2);
+let seed=47;const random=()=>((seed=seed*16807%2147483647)-1)/2147483646;const grains=create(undefined,random);assert(grains.length===1200);assert(grains.every(g=>g.length>=5&&g.length<=8));for(const g of grains)assert(Math.hypot(g.x-500,g.y-496)+g.length/2+g.width/2<389);for(let i=0;i<grains.length;i++)for(let j=0;j<i;j++)assert(Math.hypot(grains[i].x-grains[j].x,grains[i].y-grains[j].y)>=(grains[i].length+grains[j].length)/2+2);
+console.log('PASS: alignment, damping, fixed positions, frame-rate independence, polarity symmetry, zero/missing field, field strength, particle bounds and separation.');

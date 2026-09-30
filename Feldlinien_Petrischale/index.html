@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Elektrische Felder · Experiment</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="electrodes.js" defer></script><script src="electrode-assets.js" defer></script>
+  <script src="scene-geometry.js" defer></script>
+  <script src="simulation-clock.js" defer></script>
+  <script src="scatter-model.js" defer></script>
+  <script src="field-geometry.js" defer></script><script src="field.js" defer></script>
+  <script src="field-lines.js" defer></script>
+  <script src="grains.js" defer></script>
+  <script src="grain-motion.js" defer></script>
+  <script src="scatter-view.js" defer></script>
+  <script src="app.js" defer></script>
+  <script src="grain-view.js" defer></script>
+  <script src="field-view.js" defer></script>
+</head>
+<body>
+<header class="header"><div class="brand"><span class="brand-icon" aria-hidden="true">E</span><h1>Elektrische Felder</h1></div><span class="version">v0.8.4</span></header>
+<main class="workspace">
+ <aside class="preparation" aria-label="Versuch vorbereiten">
+  <section class="panel"><h2><span class="number">1</span> Elektroden</h2><label class="sr-only" for="electrode-shape">Elektrodenform</label><select id="electrode-shape"></select><button id="electrodes">Elektroden auswählen</button></section>
+  <section class="panel" aria-labelledby="preparation-title"><h2 id="preparation-title"><span class="number">2</span> Vorbereitung</h2>
+   <ol class="progress" aria-label="Vorbereitungsschritte"><li id="progress-dish">Schale</li><li id="progress-oil">Öl</li><li id="progress-grains">Grieß</li></ol>
+   <h3 id="preparation-step" tabindex="-1" aria-live="polite">Petrischale</h3>
+   <div id="prepare-dish"><button id="place-dish" disabled>Petrischale aufsetzen</button></div>
+   <div id="prepare-oil" hidden><button id="oil" disabled>Öl einfüllen</button></div>
+   <div id="prepare-grains" hidden>
+    <div id="scatter-controls" hidden><label for="scatter-radius">Streukreis</label><input id="scatter-radius" type="range" min="60" max="375" step="5" value="180" disabled><label for="scatter-distribution">Verteilung</label><select id="scatter-distribution" disabled><option value="gaussian">Zur Mitte dichter</option><option value="uniform">Gleichmäßig</option></select><p id="scatter-count" aria-live="polite"></p><button id="scatter-edit" hidden>Streubereich ändern</button></div>
+    <button id="grains" disabled>Grießkörner einstreuen</button>
+   </div>
+  </section>
+  <button id="reset" class="secondary">Neu beginnen</button>
+ </aside>
+ <div class="experiment-column">
+  <section class="experiment" aria-labelledby="experiment-title"><h2 id="experiment-title">Experiment</h2><div class="dish"><svg id="experiment-scene" viewBox="0 0 1000 1000" role="group" aria-labelledby="dish-description">
+            <title id="dish-description">Leere Experimentierfläche</title>
+            <defs>
+              <radialGradient id="scatter-gradient"><stop offset="0" stop-color="#126e72" stop-opacity=".2"/><stop offset="1" stop-color="#126e72" stop-opacity=".02"/></radialGradient>
+              <!-- Preserve the original glass rim; exclude the opaque interior and backdrop. -->
+              <mask id="glass-rim-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="1000">
+                <rect width="1000" height="1000" fill="white"/>
+                <ellipse data-dish-boundary fill="black"/>
+              </mask>
+            </defs>
+            <!-- Bottom to top: electrodes, glass, oil, grains. -->
+            <g id="electrode-layer"></g>
+            <g id="glass-layer" display="none">
+              <ellipse data-dish-boundary fill="#e8f0f2" fill-opacity="0.08"/>
+              <image href="assets/petrischale-draufsicht.png" width="1000" height="1000" mask="url(#glass-rim-mask)" style="mix-blend-mode:multiply"/>
+            </g>
+            <g id="oil-layer" display="none">
+              <ellipse data-dish-boundary fill="#efd36b" fill-opacity="0.32"/>
+            </g>
+            <g id="grain-layer"></g>
+            <g id="field-lines-layer" display="none" fill="none" stroke="#126e72" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"></g>
+            <g id="field-layer" display="none" fill="none" stroke="#125078" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"></g>
+            <g id="polarity-layer" display="none" font-family="Segoe UI, sans-serif" font-size="29" font-weight="700" text-anchor="middle" aria-hidden="true"><text id="polarity-positive" x="35" y="475" fill="#ae3930">+</text><text id="polarity-negative" x="965" y="475" fill="#24599c">−</text></g>
+            <g id="scatter-layer" display="none">
+              <circle id="scatter-circle" role="button" tabindex="-1" aria-label="Streukreis verschieben" stroke="#126e72" stroke-width="2.5" stroke-dasharray="9 7"/>
+              <path id="scatter-center" d="M-9 0 H9 M0 -9 V9" stroke="#126e72" stroke-width="2" pointer-events="none" aria-hidden="true"/>
+              <text id="scatter-label" text-anchor="middle" fill="#125b60" font-size="19" pointer-events="none" aria-hidden="true">Streubereich</text>
+            </g>
+          </svg></div></section>
+  <section class="field-controls panel" aria-label="Feld und Bewegung">
+   <div class="control-row primary-controls"><button id="field-toggle" aria-pressed="false" disabled>Spannung einschalten</button><label class="checkbox-label"><input type="checkbox" id="show-lines" disabled> Feldlinien</label><label class="density-control" for="line-density">Dichte <select id="line-density" disabled><option value="44">Wenige</option><option value="28" selected>Mittel</option><option value="16">Viele</option></select></label><label class="checkbox-label"><input type="checkbox" id="show-arrows" disabled> Feldpfeile</label></div>
+   <div class="control-row movement-controls"><label for="motion-mode">Bewegung</label><select id="motion-mode" disabled><option value="rotation">Nur Rotation</option><option value="drift">Rotation und Translation</option><option value="chains" selected>Rotation, Translation &amp; Stränge</option></select><button id="restart-rotation" class="secondary" disabled>Neu verteilen</button></div>
+   <p id="field-status" role="status" aria-live="polite" hidden></p>
+  </section>
+ </div>
+</main>
+</body>
+</html>
