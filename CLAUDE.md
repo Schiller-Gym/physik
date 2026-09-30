@@ -21,6 +21,7 @@ This is a collection of standalone HTML applications with embedded CSS and JavaS
 - **influenz.html** - Polarisation (dielectric) vs. influence (conductor), side by side: sphere in a uniform external field
 - **feldlinien.html** - Electric field line simulation (German): point, surface, ring and hollow-sphere charges with conductor influence (induced charge), adjustable charge, draggable bodies
 - **feldlinien-f.html** - Earlier version of feldlinien.html, kept on purpose: rigid homogeneous charge distributions, no influence and no hollow sphere
+- **Feldlinien_Petrischale/** - Semolina-in-castor-oil experiment (German), the only multi-file app here: its own index.html, style.css, several JS files, tests and docs (README.md, MODELL.md). Seven electrode layouts, 2D Laplace solver, grains rotate, drift and form chains. Linked from index.html as Feldlinien_Petrischale/index.html
 
 ## Worksheets
 
