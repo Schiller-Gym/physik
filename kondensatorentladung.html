@@ -151,9 +151,9 @@
     <div class="row"><label>Ladespannung U₀</label><span class="val" id="u0Val"></span></div>
     <input type="range" id="u0" min="1" max="20" step="0.5" value="10">
     <div class="row"><label>Kapazität C</label><span class="val" id="cVal"></span></div>
-    <input type="range" id="c" min="0" max="5" step="1" value="3">
+    <input type="range" id="c" min="0" max="6" step="1" value="3">
     <div class="row"><label>Widerstand R</label><span class="val" id="rVal"></span></div>
-    <input type="range" id="r" min="0" max="6" step="1" value="3">
+    <input type="range" id="r" min="0" max="7" step="1" value="3">
     <div class="note lock" id="lockNote" style="display:none">Während der Entladung
       sind die Bauteile fest. Zum Ändern neu aufladen oder zurücksetzen.</div>
   </div>
@@ -258,8 +258,8 @@
    Bewusst wird KEINE Kurve gezeichnet: die Lernenden sehen Voltmeter und
    Stoppuhr laufen und halten die Werte selbst in der Tabelle fest.
    ===================================================================== */
-const C_LIST = [100, 220, 470, 1000, 2200, 4700];   // µF
-const R_LIST = [1, 2.2, 4.7, 10, 22, 47, 100];      // kΩ
+const C_LIST = [100, 220, 470, 1000, 2200, 3300, 4700];   // µF
+const R_LIST = [1, 2.2, 4.7, 10, 22, 33, 47, 100];        // kΩ
 const RANGES = [[1,0.2,0.05],[2,0.5,0.1],[3,0.5,0.1],[5,1,0.2],
                 [10,2,0.5],[15,5,1],[20,5,1],[30,5,1]];  // Endwert, Haupt-, Nebenteilung
 const TAU_LADE = 0.08;                               // s Echtzeit, Laden ueber die Quelle
