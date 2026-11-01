@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entladung eines Kondensators</title>
+<style>
+  :root{
+    --bg:#0b0f18; --panel:#131a27; --panel2:#1a2233; --line:#26314a;
+    --text:#e6ecf7; --muted:#8b98b3;
+    --pos:#ff5c6c; --neg:#4da3ff; --accent:#ffc857; --ok:#5ed39a;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+    display:flex;overflow:hidden;
+  }
+
+  #sidebar{
+    width:334px;min-width:334px;height:100%;
+    background:var(--panel);border-right:1px solid var(--line);
+    overflow-y:auto;padding:16px 16px 40px;
+  }
+  #sidebar::-webkit-scrollbar{width:9px;}
+  #sidebar::-webkit-scrollbar-thumb{background:#2a3550;border-radius:5px;}
+
+  h1{font-size:17px;margin:0 0 2px;}
+  .sub{font-size:12px;color:var(--muted);margin-bottom:16px;}
+
+  .group{
+    background:var(--panel2);border:1px solid var(--line);
+    border-radius:10px;padding:12px;margin-bottom:12px;
+  }
+  .group > h2{
+    font-size:11px;text-transform:uppercase;letter-spacing:1.1px;
+    color:var(--muted);margin:0 0 10px;font-weight:600;
+  }
+
+  .row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;}
+  .row label{font-size:12.5px;color:#c3cde0;}
+  .val{font-size:12.5px;color:var(--accent);font-variant-numeric:tabular-nums;}
+
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:4px;
+    background:#2c3752;border-radius:3px;outline:none;margin:5px 0 12px;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+    background:var(--accent);cursor:pointer;border:2px solid #1a2233;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:13px;height:13px;border-radius:50%;background:var(--accent);
+    cursor:pointer;border:2px solid #1a2233;
+  }
+  input[type=range]:disabled{opacity:.4;}
+  input[type=range]:disabled::-webkit-slider-thumb{cursor:not-allowed;}
+
+  .check{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12.5px;color:#c3cde0;cursor:pointer;}
+  .check:last-child{margin-bottom:0;}
+  .check input{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;}
+
+  .btn{
+    width:100%;background:#212c42;border:1px solid #2f3b58;color:var(--text);
+    border-radius:8px;padding:9px;cursor:pointer;font-size:12.5px;transition:.13s;
+  }
+  .btn:hover{background:#2a3855;}
+  .btn:disabled{opacity:.38;cursor:not-allowed;}
+  .btn:disabled:hover{background:#212c42;}
+  .btn.prim{background:#2c4a35;border-color:#4d9d6a;color:#c9f0d8;}
+  .btn.prim:hover{background:#35603f;}
+  .btn.danger:hover{background:#3a2430;border-color:#7a3444;color:#ffa8b3;}
+  .btn.big{font-size:17px;font-weight:600;padding:13px;}
+  .btns{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px;}
+
+  select{
+    background:#0f1624;border:1px solid #2f3b58;color:var(--text);
+    border-radius:6px;padding:5px 6px;font-size:12px;width:100%;
+  }
+
+  .legend{font-size:11.5px;color:var(--muted);line-height:1.7;}
+  .legend b{color:#c3cde0;font-weight:600;}
+  .legend .f{color:var(--accent);font-variant-numeric:tabular-nums;}
+  .note{
+    background:#22283a;border-left:3px solid #4d7fd0;
+    padding:7px 9px;border-radius:0 6px 6px 0;margin-top:9px;
+    font-size:11.5px;line-height:1.6;color:#a9b6cf;
+  }
+  .note.lock{border-left-color:var(--accent);}
+  details{margin-top:10px;font-size:11.5px;color:var(--muted);line-height:1.7;}
+  summary{cursor:pointer;color:#c3cde0;}
+
+  #stage{flex:1;height:100%;min-width:0;display:flex;flex-direction:column;}
+  #scenewrap{flex:1 1 auto;position:relative;min-height:0;}
+  #cv{display:block;position:absolute;inset:0;}
+  #meas{
+    flex:0 0 260px;border-top:1px solid var(--line);
+    background:#0e1420;display:flex;min-height:0;
+  }
+  #tablewrap{flex:1 1 auto;overflow-y:auto;padding:8px 14px;min-width:0;}
+  #tablewrap::-webkit-scrollbar{width:8px;}
+  #tablewrap::-webkit-scrollbar-thumb{background:#2a3550;border-radius:4px;}
+  #mside{
+    flex:0 0 290px;border-left:1px solid var(--line);
+    padding:12px 14px;display:flex;flex-direction:column;
+  }
+  .hint{font-size:11.5px;color:var(--muted);text-align:center;margin:6px 0 12px;}
+  .hint kbd{
+    background:#1a2233;border:1px solid #2f3b58;border-radius:4px;
+    padding:1px 6px;font-family:inherit;color:#c3cde0;
+  }
+  #msg{font-size:11.5px;color:var(--accent);min-height:16px;margin-top:2px;}
+
+  table{border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;min-width:340px;}
+  th{
+    color:var(--muted);font-weight:600;text-align:right;padding:4px 12px;
+    border-bottom:1px solid var(--line);position:sticky;top:0;background:#0e1420;
+  }
+  th:first-child{text-align:left;}
+  td{text-align:right;padding:3px 12px;border-bottom:1px solid #1b2436;color:#c3cde0;}
+  td:first-child{text-align:left;color:var(--muted);}
+  tr.grp td{
+    text-align:left;color:var(--accent);font-size:11.5px;padding-top:9px;
+    border-bottom:1px solid var(--line);
+  }
+  tr.hl td{color:var(--accent);}
+  td.del{color:#6f7c96;cursor:pointer;text-align:center;padding:3px 6px;}
+  td.del:hover{color:var(--pos);}
+  .tempty{color:var(--muted);font-style:italic;font-size:12px;padding:10px 2px;}
+
+  @media (max-width:900px){
+    body{flex-direction:column;overflow:auto;}
+    #sidebar{width:100%;min-width:0;height:auto;max-height:44vh;border-right:none;border-bottom:1px solid var(--line);}
+    #stage{height:auto;}
+    #scenewrap{height:48vh;flex:none;}
+    #meas{flex-direction:column;flex:none;height:auto;}
+    #tablewrap{flex:none;max-height:260px;}
+    #mside{flex:none;border-left:none;border-top:1px solid var(--line);}
+  }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <h1>Entladung eines Kondensators</h1>
+  <div class="sub">Kondensator, Widerstand, Voltmeter und Stoppuhr</div>
+
+  <div class="group">
+    <h2>Bauteile</h2>
+    <div class="row"><label>Ladespannung U₀</label><span class="val" id="u0Val"></span></div>
+    <input type="range" id="u0" min="1" max="20" step="0.5" value="10">
+    <div class="row"><label>Kapazität C</label><span class="val" id="cVal"></span></div>
+    <input type="range" id="c" min="0" max="5" step="1" value="3">
+    <div class="row"><label>Widerstand R</label><span class="val" id="rVal"></span></div>
+    <input type="range" id="r" min="0" max="6" step="1" value="3">
+    <div class="note lock" id="lockNote" style="display:none">Während der Entladung
+      sind die Bauteile fest. Zum Ändern neu aufladen oder zurücksetzen.</div>
+  </div>
+
+  <div class="group">
+    <h2>Ablauf</h2>
+    <div class="btns">
+      <button class="btn" id="btnCharge">Aufladen</button>
+      <button class="btn" id="btnDis">Entladen</button>
+    </div>
+    <div class="btns">
+      <button class="btn" id="btnPause">Zeit anhalten</button>
+      <button class="btn danger" id="btnReset">Zurücksetzen</button>
+    </div>
+    <div class="row" style="margin-top:10px"><label>Zeitfaktor</label></div>
+    <select id="speed" style="margin-top:4px">
+      <option value="0.1">0,1× (Zeitlupe)</option>
+      <option value="0.25">0,25×</option>
+      <option value="0.5">0,5×</option>
+      <option value="1" selected>1× (Echtzeit)</option>
+      <option value="2">2×</option>
+      <option value="5">5×</option>
+      <option value="10">10× (Zeitraffer)</option>
+    </select>
+    <div class="note">„Aufladen“ legt den Schalter nach links an die Quelle.
+      „Entladen“ legt ihn nach rechts an den Widerstand – im selben Moment
+      startet die Stoppuhr bei 0 s. Der Schalter lässt sich auch in der
+      Schaltung anklicken.</div>
+  </div>
+
+  <div class="group">
+    <h2>Darstellung</h2>
+    <label class="check"><input type="checkbox" id="cbI"> Stromstärke mitmessen (Amperemeter)</label>
+    <label class="check"><input type="checkbox" id="cbQ" checked> Ladungen auf den Platten</label>
+    <label class="check"><input type="checkbox" id="cbFlow" checked> Elektronenfluss</label>
+    <label class="check"><input type="checkbox" id="cbTau"> Zeitkonstante τ = R·C anzeigen</label>
+  </div>
+
+  <div class="group">
+    <h2>Physik</h2>
+    <div class="legend">
+      Auf dem geladenen Kondensator sitzt die Ladung <span class="f">Q = C · U</span>.
+      Wird er über den Widerstand verbunden, fließen Elektronen von der negativen
+      zur positiven Platte – die Ladung nimmt ab und mit ihr die Spannung.<br><br>
+      Der Entladestrom ist <span class="f">I = U / R</span>. Zu Beginn ist die
+      Spannung groß, also auch der Strom, und die Spannung sinkt schnell. Je kleiner
+      U wird, desto kleiner wird I – die Entladung wird immer langsamer.
+    </div>
+    <details>
+      <summary>Auswertung (für die Lehrkraft)</summary>
+      Die Spannung fällt exponentiell:<br>
+      <span class="f">U(t) = U₀ · e<sup>−t/(R·C)</sup></span><br>
+      Nach der Zeitkonstante <span class="f">τ = R·C</span> ist sie auf
+      1/e ≈ 37 % gefallen, nach der Halbwertszeit
+      <span class="f">T½ = τ · ln 2 ≈ 0,69 · τ</span> auf die Hälfte – und zwar
+      unabhängig davon, bei welcher Spannung man anfängt zu zählen.
+    </details>
+    <div class="note">Modell: Das Voltmeter ist ideal, es fließt kein Strom
+      hindurch. Die Quelle lädt praktisch ohne Verzögerung. Die Elektronen sind
+      stark verlangsamt und nicht maßstäblich gezeichnet. Die Anzeige rundet wie
+      ein Digitalmessgerät auf vier Stellen.</div>
+  </div>
+</div>
+
+<div id="stage">
+  <div id="scenewrap"><canvas id="cv"></canvas></div>
+  <div id="meas">
+    <div id="tablewrap">
+      <table id="tbl"><thead></thead><tbody></tbody></table>
+      <div class="tempty" id="tempty">Noch keine Messwerte. Kondensator aufladen,
+        entladen und zu den gewünschten Zeitpunkten „Messen“ drücken.</div>
+    </div>
+    <div id="mside">
+      <button class="btn prim big" id="btnMeasure">Messen</button>
+      <div class="hint">oder <kbd>Leertaste</kbd></div>
+      <div class="btns">
+        <button class="btn" id="btnCopy">Kopieren</button>
+        <button class="btn" id="btnCsv">Als CSV</button>
+      </div>
+      <div class="btns">
+        <button class="btn" id="btnUndo">Letzten löschen</button>
+        <button class="btn danger" id="btnClear">Tabelle leeren</button>
+      </div>
+      <div id="msg"></div>
+    </div>
+  </div>
+</div>
+<textarea id="copyArea" style="position:absolute;left:-9999px" aria-hidden="true"></textarea>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   Entladung eines Kondensators ueber einen Widerstand.
+       U(t) = U0 * exp(-t/(R*C)),   I = U/R
+   Spannung in V, Kapazitaet in µF, Widerstand in kΩ, Zeit in s,
+   Strom in mA (V/kΩ = mA, kΩ*µF = ms).
+
+   Pro Bild wird exakt mit U *= exp(-dt/(R*C)) weitergerechnet, das ist
+   fuer jede Schrittweite fehlerfrei. Die Messwerte werden wie bei einem
+   Digitalmessgeraet auf vier Stellen gerundet, die Zeit auf 0,01 s.
+   Bewusst wird KEINE Kurve gezeichnet: die Lernenden sehen Voltmeter und
+   Stoppuhr laufen und halten die Werte selbst in der Tabelle fest.
+   ===================================================================== */
+const C_LIST = [100, 220, 470, 1000, 2200, 4700];   // µF
+const R_LIST = [1, 2.2, 4.7, 10, 22, 47, 100];      // kΩ
+const RANGES = [[1,0.2,0.05],[2,0.5,0.1],[3,0.5,0.1],[5,1,0.2],
+                [10,2,0.5],[15,5,1],[20,5,1],[30,5,1]];  // Endwert, Haupt-, Nebenteilung
+const TAU_LADE = 0.08;                               // s Echtzeit, Laden ueber die Quelle
+
+const S = {
+  U0:10, ci:3, ri:3,
+  U:0, t:0,
+  phase:'leer',          // leer | laden | geladen | entladen
+  paused:false, speed:1,
+  lever:-Math.PI/2,      // Winkel des Schalthebels
+  flow:0,                // Phase der Elektronenanimation in px
+  flash:0                // Aufleuchten der Anzeigen nach "Messen"
+};
+
+const cv  = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W=0, H=0, DPR=1, SC=1, OX=0, OY=0;
+const $ = id => document.getElementById(id);
+
+let series = [];       // {U0, C, R, rows:[{t,U,I}], started}
+let cur = null;        // Messreihe, in die "Messen" gerade schreibt
+let hlRow = null;
+
+/* --------------------------- Formatierung ------------------------ */
+function fmt(v,n){ return (isFinite(v) ? v.toFixed(n) : '–').replace('.',','); }
+function dmmDigits(v){ const a=Math.abs(v); return a>=100 ? 1 : a>=10 ? 2 : 3; }
+const dmm      = v => fmt(v, dmmDigits(v));
+const dmmRound = v => +v.toFixed(dmmDigits(v));
+const fmtV     = v => fmt(v, v%1 ? 1 : 0)+' V';
+const fmtC     = c => c+' µF';
+const fmtR     = r => fmt(r, r%1 ? 1 : 0)+' kΩ';
+function fmtTau(s){
+  return s>=10 ? fmt(s,0)+' s' : s>=1 ? fmt(s,1)+' s' : fmt(s*1000,0)+' ms';
+}
+
+/* ------------------------------ Physik --------------------------- */
+const capC = () => C_LIST[S.ci];
+const resR = () => R_LIST[S.ri];
+const tau  = () => resR()*capC()/1000;              // s
+const curI = () => S.U/resR();                      // mA
+
+function step(dt){
+  if(S.phase==='laden'){
+    S.U += (S.U0-S.U)*(1-Math.exp(-dt/TAU_LADE));
+    if(Math.abs(S.U0-S.U) < 5e-5){ S.U=S.U0; S.phase='geladen'; sync(); }
+  }else if(S.phase==='entladen' && !S.paused){
+    const dts = dt*S.speed;
+    S.U *= Math.exp(-dts/tau());
+    S.t += dts;
+  }
+}
+
+/* ---------------------------- Messreihen ------------------------- */
+function newSeries(){
+  const s = {U0:S.U0, C:capC(), R:resR(), rows:[], started:false};
+  series.push(s);
+  return s;
+}
+function closeSeries(){
+  if(cur && !cur.rows.length) series.splice(series.indexOf(cur),1);
+  cur = null;
+}
+
+function charge(){
+  if(S.phase==='laden' || S.phase==='geladen') return;
+  closeSeries();
+  S.phase='laden'; S.t=0; S.paused=false;
+  sync();
+}
+function discharge(){
+  if(S.phase!=='geladen') return;
+  if(!cur || cur.started) cur = newSeries();
+  cur.started = true;
+  S.phase='entladen'; S.t=0; S.paused=false;
+  sync();
+}
+function reset(){
+  closeSeries();
+  S.phase='leer'; S.U=0; S.t=0; S.paused=false;
+  sync();
+}
+function measure(){
+  if(S.phase==='leer'){ msg('Der Kondensator ist noch nicht geladen.'); return; }
+  if(S.phase==='laden'){ msg('Einen Moment – der Kondensator lädt noch.'); return; }
+  if(!cur) cur = newSeries();
+  const t = Math.round(S.t*100)/100;
+  const last = cur.rows[cur.rows.length-1];
+  if(last && last.t===t){ msg('Zu diesem Zeitpunkt wurde schon gemessen.'); return; }
+  const row = {t, U:dmmRound(S.U), I:dmmRound(curI())};
+  cur.rows.push(row);
+  hlRow = row;
+  S.flash = 1;
+  renderTable();
+}
+
+/* ============================== Szene ============================= */
+/* Logische Szene 1000 x 560, wird auf die Leinwand eingepasst.        */
+const SW=1000, SH=560;
+const XQ=140, XV=270, XC=420, XR=650, YT=150, YB=450;
+const PIV=[XC,215], CA=[330,YT], CB=[510,YT];
+const PL_T=280, PL_B=330, PL_W=130;
+const ANG_A = Math.atan2(CA[1]-PIV[1], CA[0]-PIV[0]);
+const ANG_B = Math.atan2(CB[1]-PIV[1], CB[0]-PIV[0]);
+const ANG_O = -Math.PI/2;
+const LEV   = Math.hypot(CA[0]-PIV[0], CA[1]-PIV[1]);
+
+function leverTarget(){
+  return S.phase==='leer' ? ANG_O : S.phase==='entladen' ? ANG_B : ANG_A;
+}
+const leverTip = () => [PIV[0]+LEV*Math.cos(S.lever), PIV[1]+LEV*Math.sin(S.lever)];
+const leverAt  = () => Math.abs(S.lever-leverTarget()) < 0.02;
+
+function mkPath(pts){
+  const cum=[0];
+  for(let i=1;i<pts.length;i++)
+    cum.push(cum[i-1]+Math.hypot(pts[i][0]-pts[i-1][0], pts[i][1]-pts[i-1][1]));
+  return {pts, cum, L:cum[cum.length-1]};
+}
+function pointAt(p,s){
+  let i=1;
+  while(i<p.cum.length-1 && p.cum[i]<s) i++;
+  const f=(s-p.cum[i-1])/(p.cum[i]-p.cum[i-1]);
+  const a=p.pts[i-1], b=p.pts[i];
+  return [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f];
+}
+// Elektronenwege: Entladen von der Minus- zur Plusplatte ueber R,
+// Laden von der Plusplatte zum Pluspol und vom Minuspol zur Minusplatte.
+const P_DIS  = mkPath([[XC,PL_B],[XC,YB],[XR,YB],[XR,YT],CB,PIV,[XC,PL_T]]);
+const P_LAD1 = mkPath([[XC,PL_T],PIV,CA,[XQ,YT],[XQ,290]]);
+const P_LAD2 = mkPath([[XQ,310],[XQ,YB],[XC,YB],[XC,PL_B]]);
+
+function resize(){
+  const r = $('scenewrap').getBoundingClientRect();
+  DPR = window.devicePixelRatio || 1;
+  W = Math.max(1, r.width); H = Math.max(1, r.height);
+  cv.width = Math.round(W*DPR); cv.height = Math.round(H*DPR);
+  cv.style.width = W+'px'; cv.style.height = H+'px';
+  SC = Math.min(W/SW, H/SH);
+  OX = (W-SW*SC)/2; OY = (H-SH*SC)/2;
+}
+
+const FONT = '"Segoe UI",system-ui,sans-serif';
+function font(px,w){ ctx.font = (w||400)+' '+px+'px '+FONT; }
+function rr(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+function line(pts){
+  ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]);
+  for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0],pts[i][1]);
+  ctx.stroke();
+}
+function dot(x,y,r,col){ ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x,y,r,0,2*Math.PI); ctx.fill(); }
+function meterSymbol(x,y,ch){
+  ctx.fillStyle='#0b0f18'; ctx.beginPath(); ctx.arc(x,y,24,0,2*Math.PI); ctx.fill();
+  ctx.strokeStyle='#c3cde0'; ctx.lineWidth=2.5; ctx.stroke();
+  font(20,600); ctx.fillStyle='#e6ecf7'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(ch,x,y+1);
+}
+
+function draw(){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.fillStyle='#0b0f18'; ctx.fillRect(0,0,W,H);
+  ctx.setTransform(DPR*SC,0,0,DPR*SC,DPR*OX,DPR*OY);
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  const showI = $('cbI').checked;
+  const rel = S.U0>0 ? S.U/S.U0 : 0;
+
+  /* ---- Statuszeile */
+  const status = {
+    leer:     'Der Kondensator ist leer. Schalter nach links: aufladen.',
+    laden:    'Der Kondensator wird geladen …',
+    geladen:  'Geladen. Schalter nach rechts: Die Entladung über R beginnt, die Stoppuhr läuft mit.',
+    entladen: S.paused ? 'Zeit angehalten – jetzt lässt sich in Ruhe ablesen und messen.'
+                       : 'Entladung läuft – mit „Messen“ die Spannung festhalten.'
+  }[S.phase];
+  font(16,400); ctx.fillStyle='#a9b6cf'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  ctx.fillText(status, 30, 52);
+
+  /* ---- Leitungen */
+  ctx.strokeStyle='#8b98b3'; ctx.lineWidth=3;
+  line([[XQ,290],[XQ,YT],CA]);
+  line([[XQ,310],[XQ,YB],[XR,YB],[XR,YT],CB]);
+  line([PIV,[XC,PL_T]]);
+  line([[XC,PL_B],[XC,YB]]);
+  line([[XC,245],[XV,245],[XV,YB]]);
+  for(const p of [[XC,245],[XV,YB],[XC,YB]]) dot(p[0],p[1],5,'#8b98b3');
+
+  /* ---- Elektronen */
+  if($('cbFlow').checked && leverAt()){
+    const draws=[];
+    if(S.phase==='entladen') draws.push(P_DIS);
+    if(S.phase==='laden')    draws.push(P_LAD1, P_LAD2);
+    const SP=26;
+    for(const p of draws){
+      for(let s=S.flow%SP; s<p.L; s+=SP){
+        const q=pointAt(p,s);
+        dot(q[0],q[1],4.2,'#0b0f18');
+        dot(q[0],q[1],3.2,'#4da3ff');
+      }
+    }
+  }
+
+  /* ---- Quelle */
+  ctx.fillStyle='#0b0f18'; ctx.fillRect(XQ-30,289,60,22);
+  ctx.strokeStyle='#e6ecf7'; ctx.lineCap='butt';
+  ctx.lineWidth=3; line([[XQ-26,290],[XQ+26,290]]);
+  ctx.lineWidth=8; line([[XQ-13,310],[XQ+13,310]]);
+  ctx.lineCap='round';
+  font(16,600); ctx.textBaseline='middle';
+  ctx.fillStyle='#ff5c6c'; ctx.textAlign='left'; ctx.fillText('+', XQ+32, 284);
+  ctx.fillStyle='#4da3ff'; ctx.fillText('−', XQ+32, 318);
+  font(16,400); ctx.fillStyle='#ffc857'; ctx.textAlign='right';
+  ctx.fillText('U₀ = '+fmtV(S.U0).replace(' V','')+' V', XQ-36, 300);
+
+  /* ---- Schalter */
+  const tip = leverTip();
+  for(const c of [CA,CB]){
+    const on = leverAt() && Math.hypot(tip[0]-c[0],tip[1]-c[1])<2;
+    dot(c[0],c[1],6, on ? '#ffc857' : '#0b0f18');
+    ctx.strokeStyle=on ? '#ffc857' : '#c3cde0'; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.arc(c[0],c[1],6,0,2*Math.PI); ctx.stroke();
+  }
+  ctx.strokeStyle='#e6ecf7'; ctx.lineWidth=4; line([PIV,tip]);
+  dot(PIV[0],PIV[1],6.5,'#e6ecf7');
+  font(13,400); ctx.fillStyle='#8b98b3'; ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+  ctx.fillText('laden', CA[0], YT-16);
+  ctx.fillText('entladen', CB[0], YT-16);
+
+  /* ---- Kondensator */
+  ctx.fillStyle='#0b0f18'; ctx.fillRect(XC-PL_W/2, PL_T+4, PL_W, PL_B-PL_T-8);
+  ctx.fillStyle='#e6ecf7';
+  ctx.fillRect(XC-PL_W/2, PL_T-3, PL_W, 6);
+  ctx.fillRect(XC-PL_W/2, PL_B-3, PL_W, 6);
+  if($('cbQ').checked){
+    const N=12, sp=(PL_W-14)/(N-1);
+    const fill=N*rel;
+    // Slots von aussen nach innen, damit die Ladung symmetrisch abnimmt
+    for(let k=0;k<N;k++){
+      const a=Math.max(0,Math.min(1,fill-k));
+      if(a<=0) continue;
+      const i = k%2 ? N-1-(k>>1) : (k>>1);
+      const x = XC-PL_W/2+7+i*sp;
+      ctx.globalAlpha=a;
+      dot(x,PL_T+10,4.6,'#ff5c6c');
+      dot(x,PL_B-10,4.6,'#4da3ff');
+      ctx.strokeStyle='#0b0f18'; ctx.lineWidth=1.6; ctx.lineCap='butt';
+      line([[x-2.6,PL_T+10],[x+2.6,PL_T+10]]); line([[x,PL_T+7.4],[x,PL_T+12.6]]);
+      line([[x-2.6,PL_B-10],[x+2.6,PL_B-10]]);
+      ctx.lineCap='round';
+      ctx.globalAlpha=1;
+    }
+  }
+  font(16,400); ctx.fillStyle='#ffc857'; ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.fillText('C = '+fmtC(capC()), XC+PL_W/2+14, (PL_T+PL_B)/2);
+
+  /* ---- Widerstand und Messgeraete */
+  ctx.fillStyle='#0b0f18'; ctx.fillRect(XR-15,215,30,95);
+  ctx.strokeStyle='#e6ecf7'; ctx.lineWidth=3; ctx.strokeRect(XR-15,215,30,95);
+  font(16,400); ctx.fillStyle='#ffc857'; ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.fillText('R = '+fmtR(resR()), XR+26, 262);
+  meterSymbol(XV,360,'V');
+  if(showI) meterSymbol(XR,385,'A');
+
+  if($('cbTau').checked){
+    font(15,400); ctx.fillStyle='#5ed39a'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+    ctx.fillText('Zeitkonstante τ = R · C = '+fmtR(resR())+' · '+fmtC(capC())+' = '+fmtTau(tau()), 30, 515);
+  }
+
+  drawInstruments(showI);
+}
+
+function panel(x,y,w,h,title){
+  rr(x,y,w,h,12);
+  ctx.fillStyle='#131a27'; ctx.fill();
+  ctx.strokeStyle = S.flash>0 ? 'rgba(255,200,87,'+(0.35+0.65*S.flash)+')' : '#26314a';
+  ctx.lineWidth = S.flash>0 ? 2.5 : 1.5; ctx.stroke();
+  font(12,600); ctx.fillStyle='#8b98b3'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  ctx.fillText(title.toUpperCase(), x+14, y+22);
+}
+
+function drawInstruments(showI){
+  const X=785, Wd=195;
+
+  /* ---- Voltmeter mit Zeiger und Digitalanzeige */
+  panel(X,24,Wd,232,'Voltmeter');
+  const rg = RANGES.find(r=>r[0]>=S.U0-1e-9) || RANGES[RANGES.length-1];
+  const cx=X+Wd/2, cy=206, R=118, A0=-Math.PI/4;
+  const ang = v => A0 + Math.PI/2*Math.max(0,Math.min(1.02,v/rg[0]));
+  const pt  = (a,r) => [cx+r*Math.sin(a), cy-r*Math.cos(a)];
+  ctx.strokeStyle='#3a4763'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(cx,cy,R,-Math.PI/2+A0,-Math.PI/2-A0); ctx.stroke();
+  font(12,400); ctx.fillStyle='#a9b6cf'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  const nMin=Math.round(rg[0]/rg[2]);
+  for(let k=0;k<=nMin;k++){
+    const v=k*rg[2], a=ang(v);
+    const major = Math.abs(v/rg[1]-Math.round(v/rg[1]))<1e-6;
+    const p1=pt(a,R), p2=pt(a,R-(major?13:7));
+    ctx.strokeStyle=major?'#c3cde0':'#5a6782'; ctx.lineWidth=major?2:1;
+    line([p1,p2]);
+    if(major){ const p=pt(a,R-27); ctx.fillText(fmt(v, rg[1]%1?1:0), p[0], p[1]); }
+  }
+  font(12,400); ctx.fillStyle='#8b98b3'; ctx.fillText('V', cx, cy-50);
+  const tipN=pt(ang(S.U),R-4);
+  ctx.strokeStyle='#ff5c6c'; ctx.lineWidth=2.4; line([[cx,cy],tipN]);
+  dot(cx,cy,6,'#e6ecf7');
+  font(26,600); ctx.fillStyle='#ffc857'; ctx.textBaseline='alphabetic';
+  ctx.fillText(dmm(S.U)+' V', cx, 246);
+
+  /* ---- Stoppuhr */
+  panel(X,270,Wd,104,'Stoppuhr');
+  font(36,600); ctx.fillStyle='#e6ecf7'; ctx.textAlign='center';
+  ctx.fillText(fmt(S.t,2)+' s', cx, 332);
+  const st = S.phase!=='entladen' ? 'bereit' : S.paused ? 'angehalten' : 'läuft';
+  font(12.5,400); ctx.fillStyle = st==='läuft' ? '#5ed39a' : '#8b98b3';
+  ctx.fillText(st + (S.speed!==1 ? ' · Zeitfaktor '+fmt(S.speed, S.speed%1?(S.speed*10%1?2:1):0)+'×' : ''), cx, 359);
+
+  /* ---- Amperemeter */
+  if(showI){
+    panel(X,388,Wd,78,'Amperemeter');
+    font(26,600); ctx.fillStyle='#ffc857'; ctx.textAlign='center';
+    ctx.fillText(dmm(curI())+' mA', cx, 448);
+  }
+}
+
+/* ============================== Tabelle =========================== */
+function renderTable(){
+  const showI=$('cbI').checked;
+  $('tbl').tHead.innerHTML = '<tr><th>Nr.</th><th>t in s</th><th>U in V</th>'
+    +(showI?'<th>I in mA</th>':'')+'<th></th></tr>';
+  let html='', k=0;
+  series.forEach((s,si)=>{
+    if(!s.rows.length) return;
+    k++;
+    html += '<tr class="grp"><td colspan="'+(showI?5:4)+'">Messreihe '+k+' · U₀ = '+fmtV(s.U0)
+          + ' · C = '+fmtC(s.C)+' · R = '+fmtR(s.R)+'</td></tr>';
+    s.rows.forEach((r,ri)=>{
+      html += '<tr'+(r===hlRow?' class="hl"':'')+'><td>'+(ri+1)+'</td><td>'+fmt(r.t,2)+'</td><td>'
+            + dmm(r.U)+'</td>'+(showI?'<td>'+dmm(r.I)+'</td>':'')
+            + '<td class="del" data-s="'+si+'" data-r="'+ri+'" title="Messwert löschen">×</td></tr>';
+    });
+  });
+  $('tbl').tBodies[0].innerHTML = html;
+  $('tempty').style.display = k ? 'none' : 'block';
+  const tw=$('tablewrap'); tw.scrollTop=tw.scrollHeight;
+}
+
+function removeRow(si,ri){
+  const s=series[si];
+  s.rows.splice(ri,1);
+  if(!s.rows.length && s!==cur) series.splice(si,1);
+  renderTable();
+}
+
+function tableText(sep){
+  const showI=$('cbI').checked;
+  const head=['Messreihe','U0 in V','C in µF','R in kΩ','Nr.','t in s','U in V'];
+  if(showI) head.push('I in mA');
+  const lines=[head.join(sep)];
+  let k=0;
+  for(const s of series){
+    if(!s.rows.length) continue;
+    k++;
+    s.rows.forEach((r,ri)=>{
+      const c=[k, fmt(s.U0,1), s.C, fmt(s.R,1), ri+1, fmt(r.t,2), dmm(r.U)];
+      if(showI) c.push(dmm(r.I));
+      lines.push(c.join(sep));
+    });
+  }
+  return lines.join('\r\n');
+}
+const hasRows = () => series.some(s=>s.rows.length);
+
+let msgTimer=0;
+function msg(text){
+  $('msg').textContent=text;
+  clearTimeout(msgTimer);
+  msgTimer=setTimeout(()=>{ $('msg').textContent=''; },2600);
+}
+
+/* ============================ Bedienung =========================== */
+function sync(){
+  $('u0Val').textContent=fmtV(S.U0);
+  $('cVal').textContent=fmtC(capC());
+  $('rVal').textContent=fmtR(resR());
+  const lock = S.phase==='entladen';
+  for(const id of ['u0','c','r']) $(id).disabled=lock;
+  $('lockNote').style.display = lock ? 'block' : 'none';
+  $('btnCharge').disabled = S.phase==='laden' || S.phase==='geladen';
+  $('btnDis').disabled    = S.phase!=='geladen';
+  $('btnPause').disabled  = S.phase!=='entladen';
+  $('btnPause').textContent = S.paused ? 'Weiter' : 'Zeit anhalten';
+  $('btnReset').disabled  = S.phase==='leer';
+}
+
+function paramChanged(){
+  // Vorab gemessene Werte (t = 0) gehoeren zu den alten Bauteilen
+  if(cur && !cur.started) closeSeries();
+  if(S.phase==='geladen' && S.U!==S.U0) S.phase='laden';
+  sync();
+}
+$('u0').addEventListener('input',e=>{ S.U0=+e.target.value; paramChanged(); });
+$('c').addEventListener('input',e=>{ S.ci=+e.target.value; paramChanged(); });
+$('r').addEventListener('input',e=>{ S.ri=+e.target.value; paramChanged(); });
+$('speed').addEventListener('change',e=>{ S.speed=+e.target.value; });
+
+$('btnCharge').addEventListener('click',charge);
+$('btnDis').addEventListener('click',discharge);
+$('btnPause').addEventListener('click',()=>{ S.paused=!S.paused; sync(); });
+$('btnReset').addEventListener('click',reset);
+$('btnMeasure').addEventListener('click',measure);
+$('cbI').addEventListener('change',renderTable);
+
+$('btnUndo').addEventListener('click',()=>{
+  for(let si=series.length-1; si>=0; si--){
+    if(series[si].rows.length){ removeRow(si, series[si].rows.length-1); return; }
+  }
+  msg('Die Tabelle ist leer.');
+});
+$('btnClear').addEventListener('click',()=>{
+  if(!hasRows()) return;
+  if(!confirm('Alle Messwerte löschen?')) return;
+  series = cur ? [cur] : [];
+  if(cur) cur.rows=[];
+  renderTable();
+});
+$('tbl').tBodies[0].addEventListener('click',e=>{
+  const td=e.target.closest('td.del');
+  if(td) removeRow(+td.dataset.s, +td.dataset.r);
+});
+
+$('btnCopy').addEventListener('click',async()=>{
+  if(!hasRows()){ msg('Noch keine Messwerte.'); return; }
+  const txt=tableText('\t');
+  try{
+    await navigator.clipboard.writeText(txt);
+    msg('Kopiert – in Excel einfügen.');
+  }catch(err){
+    const ta=$('copyArea');
+    ta.value=txt; ta.style.position='fixed'; ta.style.left='0'; ta.style.opacity='0';
+    ta.select();
+    msg(document.execCommand('copy') ? 'Kopiert – in Excel einfügen.'
+                                     : 'Kopieren nicht möglich, bitte CSV verwenden.');
+    ta.style.position='absolute'; ta.style.left='-9999px';
+  }
+});
+$('btnCsv').addEventListener('click',()=>{
+  if(!hasRows()){ msg('Noch keine Messwerte.'); return; }
+  const blob=new Blob(['﻿'+tableText(';')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='kondensator-entladung.csv';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  msg('CSV gespeichert.');
+});
+
+// Buttons nach dem Klick entfokussieren, sonst loest die Leertaste
+// den zuletzt geklickten Button erneut aus statt zu messen.
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(b) b.blur();
+});
+document.addEventListener('keydown',e=>{
+  if(e.code!=='Space' && e.key!==' ') return;
+  const tag=(e.target.tagName||'').toLowerCase();
+  if(tag==='select' || tag==='textarea' || tag==='summary') return;
+  e.preventDefault();
+  if(!e.repeat) measure();
+});
+
+// Schalter in der Schaltung anklicken
+cv.addEventListener('click',e=>{
+  const r=cv.getBoundingClientRect();
+  const x=(e.clientX-r.left-OX)/SC, y=(e.clientY-r.top-OY)/SC;
+  if(Math.hypot(x-PIV[0], y-(PIV[1]+YT)/2) > 110) return;
+  if(S.phase==='geladen') discharge(); else charge();
+});
+cv.addEventListener('mousemove',e=>{
+  const r=cv.getBoundingClientRect();
+  const x=(e.clientX-r.left-OX)/SC, y=(e.clientY-r.top-OY)/SC;
+  cv.style.cursor = Math.hypot(x-PIV[0], y-(PIV[1]+YT)/2) <= 110 && S.phase!=='laden'
+                  ? 'pointer' : 'default';
+});
+
+/* ============================== Schleife ========================== */
+let last=performance.now();
+function frame(now){
+  const dt=Math.min(0.1,(now-last)/1000); last=now;
+  step(dt);
+  const tg=leverTarget(), d=tg-S.lever, mv=dt*14;
+  S.lever = Math.abs(d)<=mv ? tg : S.lever+Math.sign(d)*mv;
+  let v=0;
+  if(S.phase==='entladen' && !S.paused) v=80*S.U/S.U0;
+  if(S.phase==='laden') v=120;
+  S.flow += v*dt;
+  S.flash = Math.max(0, S.flash-dt*2.2);
+  draw();
+  requestAnimationFrame(frame);
+}
+
+window.addEventListener('resize',resize);
+resize();
+sync();
+renderTable();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
