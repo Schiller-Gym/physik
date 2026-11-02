@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Abstands- und Absorptionsgesetz</title>
+<style>
+  :root{
+    --bg:#0b0f18; --panel:#131a27; --panel2:#1a2233; --line:#26314a;
+    --text:#e6ecf7; --muted:#8b98b3;
+    --pos:#ff5c6c; --neg:#4da3ff; --accent:#ffc857; --ok:#5ed39a;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+    display:flex;overflow:hidden;
+  }
+
+  #sidebar{
+    width:334px;min-width:334px;height:100%;
+    background:var(--panel);border-right:1px solid var(--line);
+    overflow-y:auto;padding:16px 16px 40px;
+  }
+  #sidebar::-webkit-scrollbar{width:9px;}
+  #sidebar::-webkit-scrollbar-thumb{background:#2a3550;border-radius:5px;}
+
+  h1{font-size:17px;margin:0 0 2px;}
+  .sub{font-size:12px;color:var(--muted);margin-bottom:16px;}
+
+  .group{
+    background:var(--panel2);border:1px solid var(--line);
+    border-radius:10px;padding:12px;margin-bottom:12px;
+  }
+  .group > h2{
+    font-size:11px;text-transform:uppercase;letter-spacing:1.1px;
+    color:var(--muted);margin:0 0 10px;font-weight:600;
+  }
+
+  .tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .tab{
+    background:#0f1624;border:1px solid #2f3b58;color:#c3cde0;border-radius:8px;
+    padding:9px 6px;cursor:pointer;font-size:12.5px;transition:.13s;
+  }
+  .tab:hover{background:#1c2638;}
+  .tab.on{background:#3a3220;border-color:var(--accent);color:var(--accent);font-weight:600;}
+  .tab:disabled{opacity:.45;cursor:not-allowed;}
+
+  .row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;}
+  .row label{font-size:12.5px;color:#c3cde0;}
+  .val{font-size:12.5px;color:var(--accent);font-variant-numeric:tabular-nums;}
+
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:4px;
+    background:#2c3752;border-radius:3px;outline:none;margin:5px 0 12px;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+    background:var(--accent);cursor:pointer;border:2px solid #1a2233;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:13px;height:13px;border-radius:50%;background:var(--accent);
+    cursor:pointer;border:2px solid #1a2233;
+  }
+  input[type=range]:disabled{opacity:.4;}
+  input[type=range]:disabled::-webkit-slider-thumb{cursor:not-allowed;}
+
+  .check{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12.5px;color:#c3cde0;cursor:pointer;}
+  .check:last-child{margin-bottom:0;}
+  .check input{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;}
+
+  .btn{
+    width:100%;background:#212c42;border:1px solid #2f3b58;color:var(--text);
+    border-radius:8px;padding:9px;cursor:pointer;font-size:12.5px;transition:.13s;
+  }
+  .btn:hover{background:#2a3855;}
+  .btn:disabled{opacity:.38;cursor:not-allowed;}
+  .btn:disabled:hover{background:#212c42;}
+  .btn.prim{background:#2c4a35;border-color:#4d9d6a;color:#c9f0d8;}
+  .btn.prim:hover{background:#35603f;}
+  .btn.stop{background:#4a2c33;border-color:#9d4d5c;color:#f0c9d0;}
+  .btn.stop:hover{background:#603540;}
+  .btn.danger:hover{background:#3a2430;border-color:#7a3444;color:#ffa8b3;}
+  .btn.big{font-size:17px;font-weight:600;padding:12px;}
+  .btns{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px;}
+
+  select{
+    background:#0f1624;border:1px solid #2f3b58;color:var(--text);
+    border-radius:6px;padding:5px 6px;font-size:12px;width:100%;
+  }
+  select:disabled{opacity:.45;}
+  .sel{margin:4px 0 12px;}
+
+  .legend{font-size:11.5px;color:var(--muted);line-height:1.7;}
+  .legend b{color:#c3cde0;font-weight:600;}
+  .legend .f{color:var(--accent);font-variant-numeric:tabular-nums;}
+  .note{
+    background:#22283a;border-left:3px solid #4d7fd0;
+    padding:7px 9px;border-radius:0 6px 6px 0;margin-top:9px;
+    font-size:11.5px;line-height:1.6;color:#a9b6cf;
+  }
+  .note.lock{border-left-color:var(--accent);}
+  .note.warn{border-left-color:var(--pos);}
+  details{margin-top:10px;font-size:11.5px;color:var(--muted);line-height:1.7;}
+  summary{cursor:pointer;color:#c3cde0;}
+
+  #stage{flex:1;height:100%;min-width:0;display:flex;flex-direction:column;}
+  #scenewrap{flex:1 1 auto;position:relative;min-height:0;}
+  #cv{display:block;position:absolute;inset:0;}
+  #meas{
+    flex:0 0 310px;border-top:1px solid var(--line);
+    background:#0e1420;display:flex;min-height:0;
+  }
+  #tablewrap{flex:1 1 0;overflow:auto;padding:0 14px 8px;min-width:0;}
+  #tablewrap::-webkit-scrollbar{width:8px;}
+  #tablewrap::-webkit-scrollbar-thumb{background:#2a3550;border-radius:4px;}
+  #graphwrap{flex:1.35 1 0;position:relative;min-width:0;border-left:1px solid var(--line);}
+  #gcv{display:block;position:absolute;inset:0;}
+  #mside{
+    flex:0 0 250px;border-left:1px solid var(--line);
+    padding:12px 14px;display:flex;flex-direction:column;
+  }
+  .hint{font-size:11.5px;color:var(--muted);text-align:center;margin:6px 0 10px;line-height:1.7;}
+  .hint kbd{
+    background:#1a2233;border:1px solid #2f3b58;border-radius:4px;
+    padding:1px 6px;font-family:inherit;color:#c3cde0;
+  }
+  #msg{font-size:11.5px;color:var(--accent);min-height:16px;margin-top:2px;}
+
+  table{border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;width:100%;}
+  th{
+    color:var(--muted);font-weight:600;text-align:right;padding:10px 9px 4px;
+    border-bottom:1px solid var(--line);position:sticky;top:0;background:#0e1420;
+    white-space:nowrap;
+  }
+  th:first-child{text-align:left;}
+  td{text-align:right;padding:3px 9px;border-bottom:1px solid #1b2436;color:#c3cde0;}
+  td:first-child{text-align:left;color:var(--muted);}
+  tr.grp td{
+    text-align:left;font-size:11.5px;padding-top:9px;
+    border-bottom:1px solid var(--line);
+  }
+  tr.hl td{color:var(--accent);}
+  td.del{color:#6f7c96;cursor:pointer;text-align:center;padding:3px 6px;}
+  td.del:hover{color:var(--pos);}
+  .swatch{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:0;}
+  .tempty{color:var(--muted);font-style:italic;font-size:12px;padding:10px 2px;}
+
+  @media (max-width:900px){
+    body{flex-direction:column;overflow:auto;}
+    #sidebar{width:100%;min-width:0;height:auto;max-height:44vh;border-right:none;border-bottom:1px solid var(--line);}
+    #stage{height:auto;}
+    #scenewrap{height:50vh;flex:none;}
+    #meas{flex-direction:column;flex:none;height:auto;}
+    #tablewrap{flex:none;max-height:260px;}
+    #graphwrap{flex:none;height:300px;border-left:none;border-top:1px solid var(--line);}
+    #mside{flex:none;border-left:none;border-top:1px solid var(--line);}
+  }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <h1>Abstands- und Absorptionsgesetz</h1>
+  <div class="sub">Radioaktive Strahlung, Zählrohr und Stoppuhr</div>
+
+  <div class="group">
+    <h2>Versuch</h2>
+    <div class="tabs">
+      <button class="tab on" id="tabD">Abstandsgesetz</button>
+      <button class="tab" id="tabA">Absorptionsgesetz</button>
+    </div>
+  </div>
+
+  <div class="group">
+    <h2>Präparat</h2>
+    <select id="src">
+      <option value="am">Americium-241 (Am-241)</option>
+      <option value="sr">Strontium-90 (Sr-90)</option>
+      <option value="cs">Cäsium-137 (Cs-137)</option>
+      <option value="co" selected>Cobalt-60 (Co-60)</option>
+      <option value="ra">Radium-226 (Ra-226)</option>
+      <option value="none">kein Präparat (Nullrate)</option>
+    </select>
+    <div class="legend" id="srcInfo" style="margin-top:8px"></div>
+  </div>
+
+  <div class="group">
+    <h2>Aufbau</h2>
+    <div class="row"><label>Abstand Präparat – Zählrohr r</label><span class="val" id="rVal"></span></div>
+    <input type="range" id="r" min="1" max="30" step="0.5" value="5">
+    <div id="absBox" style="display:none">
+      <div class="row"><label>Absorbermaterial</label></div>
+      <select id="mat" class="sel">
+        <option value="papier">Papier</option>
+        <option value="plexi">Plexiglas</option>
+        <option value="alu" selected>Aluminium</option>
+        <option value="eisen">Eisen</option>
+        <option value="blei">Blei</option>
+      </select>
+      <div class="row"><label>Dicke des Absorbers d</label><span class="val" id="dVal"></span></div>
+      <input type="range" id="d" min="0" max="10" step="1" value="0">
+      <div class="legend" id="dLimit"></div>
+    </div>
+    <div class="note lock" id="lockNote" style="display:none">Während die Stoppuhr
+      läuft, bleibt der Aufbau unverändert.</div>
+  </div>
+
+  <div class="group">
+    <h2>Messung</h2>
+    <div class="row"><label>Messzeit (Stoppuhr hält an)</label></div>
+    <select id="gate" class="sel">
+      <option value="0">frei – von Hand stoppen</option>
+      <option value="10">10 s</option>
+      <option value="30">30 s</option>
+      <option value="60" selected>60 s = 1 min</option>
+      <option value="100">100 s</option>
+      <option value="120">120 s = 2 min</option>
+    </select>
+    <div class="row"><label>Zeitfaktor</label></div>
+    <select id="speed" class="sel">
+      <option value="1" selected>1× (Echtzeit)</option>
+      <option value="2">2×</option>
+      <option value="5">5×</option>
+      <option value="10">10× (Zeitraffer)</option>
+      <option value="30">30×</option>
+      <option value="60">60× (1 min in 1 s)</option>
+    </select>
+    <label class="check"><input type="checkbox" id="cbSound"> Knacken im Lautsprecher</label>
+    <label class="check"><input type="checkbox" id="cbRays" checked> Strahlung andeuten</label>
+    <label class="check"><input type="checkbox" id="cbAuto"> Nach Ablauf der Messzeit automatisch übernehmen</label>
+  </div>
+
+  <div class="group">
+    <h2>Auswertung</h2>
+    <label class="check"><input type="checkbox" id="cbGraph"> Diagramm anzeigen</label>
+    <div id="graphOpts" style="display:none">
+      <div id="xBox">
+        <div class="row"><label>Rechtsachse</label></div>
+        <select id="xAxis" class="sel">
+          <option value="r">Abstand r</option>
+          <option value="r1">1 / r</option>
+          <option value="r2">1 / r²</option>
+        </select>
+      </div>
+      <label class="check"><input type="checkbox" id="cbLog"> Hochachse logarithmisch</label>
+      <label class="check"><input type="checkbox" id="cbSub"> Nullrate abziehen</label>
+      <div class="row" style="margin-top:6px"><label>Ausgleichskurve</label></div>
+      <select id="fit" class="sel">
+        <option value="none" selected>keine</option>
+        <option value="orig">Ursprungsgerade  Z = m·x</option>
+        <option value="lin">Gerade  Z = m·x + b</option>
+        <option value="pow">Potenzfunktion  Z = a·xᵇ</option>
+        <option value="exp">Exponentialfunktion  Z = a·eᵇˣ</option>
+      </select>
+    </div>
+    <div class="legend" id="z0Info"></div>
+  </div>
+
+  <div class="group">
+    <h2>Physik</h2>
+    <div class="legend" id="physD">
+      Das Präparat sendet seine Strahlung gleichmäßig nach allen Seiten aus.
+      Das Zählrohr fängt nur den Teil auf, der durch sein Fenster geht. Jedes
+      Teilchen, das im Zählrohr ankommt, löst einen <b>Impuls</b> aus – hörbar
+      als Knacken.<br><br>
+      Die <b>Impulsrate</b> ist die Zahl der Impulse pro Zeit:
+      <span class="f">Z = N / t</span>, hier in Impulsen pro Minute (1/min).
+      Wie hängt Z vom Abstand r ab?
+    </div>
+    <div class="legend" id="physA" style="display:none">
+      Zwischen Präparat und Zählrohr steht ein Absorber der Dicke d. Ein Teil
+      der Strahlung wird darin verschluckt – je dicker der Absorber, desto
+      weniger kommt durch.<br><br>
+      Die <b>Impulsrate</b> ist <span class="f">Z = N / t</span> in Impulsen pro
+      Minute. Wie hängt Z von der Dicke d ab? Und wie stark schirmen die
+      verschiedenen Materialien ab?
+    </div>
+    <details id="teachD">
+      <summary>Auswertung (für die Lehrkraft)</summary>
+      Für eine punktförmige Quelle verteilt sich die Strahlung auf Kugelflächen
+      4πr². Bei doppeltem Abstand trifft nur noch ein Viertel auf das Fenster:
+      <span class="f">Z ~ 1/r²</span> (Abstandsgesetz).<br>
+      Nachweis: Z über 1/r² ergibt eine Ursprungsgerade, die Potenzregression
+      von Z über r liefert den Exponenten ≈ −2. Die Nullrate vorher messen und
+      abziehen, sonst knicken die Werte bei großem Abstand ab.<br>
+      Saubere Ergebnisse liefert der γ-Strahler Co-60. Abweichungen sind
+      gewollt: Bei sehr kleinem Abstand ist das Fenster nicht mehr klein gegen r
+      (und das Zählrohr hat eine Totzeit), α-Strahlung reicht in Luft nur
+      wenige Zentimeter, und β-Strahlung wird in Luft schon etwas geschwächt.
+    </details>
+    <details id="teachA" style="display:none">
+      <summary>Auswertung (für die Lehrkraft)</summary>
+      Jede gleich dicke Schicht schwächt die Strahlung um denselben Faktor:
+      <span class="f">Z(d) = Z(0) · e<sup>−μ·d</sup></span>
+      (Absorptionsgesetz). Die Halbwertsdicke ist
+      <span class="f">d½ = ln 2 / μ</span>.<br>
+      Nachweis: mit logarithmischer Hochachse wird der Verlauf zur Geraden, die
+      Exponentialregression liefert μ. Nullrate abziehen!<br>
+      γ-Strahlung (Co-60, Cs-137 mit Blei, Eisen) folgt dem Gesetz gut. Die
+      β-Strahlung von Sr-90 nimmt in Aluminium nur bis kurz vor ihrer
+      maximalen Reichweite (≈ 4 mm) näherungsweise exponentiell ab. α-Strahlung
+      (Am-241, nur bei kleinem Abstand) wird schon von einem Blatt Papier
+      vollständig gestoppt. Bei Cs-137 sieht man zwei Anteile: zuerst wird die
+      β-Strahlung weggefiltert, danach bleibt die γ-Strahlung.
+    </details>
+    <div class="note">Modell: Zählrate aus Raumwinkel des Zählrohrfensters
+      (Radius 7 mm), Schwächung in Luft, Fenster und Absorber (schmales Bündel,
+      Schwächungskoeffizienten nach NIST), Nullrate rund 22 Impulse pro Minute
+      und eine Totzeit von 100 µs. Die Impulse sind zufällig (Poisson-verteilt)
+      – wie im echten Versuch schwanken die Werte, und zwar umso weniger, je
+      mehr Impulse man zählt.</div>
+    <div class="note warn">Im echten Versuch: Präparate nur mit der Zange
+      anfassen, Abstand halten, Aufenthaltszeit kurz halten – und nach dem
+      Versuch sofort wieder in den Behälter.</div>
+  </div>
+</div>
+
+<div id="stage">
+  <div id="scenewrap"><canvas id="cv"></canvas></div>
+  <div id="meas">
+    <div id="tablewrap">
+      <table id="tbl"><thead></thead><tbody></tbody></table>
+      <div class="tempty" id="tempty"></div>
+    </div>
+    <div id="graphwrap" style="display:none"><canvas id="gcv"></canvas></div>
+    <div id="mside">
+      <button class="btn prim big" id="btnStart">Start</button>
+      <div class="btns" style="margin-top:7px">
+        <button class="btn" id="btnZero">Zurücksetzen</button>
+        <button class="btn" id="btnTake">Übernehmen</button>
+      </div>
+      <div class="hint"><kbd>Leertaste</kbd> Start/Stopp · <kbd>Enter</kbd> übernehmen</div>
+      <div class="btns">
+        <button class="btn" id="btnCopy">Kopieren</button>
+        <button class="btn" id="btnCsv">Als CSV</button>
+      </div>
+      <div class="btns">
+        <button class="btn" id="btnUndo">Letzten löschen</button>
+        <button class="btn danger" id="btnClear">Tabelle leeren</button>
+      </div>
+      <div id="msg"></div>
+    </div>
+  </div>
+</div>
+<textarea id="copyArea" style="position:absolute;left:-9999px" aria-hidden="true"></textarea>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   Abstands- und Absorptionsgesetz fuer radioaktive Strahlung.
+
+   Wahre Zaehlrate (Impulse pro Minute):
+       n = Z0 + Summe_k  A_k * g(r)/g(5 cm) * T_k(Weg)
+   g(r) = (1 - r/sqrt(r^2+a^2))/2 ist der Raumwinkelanteil des runden
+   Zaehlrohrfensters (Radius a) - fuer r >> a genau a^2/(4 r^2), bei
+   kleinem r flacht er ab. A_k ist die Rate der Komponente k in 5 cm ohne
+   Luft und Absorber. T_k ist die Durchlassrate entlang des Weges
+   Luft -> Absorber -> Glimmerfenster, alles ueber die Flaechenmasse X
+   in g/cm^2 gerechnet:
+     gamma: exp(-sum mu/rho * X)                (schmales Buendel, NIST)
+     beta:  exp(-mu_b*X) * (1-(X/R)^4), 0 ab X>=R
+            mu_b = 17*Emax^-1.14 cm^2/g, R nach Katz-Penfold
+     alpha: Bruchteil der Reichweite f = sum X/(R_m), durch fuer f < 1,
+            mit Streuung (erfc). R_m = R_Luft * Faktor (Bragg-Kleeman).
+   Gemessen wird m = n/(1 + n*tau) mit der Totzeit tau = 100 us.
+   Die Impulse werden als Poisson-Prozess erzeugt.
+
+   Die angedeuteten Teilchen im Bild folgen denselben Schwaechungsgesetzen,
+   sind aber nur Anschauung: gezaehlt wird nach der Formel oben.
+   ===================================================================== */
+const PX=24;                // Pixel pro cm auf der Bank
+const XS=100, AY=185;       // Praeparat, Strahlachse
+const A_WIN=0.7;            // Fensterradius in cm
+const TAU_D=1e-4;           // Totzeit in s
+const Z0_TRUE=22;           // Nullrate in 1/min
+const A_STRAG=0.04;         // relative Reichweitenstreuung alpha
+const R_REF=5;
+const geo = r => 0.5*(1 - r/Math.hypot(r,A_WIN));
+const G_REF = geo(R_REF);
+
+// mu/rho in cm^2/g fuer 60 keV, 662 keV, 1,25 MeV (Co-60), 0,8 MeV (Ra-Mittel)
+const AIR  = {rho:0.001205, aF:1,   mu:{g60:0.1875,g662:0.0773,g1250:0.0569,g800:0.0683}};
+const MICA = {rho:2.8,      aF:1.3, mu:{g60:0.30,  g662:0.0750,g1250:0.0552,g800:0.0664}};
+const WIN_X = 0.001;        // Glimmerfenster 1 mg/cm^2
+const MATS = {
+  papier:{name:'Papier',    rho:0.80,  aF:0.95, col:'#e8dcc0', mu:{g60:0.190, g662:0.0810,g1250:0.0600,g800:0.0710}},
+  plexi: {name:'Plexiglas', rho:1.19,  aF:0.95, col:'#9fd6e8', mu:{g60:0.192, g662:0.0829,g1250:0.0613,g800:0.0731}},
+  alu:   {name:'Aluminium', rho:2.70,  aF:1.36, col:'#b8c2cc', mu:{g60:0.2778,g662:0.0747,g1250:0.0550,g800:0.0662}},
+  eisen: {name:'Eisen',     rho:7.87,  aF:1.9,  col:'#a08a7c', mu:{g60:1.205, g662:0.0738,g1250:0.0547,g800:0.0670}},
+  blei:  {name:'Blei',      rho:11.35, aF:3.77, col:'#7d86a3', mu:{g60:5.02,  g662:0.1137,g1250:0.0588,g800:0.0887}}
+};
+const THICK_STD   = [0,0.1,0.2,0.3,0.5,0.7,1,1.5,2,2.5,3,4,5,6,8,10,12,15,20,25,30,40,50,60,80,100];
+const THICK_PAPER = Array.from({length:21},(_,i)=>i/10);   // 0 ... 2 mm, je 0,1 mm = 1 Blatt
+
+// t: a/b/g; A in 1/min bei 5 cm; alpha R = Reichweite in Luft (cm);
+// beta mu in cm^2/g, R in g/cm^2; gamma k = Energie
+const SOURCES = {
+  am:{short:'Am-241', col:'#ff5c6c', half:'432 Jahre',
+      info:'<b>α-Strahler</b> (5,5 MeV), dazu schwache γ-Strahlung (60 keV).',
+      comps:[{t:'a',A:6000,R:4.0},{t:'g',A:300,k:'g60'}]},
+  sr:{short:'Sr-90', col:'#4da3ff', half:'28,8 Jahre',
+      info:'<b>reiner β-Strahler</b>: Sr-90 (0,55 MeV) und sein Tochterkern Y-90 (2,28 MeV).',
+      comps:[{t:'b',A:2000,mu:33.8,R:0.185},{t:'b',A:2000,mu:6.65,R:1.095}]},
+  cs:{short:'Cs-137', col:'#5ed39a', half:'30,1 Jahre',
+      info:'<b>β-Strahler</b> (0,51 MeV), dazu <b>γ-Strahlung</b> (662 keV) des Tochterkerns Ba-137m.',
+      comps:[{t:'b',A:1500,mu:36.3,R:0.170},{t:'g',A:600,k:'g662'}]},
+  co:{short:'Co-60', col:'#ffc857', half:'5,27 Jahre',
+      info:'<b>γ-Strahler</b> (1,17 und 1,33 MeV). Die weiche β-Strahlung bleibt in der Kapsel stecken.',
+      comps:[{t:'g',A:1200,k:'g1250'}]},
+  ra:{short:'Ra-226', col:'#c792ea', half:'1600 Jahre',
+      info:'<b>Mischstrahler</b>: α, β und γ aus Ra-226 und seinen Folgekernen (vereinfacht).',
+      comps:[{t:'a',A:600,R:3.3},{t:'a',A:600,R:4.0},{t:'a',A:600,R:4.6},{t:'a',A:600,R:6.9},
+             {t:'b',A:700,mu:16.6,R:0.422},{t:'b',A:700,mu:4.40,R:1.627},{t:'g',A:400,k:'g800'}]},
+  none:{short:'kein Präparat', col:'#5a6782', half:'',
+      info:'Ohne Präparat zählt das Zählrohr nur die <b>Nullrate</b>: Höhenstrahlung und natürliche Radioaktivität der Umgebung.',
+      comps:[]}
+};
+const SERIES_COLS = ['#ffc857','#4da3ff','#5ed39a','#ff5c6c','#c792ea','#7dffc4','#ff9f5a','#9fb4ff'];
+
+const S = {
+  mode:'D',                 // D = Abstand, A = Absorption
+  src:'co', mat:'alu',
+  rD:5, rA:3, di:0,
+  gate:60, speed:1,
+  run:'bereit',             // bereit | laeuft | gestoppt
+  N:0, t:0, saved:false, snap:null,
+  led:0, flash:0, winFlash:0
+};
+const DATA = {D:[], A:[]};  // Messreihen {key, src, mat, r, isNull, rows:[{id,x,t,N,Z}]}
+let rowId = 0, hlRow = null;
+
+const $ = id => document.getElementById(id);
+const cv = $('cv'), ctx = cv.getContext('2d');
+const gcv = $('gcv'), gtx = gcv.getContext('2d');
+let W=0, H=0, DPR=1, SC=1, OX=0, OY=0, GW=0, GH=0;
+
+/* --------------------------- Formatierung ------------------------ */
+function fmt(v,n){ return (isFinite(v) ? v.toFixed(n) : '–').replace('.',',').replace('-','−'); }
+const fmtR = r => fmt(r, r%1 ? 1 : 0)+' cm';
+function fmtD(d){ return (d===0 ? '0' : fmt(d, d<1 ? 1 : d%1 ? 1 : 0))+' mm'; }
+const SUP = {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻'};
+function sig(v){
+  if(!isFinite(v)) return '–';
+  if(v===0) return '0';
+  const a=Math.abs(v);
+  if(a>=1e5 || a<1e-3){
+    const e=Math.floor(Math.log10(a)), m=v/10**e;
+    return fmt(+m.toPrecision(3), 2)+'·10'+String(e).split('').map(c=>SUP[c]).join('');
+  }
+  return String(+v.toPrecision(3)).replace('.',',').replace('-','−');
+}
+
+/* ------------------------------ Physik --------------------------- */
+const curR = () => S.mode==='D' ? S.rD : S.rA;
+const thickList = () => S.mat==='papier' ? THICK_PAPER : THICK_STD;
+const curD = () => S.mode==='A' ? thickList()[S.di] : 0;     // mm
+function maxDi(){
+  const lim=(S.rA-0.5)*10+1e-9, L=thickList();
+  let i=0; while(i<L.length-1 && L[i+1]<=lim) i++;
+  return i;
+}
+
+function erfc(x){
+  const z=Math.abs(x), t=1/(1+0.5*z);
+  const r=t*Math.exp(-z*z-1.26551223+t*(1.00002368+t*(0.37409196+t*(0.09678418+t*(-0.18628806
+         +t*(0.27886807+t*(-1.13520398+t*(1.48851587+t*(-0.82215223+t*0.17087277)))))))));
+  return x>=0 ? r : 2-r;
+}
+
+function path(mode, r, mat, d){
+  const segs=[];
+  const dc = mode==='A' ? d/10 : 0;
+  segs.push({m:AIR, X:AIR.rho*(r-dc)});
+  if(dc>0) segs.push({m:MATS[mat], X:MATS[mat].rho*dc});
+  segs.push({m:MICA, X:WIN_X});
+  return segs;
+}
+function trans(c, segs){
+  if(c.t==='g'){ let s=0; for(const g of segs) s+=g.m.mu[c.k]*g.X; return Math.exp(-s); }
+  if(c.t==='b'){
+    let X=0; for(const g of segs) X+=g.X;
+    if(X>=c.R) return 0;
+    const q=X/c.R; return Math.exp(-c.mu*X)*(1-q*q*q*q);
+  }
+  let f=0; for(const g of segs) f+=g.X/(c.R*AIR.rho*g.m.aF);
+  return 0.5*erfc((f-1)/A_STRAG);
+}
+function trueRate(cfg){          // 1/min
+  const segs=path(cfg.mode, cfg.r, cfg.mat, cfg.d);
+  const gr=geo(cfg.r)/G_REF;
+  let n=Z0_TRUE;
+  for(const c of SOURCES[cfg.src].comps) n += c.A*gr*trans(c,segs);
+  return n;
+}
+function measRate(cfg){          // 1/min, mit Totzeit
+  const n=trueRate(cfg);
+  return n/(1+n/60*TAU_D);
+}
+const config = () => ({mode:S.mode, src:S.src, mat:S.mat, r:curR(), d:curD()});
+
+function gauss(){
+  let u=0; while(u===0) u=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*Math.random());
+}
+
+/* ------------------------------ Ton ------------------------------ */
+let AC=null, clickBuf=null;
+function audioInit(){
+  if(!AC){
+    try{
+      AC=new (window.AudioContext||window.webkitAudioContext)();
+      const n=Math.round(AC.sampleRate*0.004);
+      clickBuf=AC.createBuffer(1,n,AC.sampleRate);
+      const ch=clickBuf.getChannelData(0);
+      for(let i=0;i<n;i++) ch[i]=(Math.random()*2-1)*Math.exp(-i/(n*0.16));
+    }catch(e){ AC=null; return; }
+  }
+  if(AC.state==='suspended') AC.resume();
+}
+function click(at){
+  const s=AC.createBufferSource(); s.buffer=clickBuf;
+  const g=AC.createGain(); g.gain.value=0.3;
+  s.connect(g); g.connect(AC.destination);
+  s.start(at);
+}
+
+/* --------------------------- Impulse ------------------------------ */
+// Ein Zeitschritt: Poisson-Impulse erzeugen, beim Messen zaehlen,
+// unabhaengig davon knacken lassen.
+function pulses(dtReal){
+  let dts=dtReal*S.speed;
+  const running = S.run==='laeuft';
+  let finish=false;
+  if(running && S.gate>0 && S.t+dts>=S.gate){ dts=Math.max(0,S.gate-S.t); finish=true; }
+  const m=measRate(running ? S.snap : config())/60;      // 1/s
+  const mean=m*dts;
+  const times=[];
+  let k=0;
+  if(mean<40){
+    let tt=-Math.log(1-Math.random())/m;
+    while(tt<dts){ times.push(tt/S.speed); k++; tt+=-Math.log(1-Math.random())/m; }
+  }else{
+    k=Math.max(0,Math.round(mean+Math.sqrt(mean)*gauss()));
+  }
+  if(running){
+    S.N+=k; S.t+=dts;
+    if(finish){ S.t=S.gate; stopRun(true); }
+  }
+  if(k>0) S.led=1;
+  if($('cbSound').checked && AC && AC.state==='running' && k>0){
+    const t0=AC.currentTime+0.03;
+    if(times.length) for(const t of times.slice(0,40)) click(t0+t);
+    else for(let i=0;i<Math.min(k,40);i++) click(t0+Math.random()*dtReal);
+  }
+}
+
+/* ------------------------- Messablauf ----------------------------- */
+function startStop(){
+  audioInit();
+  if(S.run==='laeuft'){ stopRun(false); return; }
+  S.N=0; S.t=0; S.saved=false;
+  S.snap=config();
+  S.run='laeuft';
+  sync();
+}
+function stopRun(auto){
+  S.run='gestoppt';
+  S.flash=1;
+  sync();
+  if(auto && $('cbAuto').checked) take();
+}
+function zeroCounter(){
+  if(S.run==='laeuft') return;
+  S.run='bereit'; S.N=0; S.t=0; S.saved=false;
+  sync();
+}
+function seriesKey(c){
+  if(c.src==='none') return 'null';
+  return c.mode==='D' ? c.src : c.src+'|'+c.mat+'|'+c.r;
+}
+function take(){
+  if(S.run==='laeuft'){ msg('Erst die Stoppuhr anhalten.'); return; }
+  if(S.run!=='gestoppt' || S.t<=0){ msg('Noch keine Messung – Stoppuhr starten.'); return; }
+  if(S.saved){ msg('Dieser Messwert steht schon in der Tabelle.'); return; }
+  const c=S.snap, key=seriesKey(c), list=DATA[c.mode];
+  let s=list.find(q=>q.key===key);
+  if(!s){
+    s={key, src:c.src, mat:c.mat, r:c.r, isNull:c.src==='none', rows:[]};
+    list.push(s);
+  }
+  const t=Math.round(S.t*10)/10;
+  const row={id:++rowId, x:c.mode==='D' ? c.r : c.d, t, N:S.N, Z:S.N/t*60};
+  s.rows.push(row);
+  hlRow=row;
+  S.saved=true;
+  S.flash=1;
+  sync();
+  renderData();
+}
+
+/* ------------------------- Nullrate ------------------------------- */
+function nullRate(){
+  let N=0, t=0, k=0;
+  for(const m of ['D','A']) for(const s of DATA[m]) if(s.isNull)
+    for(const r of s.rows){ N+=r.N; t+=r.t; k++; }
+  return t>0 ? {Z:N/t*60, k} : null;
+}
+
+/* ============================== Szene ============================= */
+const SW=1000, SH=560, RAIL=262, PLATE=150;
+const RAY_V = {a:150, b:380, g:620};
+let parts=[];
+
+function resize(){
+  DPR=window.devicePixelRatio||1;
+  const r=$('scenewrap').getBoundingClientRect();
+  W=Math.max(1,r.width); H=Math.max(1,r.height);
+  cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR);
+  cv.style.width=W+'px'; cv.style.height=H+'px';
+  SC=Math.min(W/SW, H/SH);
+  OX=(W-SW*SC)/2; OY=(H-SH*SC)/2;
+  const g=$('graphwrap').getBoundingClientRect();
+  GW=Math.max(1,g.width); GH=Math.max(1,g.height);
+  gcv.width=Math.round(GW*DPR); gcv.height=Math.round(GH*DPR);
+  gcv.style.width=GW+'px'; gcv.style.height=GH+'px';
+  drawGraph();
+}
+
+const FONT='"Segoe UI",system-ui,sans-serif';
+function font(px,w,c){ (c||ctx).font=(w||400)+' '+px+'px '+FONT; }
+function rr(x,y,w,h,r,c){
+  c=c||ctx;
+  c.beginPath();
+  c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r);
+  c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath();
+}
+function line(pts,c){
+  c=c||ctx;
+  c.beginPath(); c.moveTo(pts[0][0],pts[0][1]);
+  for(let i=1;i<pts.length;i++) c.lineTo(pts[i][0],pts[i][1]);
+  c.stroke();
+}
+function dot(x,y,r,col,c){ c=c||ctx; c.fillStyle=col; c.beginPath(); c.arc(x,y,r,0,2*Math.PI); c.fill(); }
+
+function geom(){
+  const xw=XS+curR()*PX, d=curD();
+  const wd = d>0 ? Math.max(3, d/10*PX) : 0;
+  return {xw, d, wd, xa:xw-wd};
+}
+
+/* ---- angedeutete Strahlung */
+function spawn(dt){
+  const comps=SOURCES[S.src].comps;
+  if(!comps.length || !$('cbRays').checked) return;
+  let tot=0; for(const c of comps) tot+=c.A;
+  let n=dt*110;
+  while(n>0){
+    if(n<1 && Math.random()>n) break;
+    n--;
+    let u=Math.random()*tot, c=comps[0];
+    for(const q of comps){ if(u<q.A){ c=q; break; } u-=q.A; }
+    const th=(Math.random()*2-1)*1.25;
+    const p={c, x:XS+6, y:AY, vx:Math.cos(th), vy:Math.sin(th), cos:Math.cos(th),
+             used:0, dead:0, inAbs:false};
+    if(c.t==='a') p.budget=1+A_STRAG*gauss();
+    else if(c.t==='b') p.budget=Math.min(-Math.log(1-Math.random())/c.mu, c.R*0.92);
+    else p.budget=-Math.log(1-Math.random());
+    parts.push(p);
+  }
+  if(parts.length>700) parts.splice(0,parts.length-700);
+}
+function consume(c, m, X){          // "Verbrauch" einer Flaechenmasse X im Material m
+  if(c.t==='g') return m.mu[c.k]*X;
+  if(c.t==='b') return X;
+  return X/(c.R*AIR.rho*m.aF);
+}
+function moveParts(dt){
+  const G=geom();
+  for(const p of parts){
+    if(p.dead){ p.dead+=dt; continue; }
+    const v=RAY_V[p.c.t]*dt;
+    const x0=p.x;
+    p.x+=p.vx*v; p.y+=p.vy*v;
+    const inPlateY = Math.abs(p.y-AY)<=PLATE/2;
+    // Absorber vorne durchstossen: ganzer Absorber auf einmal (duenne Folien!)
+    if(G.wd>0 && x0<G.xa && p.x>=G.xa && inPlateY){
+      const m=MATS[S.mat];
+      const cons=consume(p.c, m, m.rho*G.d/10/Math.abs(p.cos));
+      const left=p.budget-p.used;
+      if(cons>left){
+        p.x=G.xa+G.wd*Math.max(0,left/cons); p.dead=1e-6; continue;
+      }
+      p.used+=cons; p.inAbs=true;
+    }
+    if(!(p.inAbs && p.x>=G.xa && p.x<G.xw && inPlateY))
+      p.used+=consume(p.c, AIR, AIR.rho*v/PX);
+    if(p.used>p.budget){ p.dead=1e-6; continue; }
+    // Zaehlrohr
+    if(p.x>=G.xw && Math.abs(p.y-AY)<=22){
+      if(Math.abs(p.y-AY)<=A_WIN*PX && p.used+consume(p.c,MICA,WIN_X)<=p.budget) S.winFlash=1;
+      p.x=G.xw; p.dead=1e-6; continue;
+    }
+    if(p.x>SW+20 || p.y<56 || p.y>RAIL-6) p.gone=true;    // nicht in die Statuszeile
+  }
+  parts=parts.filter(p=>!p.gone && p.dead<0.35);
+}
+function drawParts(){
+  for(const p of parts){
+    const a = p.dead ? Math.max(0,1-p.dead/0.35) : 1;
+    ctx.globalAlpha=a;
+    if(p.c.t==='a') dot(p.x,p.y,3.3,'#ff5c6c');
+    else if(p.c.t==='b') dot(p.x,p.y,2.3,'#4da3ff');
+    else{
+      ctx.strokeStyle='#ffe08a'; ctx.lineWidth=1.6;
+      const L=11, nx=-p.vy, ny=p.vx;
+      ctx.beginPath();
+      for(let i=0;i<=8;i++){
+        const s=-L*i/8, w=Math.sin(i/8*2*Math.PI)*2.2;
+        const x=p.x+p.vx*s+nx*w, y=p.y+p.vy*s+ny*w;
+        if(i) ctx.lineTo(x,y); else ctx.moveTo(x,y);
+      }
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha=1;
+}
+
+function trefoil(x,y,r){
+  dot(x,y,r*1.15,'#ffc857');
+  ctx.fillStyle='#1a1408';
+  for(let k=0;k<3;k++){
+    const a0=-Math.PI/2+k*2*Math.PI/3-Math.PI/6;
+    ctx.beginPath(); ctx.moveTo(x,y);
+    ctx.arc(x,y,r,a0,a0+Math.PI/3); ctx.closePath(); ctx.fill();
+  }
+  dot(x,y,r*0.32,'#ffc857'); dot(x,y,r*0.2,'#1a1408');
+}
+
+function draw(){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.fillStyle='#0b0f18'; ctx.fillRect(0,0,W,H);
+  ctx.setTransform(DPR*SC,0,0,DPR*SC,DPR*OX,DPR*OY);
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  const G=geom(), src=SOURCES[S.src];
+
+  /* ---- Statuszeile */
+  const status = S.run==='laeuft' ? 'Messung läuft – das Zählgerät zählt die Impulse.'
+    : S.run==='gestoppt' ? (S.saved ? 'Übernommen. Aufbau ändern und die nächste Messung starten.'
+                                    : 'Messung beendet – mit „Übernehmen“ in die Tabelle eintragen.')
+    : S.mode==='D' ? 'Präparat und Abstand wählen, dann die Stoppuhr starten.'
+                   : 'Präparat, Absorber und Dicke wählen, dann die Stoppuhr starten.';
+  font(16); ctx.fillStyle='#a9b6cf'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  ctx.fillText(status, 30, 40);
+
+  /* ---- Kabel vom Zaehlrohr zum Zaehlgeraet */
+  ctx.strokeStyle='#3a4763'; ctx.lineWidth=4;
+  ctx.beginPath(); ctx.moveTo(G.xw+160,AY);
+  ctx.bezierCurveTo(G.xw+230,AY, 450,RAIL+10, 450,340);
+  ctx.stroke();
+
+  /* ---- Schiene mit Massstab */
+  rr(50,RAIL,920,12,3); ctx.fillStyle='#1d2638'; ctx.fill();
+  ctx.strokeStyle='#2f3b58'; ctx.lineWidth=1; ctx.stroke();
+  font(11); ctx.textAlign='center'; ctx.fillStyle='#8b98b3';
+  for(let cm=0; XS+cm*PX<=960; cm++){
+    const x=XS+cm*PX, big=cm%5===0;
+    ctx.strokeStyle=big?'#c3cde0':'#5a6782'; ctx.lineWidth=big?1.6:1;
+    line([[x,RAIL],[x,RAIL+(big?10:5)]]);
+    if(big) ctx.fillText(cm, x, RAIL+26);
+  }
+  ctx.textAlign='right'; ctx.fillText('cm', XS-22, RAIL+26);
+
+  /* ---- Absorber */
+  if(S.mode==='A'){
+    const m=MATS[S.mat];
+    if(G.wd>0){
+      ctx.strokeStyle='#5a6782'; ctx.lineWidth=3;
+      line([[G.xa+G.wd/2,AY+PLATE/2],[G.xa+G.wd/2,RAIL]]);
+      ctx.fillStyle=m.col; ctx.globalAlpha=0.55;
+      ctx.fillRect(G.xa,AY-PLATE/2,G.wd,PLATE);
+      ctx.globalAlpha=1;
+      ctx.strokeStyle=m.col; ctx.lineWidth=1.2; ctx.strokeRect(G.xa,AY-PLATE/2,G.wd,PLATE);
+    }
+    font(14); ctx.fillStyle=G.wd>0 ? m.col : '#8b98b3'; ctx.textAlign='center';
+    ctx.fillText(G.wd>0 ? m.name+', d = '+fmtD(G.d) : 'kein Absorber', Math.max(G.xa,XS+60), AY-PLATE/2-8);
+  }
+
+  /* ---- Strahlung */
+  if($('cbRays').checked) drawParts();
+
+  /* ---- Praeparat */
+  ctx.strokeStyle='#5a6782'; ctx.lineWidth=4; line([[XS-6,AY+16],[XS-6,RAIL]]);
+  rr(XS-26,AY-17,30,34,5);
+  ctx.fillStyle='#2a3550'; ctx.fill();
+  ctx.strokeStyle='#5a6782'; ctx.lineWidth=1.5;
+  if(S.src==='none') ctx.setLineDash([4,4]);
+  ctx.stroke(); ctx.setLineDash([]);
+  if(S.src!=='none'){
+    ctx.fillStyle=src.col; ctx.fillRect(XS+2,AY-9,5,18);
+    trefoil(XS-11,AY,8);
+  }
+  font(14,600); ctx.fillStyle=S.src==='none' ? '#8b98b3' : src.col; ctx.textAlign='center';
+  ctx.fillText(src.short, XS-8, AY-28);
+
+  /* ---- Zaehlrohr */
+  ctx.strokeStyle='#5a6782'; ctx.lineWidth=4; line([[G.xw+75,AY+22],[G.xw+75,RAIL]]);
+  const gr=ctx.createLinearGradient(0,AY-22,0,AY+22);
+  gr.addColorStop(0,'#3b4866'); gr.addColorStop(0.5,'#2a3550'); gr.addColorStop(1,'#1d2638');
+  rr(G.xw,AY-22,150,44,6); ctx.fillStyle=gr; ctx.fill();
+  ctx.strokeStyle='#5a6782'; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.fillStyle='#141b29'; ctx.fillRect(G.xw+150,AY-9,10,18);
+  const wf=S.winFlash;
+  ctx.fillStyle = wf>0 ? 'rgba(255,224,138,'+(0.45+0.55*wf)+')' : '#c9a96b';
+  ctx.fillRect(G.xw-3,AY-A_WIN*PX,4,2*A_WIN*PX);
+  font(13); ctx.fillStyle='#c3cde0'; ctx.textAlign='center';
+  ctx.fillText('Zählrohr', G.xw+80, AY+5);
+
+  /* ---- Abstandsmass r */
+  const ym = S.mode==='A' ? AY-PLATE/2-36 : AY-62;
+  ctx.strokeStyle='#ffc857'; ctx.fillStyle='#ffc857'; ctx.lineWidth=1.4;
+  line([[XS+5,ym-7],[XS+5,ym+7]]); line([[G.xw,ym-7],[G.xw,ym+7]]);
+  line([[XS+5,ym],[G.xw,ym]]);
+  for(const [x,s] of [[XS+5,1],[G.xw,-1]]){
+    ctx.beginPath(); ctx.moveTo(x,ym); ctx.lineTo(x+7*s,ym-4); ctx.lineTo(x+7*s,ym+4); ctx.closePath(); ctx.fill();
+  }
+  font(14); ctx.textAlign='center';
+  const lx=(XS+5+G.xw)/2;
+  if(G.xw-XS>130){
+    ctx.fillStyle='#0b0f18'; ctx.fillRect(lx-46,ym-11,92,20);
+    ctx.fillStyle='#ffc857'; ctx.fillText('r = '+fmtR(curR()), lx, ym+5);
+  }else ctx.fillText('r = '+fmtR(curR()), lx, ym-12);    // zu eng: ueber den Pfeil
+
+  drawInstruments();
+}
+
+function panel(x,y,w,h,title,flash){
+  rr(x,y,w,h,12);
+  ctx.fillStyle='#131a27'; ctx.fill();
+  ctx.strokeStyle = flash>0 ? 'rgba(255,200,87,'+(0.35+0.65*flash)+')' : '#26314a';
+  ctx.lineWidth = flash>0 ? 2.5 : 1.5; ctx.stroke();
+  font(12,600); ctx.fillStyle='#8b98b3'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  ctx.fillText(title.toUpperCase(), x+14, y+22);
+}
+
+function drawInstruments(){
+  const Y=340, PH=190;
+
+  /* ---- Stoppuhr */
+  panel(40,Y,240,PH,'Stoppuhr',S.flash);
+  font(42,600); ctx.fillStyle='#e6ecf7'; ctx.textAlign='center';
+  ctx.fillText(fmt(S.t,1)+' s', 160, Y+86);
+  const st = S.run==='laeuft' ? 'läuft' : S.run==='gestoppt' ? 'angehalten' : 'bereit';
+  font(13); ctx.fillStyle = st==='läuft' ? '#5ed39a' : '#8b98b3';
+  ctx.fillText(st, 160, Y+110);
+  if(S.gate>0){
+    const f=Math.min(1,S.t/S.gate);
+    rr(62,Y+128,196,8,4); ctx.fillStyle='#0b0f18'; ctx.fill();
+    if(f>0){ rr(62,Y+128,Math.max(8,196*f),8,4); ctx.fillStyle='#5ed39a'; ctx.fill(); }
+    font(12); ctx.fillStyle='#8b98b3';
+    ctx.fillText('Messzeit '+S.gate+' s', 160, Y+158);
+  }else{
+    font(12); ctx.fillStyle='#8b98b3'; ctx.fillText('Messzeit frei – von Hand stoppen', 160, Y+140);
+  }
+  if(S.speed!==1){
+    font(12); ctx.fillStyle='#ffc857'; ctx.fillText('Zeitraffer '+S.speed+'×', 160, Y+178);
+  }
+
+  /* ---- Zaehlgeraet */
+  panel(300,Y,300,PH,'Zählgerät',S.flash);
+  dot(578,Y+18,6, S.led>0 ? 'rgba(255,92,108,'+(0.3+0.7*S.led)+')' : '#2a1b22');
+  rr(322,Y+40,256,64,8); ctx.fillStyle='#0a0e14'; ctx.fill();
+  ctx.strokeStyle='#26314a'; ctx.lineWidth=1; ctx.stroke();
+  font(44,600); ctx.textAlign='right';
+  ctx.fillStyle='#1f2a1f'; ctx.fillText('888888', 562, Y+90);
+  ctx.fillStyle='#7dffc4'; ctx.fillText(String(S.N), 562, Y+90);
+  font(13); ctx.fillStyle='#8b98b3'; ctx.textAlign='center';
+  ctx.fillText('Impulse N', 450, Y+124);
+  if(S.run==='gestoppt' && S.t>0){
+    font(15); ctx.fillStyle='#ffc857';
+    ctx.fillText('Z = N / t = '+S.N+' / '+fmt(S.t,1)+' s', 450, Y+152);
+    ctx.fillText('= '+fmt(S.N/S.t*60,0)+' Impulse pro Minute', 450, Y+174);
+  }else{
+    font(12); ctx.fillStyle='#5a6782';
+    ctx.fillText('zählt nur, solange die Stoppuhr läuft', 450, Y+152);
+  }
+
+  /* ---- Legende */
+  panel(620,Y,340,PH,'Strahlung');
+  const types=new Set(SOURCES[S.src].comps.map(c=>c.t));
+  const rows=[['a','α-Strahlung','Heliumkerne, kurze Reichweite','#ff5c6c'],
+              ['b','β-Strahlung','schnelle Elektronen','#4da3ff'],
+              ['g','γ-Strahlung','energiereiche Photonen','#ffe08a']];
+  rows.forEach((r,i)=>{
+    const y=Y+54+i*34, on=types.has(r[0]);
+    ctx.globalAlpha = on ? 1 : 0.3;
+    if(r[0]==='g'){
+      ctx.strokeStyle=r[3]; ctx.lineWidth=1.8; ctx.beginPath();
+      for(let k=0;k<=12;k++){ const x=640+k*1.5, yy=y-5+Math.sin(k/12*4*Math.PI)*3; if(k) ctx.lineTo(x,yy); else ctx.moveTo(x,yy); }
+      ctx.stroke();
+    }else dot(649,y-5,r[0]==='a'?4:3,r[3]);
+    font(14,600); ctx.fillStyle='#e6ecf7'; ctx.textAlign='left';
+    ctx.fillText(r[1], 670, y);
+    font(12); ctx.fillStyle='#8b98b3'; ctx.fillText(r[2], 772, y);
+    ctx.globalAlpha=1;
+  });
+  font(12); ctx.fillStyle='#8b98b3'; ctx.textAlign='left';
+  ctx.fillText(S.src==='none' ? 'Kein Präparat: nur Nullrate.'
+               : 'Hell: sendet '+SOURCES[S.src].short+' aus.', 640, Y+168);
+}
+
+/* ============================ Diagramm ============================ */
+function niceStep(range,n){
+  const raw=range/n, p=10**Math.floor(Math.log10(raw)), f=raw/p;
+  return (f<1.5?1:f<3?2:f<7?5:10)*p;
+}
+function xOf(x){
+  if(S.mode==='A') return x;
+  const a=$('xAxis').value;
+  return a==='r' ? x : a==='r1' ? 1/x : 1/(x*x);
+}
+function xLabel(){
+  if(S.mode==='A') return ['d','d in mm'];
+  const a=$('xAxis').value;
+  return a==='r' ? ['r','r in cm'] : a==='r1' ? ['1/r','1/r in 1/cm'] : ['1/r²','1/r² in 1/cm²'];
+}
+
+function fitSeries(pts, type){
+  // pts: {x,y,N,Z}; lineare Fits ungewichtet (wie Excel), log-Fits mit
+  // Poisson-Gewichten w = N*(y/Z)^2, damit kleine, verrauschte Raten nicht dominieren
+  let P=pts;
+  if(type==='pow') P=pts.filter(p=>p.x>0 && p.y>0);
+  if(type==='exp') P=pts.filter(p=>p.y>0);
+  if(P.length<2) return null;
+  const logFit = type==='pow' || type==='exp';
+  let sw=0,sx=0,sy=0,sxx=0,sxy=0;
+  const X=[],Y=[],Wt=[];
+  for(const p of P){
+    const u = type==='pow' ? Math.log(p.x) : p.x;
+    const v = logFit ? Math.log(p.y) : p.y;
+    const w = logFit ? Math.max(1,p.N)*(p.y/p.Z)**2 : 1;
+    X.push(u); Y.push(v); Wt.push(w);
+    sw+=w; sx+=w*u; sy+=w*v; sxx+=w*u*u; sxy+=w*u*v;
+  }
+  let m,b;
+  if(type==='orig'){ if(sxx===0) return null; m=sxy/sxx; b=0; }
+  else{
+    const den=sw*sxx-sx*sx; if(Math.abs(den)<1e-300) return null;
+    m=(sw*sxy-sx*sy)/den; b=(sy-m*sx)/sw;
+  }
+  // Bestimmtheitsmass im Fitraum
+  const my=sy/sw; let ssr=0, sst=0;
+  for(let i=0;i<X.length;i++){ ssr+=Wt[i]*(Y[i]-(m*X[i]+b))**2; sst+=Wt[i]*(Y[i]-my)**2; }
+  const R2 = sst>0 ? 1-ssr/sst : 1;
+  let f;
+  if(type==='orig' || type==='lin') f = x => m*x+b;
+  else if(type==='pow') f = x => Math.exp(b)*x**m;
+  else f = x => Math.exp(b+m*x);
+  return {m,b,R2,f};
+}
+function fitText(F,type,xs){
+  const R2='R² = '+fmt(F.R2,4);
+  if(type==='orig') return ['Z = '+sig(F.m)+' · '+xs, R2];
+  if(type==='lin')  return ['Z = '+sig(F.m)+' · '+xs+(F.b<0?' − ':' + ')+sig(Math.abs(F.b)), R2];
+  if(type==='pow')  return ['Z = '+sig(Math.exp(F.b))+' · '+xs+'^('+fmt(F.m,2)+')', 'Exponent b = '+fmt(F.m,2)+' · '+R2];
+  if(S.mode==='A' && F.m<0){
+    const mu=-F.m;
+    return ['Z = '+sig(Math.exp(F.b))+' · e^(−'+sig(mu)+'/mm · d)',
+            'μ = '+sig(mu*10)+' 1/cm · d½ = '+sig(Math.LN2/mu)+' mm · '+R2];
+  }
+  return ['Z = '+sig(Math.exp(F.b))+' · e^('+sig(F.m)+' · '+xs+')', R2];
+}
+
+function seriesName(s){
+  const src=SOURCES[s.src].short;
+  if(s.isNull) return 'Nullrate (kein Präparat)';
+  return S.mode==='D' && DATA.D.includes(s) ? src
+       : src+' · '+MATS[s.mat].name+' · r = '+fmtR(s.r);
+}
+
+function drawGraph(){
+  if(!$('cbGraph').checked) return;
+  const c=gtx;
+  c.setTransform(DPR,0,0,DPR,0,0);
+  c.fillStyle='#0e1420'; c.fillRect(0,0,GW,GH);
+  const z0=nullRate(), sub=$('cbSub').checked && z0;
+  const logY=$('cbLog').checked, fitT=$('fit').value;
+  const list=DATA[S.mode].filter(s=>!s.isNull && s.rows.length);
+  const ser=list.map((s,i)=>({s, col:SERIES_COLS[DATA[S.mode].filter(q=>!q.isNull).indexOf(s)%SERIES_COLS.length],
+    pts:s.rows.map(r=>({x:xOf(r.x), y:sub ? r.Z-z0.Z : r.Z, N:r.N, Z:r.Z}))}));
+  const L=58, R=14, T=14, B=40;
+  const pw=GW-L-R, ph=GH-T-B;
+  font(12,400,c);
+  if(!ser.length || pw<60 || ph<60){
+    c.fillStyle='#8b98b3'; c.textAlign='center'; c.textBaseline='middle';
+    c.fillText('Noch keine Messwerte für das Diagramm.', GW/2, GH/2);
+    return;
+  }
+  const all=ser.flatMap(q=>q.pts);
+  let xmax=Math.max(...all.map(p=>p.x)); if(!(xmax>0)) xmax=1;
+  const xs=niceStep(xmax,5); xmax=Math.ceil(xmax*1.04/xs)*xs;
+  let ymin, ymax, ys, yLo, yHi;
+  if(logY){
+    const pos=all.filter(p=>p.y>0).map(p=>p.y);
+    if(!pos.length){ ymin=1; ymax=10; } else { ymin=Math.min(...pos); ymax=Math.max(...pos); }
+    yLo=Math.floor(Math.log10(ymin)); yHi=Math.ceil(Math.log10(ymax)+1e-9);
+    if(yHi<=yLo) yHi=yLo+1;
+  }else{
+    ymax=Math.max(...all.map(p=>p.y)); ymin=Math.min(0,...all.map(p=>p.y));
+    if(!(ymax>ymin)) ymax=ymin+1;
+    ys=niceStep(ymax-ymin,5);
+    ymax=Math.ceil(ymax*1.05/ys)*ys; ymin=Math.floor(ymin/ys)*ys;
+  }
+  const px=x=>L+x/xmax*pw;
+  const py=y=> logY ? T+ph-(Math.log10(y)-yLo)/(yHi-yLo)*ph : T+ph-(y-ymin)/(ymax-ymin)*ph;
+
+  /* Gitter und Achsen */
+  c.lineWidth=1; c.textBaseline='middle';
+  const xdec=Math.max(0,-Math.floor(Math.log10(xs)+1e-9));
+  c.textAlign='center';
+  for(let x=0;x<=xmax+1e-9;x+=xs){
+    c.strokeStyle='#1b2436'; line([[px(x),T],[px(x),T+ph]],c);
+    c.fillStyle='#8b98b3'; c.fillText(fmt(x,xdec), px(x), T+ph+12);
+  }
+  c.textAlign='right';
+  if(logY){
+    for(let e=yLo;e<=yHi;e++){
+      for(let k=1;k<10;k++){
+        const v=k*10**e; if(e===yHi && k>1) break;
+        c.strokeStyle = k===1 ? '#26314a' : '#161e2d'; line([[L,py(v)],[L+pw,py(v)]],c);
+      }
+      c.fillStyle='#8b98b3'; c.fillText(sig(10**e), L-6, py(10**e));
+    }
+  }else{
+    const ydec=Math.max(0,-Math.floor(Math.log10(ys)+1e-9));
+    for(let y=ymin;y<=ymax+1e-9;y+=ys){
+      c.strokeStyle = Math.abs(y)<1e-9 ? '#3a4763' : '#1b2436'; line([[L,py(y)],[L+pw,py(y)]],c);
+      c.fillStyle='#8b98b3'; c.fillText(fmt(y,ydec), L-6, py(y));
+    }
+  }
+  c.strokeStyle='#5a6782'; line([[L,T],[L,T+ph],[L+pw,T+ph]],c);
+  c.fillStyle='#c3cde0'; c.textAlign='center'; c.textBaseline='alphabetic';
+  const [xsym,xlab]=xLabel();
+  c.fillText(xlab, L+pw/2, GH-6);
+  c.save(); c.translate(13,T+ph/2); c.rotate(-Math.PI/2);
+  c.fillText(sub ? 'Z − Z₀ in 1/min' : 'Z in 1/min', 0, 0); c.restore();
+
+  /* Ausgleichskurven */
+  const legend=[];
+  c.save(); c.beginPath(); c.rect(L,T,pw,ph); c.clip();
+  for(const q of ser){
+    let F=null;
+    if(fitT!=='none') F=fitSeries(q.pts, fitT);
+    if(F){
+      c.strokeStyle=q.col; c.globalAlpha=0.7; c.lineWidth=1.6; c.setLineDash([6,4]);
+      c.beginPath(); let started=false;
+      const x0 = fitT==='pow' ? xmax/400 : 0;
+      for(let i=0;i<=300;i++){
+        const x=x0+(xmax-x0)*i/300, y=F.f(x);
+        if(!isFinite(y) || (logY && y<=0)){ started=false; continue; }
+        const Y=Math.max(-1e4,Math.min(1e4,py(y)));
+        if(started) c.lineTo(px(x),Y); else { c.moveTo(px(x),Y); started=true; }
+      }
+      c.stroke(); c.setLineDash([]); c.globalAlpha=1;
+    }
+    legend.push({col:q.col, name:seriesName(q.s), fit:F ? fitText(F,fitT,xsym==='1/r²'?'(1/r²)':xsym==='1/r'?'(1/r)':xsym) : null,
+                 bad:fitT!=='none' && !F});
+  }
+  /* Messpunkte */
+  for(const q of ser){
+    for(const p of q.pts){
+      if(logY && p.y<=0) continue;
+      dot(px(p.x),py(p.y),4,'#0e1420',c);
+      dot(px(p.x),py(p.y),3.2,q.col,c);
+    }
+  }
+  c.restore();
+
+  /* Legende: links oben bei steigenden, rechts oben bei fallenden Daten */
+  const rising = S.mode==='D' && $('xAxis').value!=='r';
+  font(11.5,400,c);
+  let wmax=0;
+  for(const g of legend){
+    wmax=Math.max(wmax, c.measureText(g.name).width+16);
+    if(g.fit) for(const t of g.fit) wmax=Math.max(wmax, c.measureText(t).width+16);
+  }
+  const lh=15, nLines=legend.reduce((a,g)=>a+1+(g.fit?2:0)+(g.bad?1:0),0);
+  const bw=Math.min(wmax+14, pw-8), bh=nLines*lh+10;
+  const bx = rising ? L+8 : L+pw-bw-6, by=T+6;
+  rr(bx,by,bw,bh,6,c); c.fillStyle='rgba(14,20,32,.88)'; c.fill();
+  c.strokeStyle='#26314a'; c.stroke();
+  let yy=by+5+lh*0.75;
+  c.textAlign='left'; c.textBaseline='alphabetic';
+  for(const g of legend){
+    dot(bx+11,yy-4,3.5,g.col,c);
+    c.fillStyle='#c3cde0'; c.fillText(g.name, bx+20, yy); yy+=lh;
+    if(g.fit){ c.fillStyle=g.col; for(const t of g.fit){ c.fillText(t, bx+20, yy); yy+=lh; } }
+    if(g.bad){ c.fillStyle='#8b98b3'; c.fillText('zu wenige passende Werte für diese Kurve', bx+20, yy); yy+=lh; }
+  }
+}
+
+/* ============================== Tabelle =========================== */
+function renderData(){
+  const z0=nullRate(), list=DATA[S.mode];
+  const xh = S.mode==='D' ? 'r in cm' : 'd in mm';
+  const nc = z0 ? 7 : 6;
+  $('tbl').tHead.innerHTML='<tr><th>Nr.</th><th>'+xh+'</th><th>t in s</th><th>N</th><th>Z in 1/min</th>'
+    +(z0?'<th>Z − Z₀</th>':'')+'<th></th></tr>';
+  let html='', k=0, ci=0;
+  list.forEach((s,si)=>{
+    const col = s.isNull ? '#8b98b3' : SERIES_COLS[(ci++)%SERIES_COLS.length];
+    if(!s.rows.length) return;
+    k++;
+    html+='<tr class="grp"><td colspan="'+nc+'" style="color:'+col+'"><span class="swatch" style="background:'+col+'"></span>'
+        + seriesName(s)+'</td></tr>';
+    s.rows.forEach((r,ri)=>{
+      const xv = S.mode==='D' ? fmt(r.x, r.x%1?1:0) : fmt(r.x, r.x%1?1:0);
+      html+='<tr'+(r===hlRow?' class="hl"':'')+'><td>'+(ri+1)+'</td><td>'+(s.isNull?'–':xv)+'</td><td>'
+          + fmt(r.t,1)+'</td><td>'+r.N+'</td><td>'+fmt(r.Z,0)+'</td>'
+          + (z0 ? '<td>'+(s.isNull?'–':fmt(r.Z-z0.Z,0))+'</td>' : '')
+          + '<td class="del" data-s="'+si+'" data-r="'+ri+'" title="Messwert löschen">×</td></tr>';
+    });
+  });
+  $('tbl').tBodies[0].innerHTML=html;
+  $('tempty').style.display = k ? 'none' : 'block';
+  $('tempty').textContent = S.mode==='D'
+    ? 'Noch keine Messwerte. Abstand einstellen, Stoppuhr starten und nach Ablauf „Übernehmen“ drücken. Tipp: zuerst ohne Präparat die Nullrate messen.'
+    : 'Noch keine Messwerte. Absorber und Dicke einstellen, Stoppuhr starten und nach Ablauf „Übernehmen“ drücken. Tipp: zuerst ohne Präparat die Nullrate messen.';
+  const tw=$('tablewrap'); tw.scrollTop=tw.scrollHeight;
+
+  $('z0Info').innerHTML = z0
+    ? 'Nullrate <span class="f">Z₀ = '+fmt(z0.Z,1)+' 1/min</span> (aus '+z0.k+' Messung'+(z0.k>1?'en':'')+')'
+    : 'Nullrate noch nicht gemessen – dafür „kein Präparat“ wählen und messen.';
+  $('cbSub').disabled=!z0;
+  drawGraph();
+}
+
+function removeRow(si,ri){
+  const list=DATA[S.mode], s=list[si];
+  s.rows.splice(ri,1);
+  if(!s.rows.length) list.splice(si,1);
+  renderData();
+}
+
+function tableText(sep){
+  const z0=nullRate();
+  const head=['Messreihe','Präparat'];
+  if(S.mode==='A') head.push('Material','r in cm','d in mm'); else head.push('r in cm');
+  head.push('t in s','N','Z in 1/min');
+  if(z0) head.push('Z-Z0 in 1/min');
+  const lines=[head.join(sep)];
+  let k=0;
+  for(const s of DATA[S.mode]){
+    if(!s.rows.length) continue;
+    k++;
+    for(const r of s.rows){
+      const c=[k, SOURCES[s.src].short];
+      if(S.mode==='A') c.push(s.isNull?'':MATS[s.mat].name, s.isNull?'':fmt(s.r,1), s.isNull?'':fmt(r.x,1));
+      else c.push(s.isNull?'':fmt(r.x,1));
+      c.push(fmt(r.t,1), r.N, fmt(r.Z,1));
+      if(z0) c.push(s.isNull?'':fmt(r.Z-z0.Z,1));
+      lines.push(c.join(sep));
+    }
+  }
+  return lines.join('\r\n');
+}
+const hasRows = () => DATA[S.mode].some(s=>s.rows.length);
+
+let msgTimer=0;
+function msg(text){
+  $('msg').textContent=text;
+  clearTimeout(msgTimer);
+  msgTimer=setTimeout(()=>{ $('msg').textContent=''; },2800);
+}
+
+/* ============================ Bedienung =========================== */
+function sync(){
+  const run = S.run==='laeuft';
+  const src=SOURCES[S.src];
+  $('srcInfo').innerHTML = src.info + (src.half ? '<br>Halbwertszeit: <span class="f">'+src.half+'</span>' : '');
+  const r=$('r');
+  if(S.mode==='D'){ r.min=1; r.max=30; } else { r.min=1.5; r.max=15; }
+  r.value=curR();
+  $('rVal').textContent=fmtR(curR());
+  const L=thickList(), mx=maxDi();
+  if(S.di>mx) S.di=mx;
+  $('d').max=L.length-1; $('d').value=S.di;
+  const d=curD();
+  $('dVal').textContent = fmtD(d) + (S.mat==='papier' && d>0 ? ' ('+Math.round(d*10)+' Blatt)' : '');
+  $('dLimit').textContent = mx<L.length-1
+    ? 'Bei r = '+fmtR(S.rA)+' passen höchstens '+fmtD(L[mx])+' zwischen Präparat und Zählrohr – für dickere Absorber den Abstand vergrößern.' : '';
+  for(const id of ['src','r','mat','d','tabD','tabA']) $(id).disabled=run;
+  $('lockNote').style.display = run ? 'block' : 'none';
+  const b=$('btnStart');
+  b.textContent = run ? 'Stopp' : S.run==='gestoppt' ? 'Neu starten' : 'Start';
+  b.className = 'btn big '+(run ? 'stop' : 'prim');
+  $('btnZero').disabled = run || S.run==='bereit';
+  $('btnTake').disabled = S.run!=='gestoppt' || S.saved || S.t<=0;
+}
+
+function setMode(m){
+  if(S.run==='laeuft' || S.mode===m) return;
+  S.mode=m;
+  $('tabD').classList.toggle('on',m==='D');
+  $('tabA').classList.toggle('on',m==='A');
+  $('absBox').style.display = m==='A' ? 'block' : 'none';
+  $('xBox').style.display = m==='D' ? 'block' : 'none';
+  for(const id of ['physD','teachD']) $(id).style.display = m==='D' ? 'block' : 'none';
+  for(const id of ['physA','teachA']) $(id).style.display = m==='A' ? 'block' : 'none';
+  parts=[]; hlRow=null;
+  setupChanged();
+  renderData();
+}
+function setupChanged(){
+  // Ein gezaehlter, noch nicht uebernommener Messwert gehoert zum alten Aufbau
+  if(S.run==='gestoppt'){
+    if(!S.saved && S.t>0) msg('Aufbau geändert – der nicht übernommene Messwert wurde verworfen.');
+    S.run='bereit'; S.N=0; S.t=0; S.saved=false;
+  }
+  sync();
+}
+
+$('tabD').addEventListener('click',()=>setMode('D'));
+$('tabA').addEventListener('click',()=>setMode('A'));
+$('src').addEventListener('change',e=>{ S.src=e.target.value; parts=[]; setupChanged(); });
+$('r').addEventListener('input',e=>{
+  if(S.mode==='D') S.rD=+e.target.value; else S.rA=+e.target.value;
+  setupChanged();
+});
+$('mat').addEventListener('change',e=>{
+  const dOld=curD();
+  S.mat=e.target.value;
+  const L=thickList(); let i=0;
+  while(i<L.length-1 && L[i+1]<=dOld+1e-9) i++;
+  S.di=i;
+  setupChanged();
+});
+$('d').addEventListener('input',e=>{ S.di=Math.min(+e.target.value, maxDi()); setupChanged(); });
+$('gate').addEventListener('change',e=>{ S.gate=+e.target.value; });
+$('speed').addEventListener('change',e=>{ S.speed=+e.target.value; });
+$('cbSound').addEventListener('change',audioInit);
+$('cbRays').addEventListener('change',()=>{ parts=[]; });
+$('cbGraph').addEventListener('change',e=>{
+  const on=e.target.checked;
+  $('graphwrap').style.display = on ? 'block' : 'none';
+  $('graphOpts').style.display = on ? 'block' : 'none';
+  resize();
+});
+for(const id of ['xAxis','cbLog','cbSub','fit']) $(id).addEventListener('change',drawGraph);
+
+$('btnStart').addEventListener('click',startStop);
+$('btnZero').addEventListener('click',zeroCounter);
+$('btnTake').addEventListener('click',take);
+$('btnUndo').addEventListener('click',()=>{
+  let best=null;
+  DATA[S.mode].forEach((s,si)=>s.rows.forEach((r,ri)=>{ if(!best || r.id>best.id) best={id:r.id,si,ri}; }));
+  if(best) removeRow(best.si,best.ri); else msg('Die Tabelle ist leer.');
+});
+$('btnClear').addEventListener('click',()=>{
+  if(!hasRows()) return;
+  if(!confirm('Alle Messwerte dieses Versuchs löschen?')) return;
+  DATA[S.mode]=[];
+  renderData();
+});
+$('tbl').tBodies[0].addEventListener('click',e=>{
+  const td=e.target.closest('td.del');
+  if(td) removeRow(+td.dataset.s, +td.dataset.r);
+});
+
+$('btnCopy').addEventListener('click',async()=>{
+  if(!hasRows()){ msg('Noch keine Messwerte.'); return; }
+  const txt=tableText('\t');
+  try{
+    await navigator.clipboard.writeText(txt);
+    msg('Kopiert – in Excel einfügen.');
+  }catch(err){
+    const ta=$('copyArea');
+    ta.value=txt; ta.style.position='fixed'; ta.style.left='0'; ta.style.opacity='0';
+    ta.select();
+    msg(document.execCommand('copy') ? 'Kopiert – in Excel einfügen.'
+                                     : 'Kopieren nicht möglich, bitte CSV verwenden.');
+    ta.style.position='absolute'; ta.style.left='-9999px';
+  }
+});
+$('btnCsv').addEventListener('click',()=>{
+  if(!hasRows()){ msg('Noch keine Messwerte.'); return; }
+  const blob=new Blob(['﻿'+tableText(';')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download = S.mode==='D' ? 'abstandsgesetz.csv' : 'absorptionsgesetz.csv';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  msg('CSV gespeichert.');
+});
+
+// Buttons nach dem Klick entfokussieren, sonst loest die Leertaste
+// den zuletzt geklickten Button erneut aus.
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(b) b.blur();
+});
+document.addEventListener('pointerdown',audioInit);
+document.addEventListener('keydown',e=>{
+  const tag=(e.target.tagName||'').toLowerCase();
+  if(tag==='select' || tag==='textarea' || tag==='summary') return;
+  if(e.code==='Space' || e.key===' '){
+    e.preventDefault();
+    if(!e.repeat) startStop();
+  }else if(e.key==='Enter'){
+    e.preventDefault();
+    if(!e.repeat) take();
+  }
+});
+
+/* ============================== Schleife ========================== */
+let last=performance.now();
+function frame(now){
+  const dt=Math.min(0.1,(now-last)/1000); last=now;
+  pulses(dt);
+  if($('cbRays').checked){ spawn(dt); moveParts(dt); }
+  S.led=Math.max(0,S.led-dt*12);
+  S.flash=Math.max(0,S.flash-dt*2.2);
+  S.winFlash=Math.max(0,S.winFlash-dt*8);
+  draw();
+  requestAnimationFrame(frame);
+}
+
+window.addEventListener('resize',resize);
+resize();
+sync();
+renderData();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
