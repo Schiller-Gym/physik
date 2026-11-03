@@ -98,9 +98,16 @@
     flex:0 0 260px;border-top:1px solid var(--line);
     background:#0e1420;display:flex;min-height:0;
   }
-  #tablewrap{flex:1 1 auto;overflow-y:auto;padding:8px 14px;min-width:0;}
+  #tablewrap{flex:1 1 auto;overflow-y:auto;padding:0 14px 8px;min-width:0;}
   #tablewrap::-webkit-scrollbar{width:8px;}
   #tablewrap::-webkit-scrollbar-thumb{background:#2a3550;border-radius:4px;}
+  #plotwrap{flex:1 1 auto;position:relative;min-width:0;border-left:1px solid var(--line);display:none;}
+  #plot{display:block;position:absolute;inset:0;}
+  #meas.plot #plotwrap{display:block;}
+  #meas.plot #tablewrap{flex:0 0 auto;padding:0 6px 8px;}
+  #meas.plot table{min-width:0;}
+  #meas.plot th, #meas.plot td{padding-left:8px;padding-right:8px;}
+  #meas.plot #plotwrap{min-width:200px;}
   #mside{
     flex:0 0 290px;border-left:1px solid var(--line);
     padding:12px 14px;display:flex;flex-direction:column;
@@ -114,7 +121,7 @@
 
   table{border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;min-width:340px;}
   th{
-    color:var(--muted);font-weight:600;text-align:right;padding:4px 12px;
+    color:var(--muted);font-weight:600;text-align:right;padding:10px 12px 4px;
     border-bottom:1px solid var(--line);position:sticky;top:0;background:#0e1420;
   }
   th:first-child{text-align:left;}
@@ -136,6 +143,8 @@
     #scenewrap{height:48vh;flex:none;}
     #meas{flex-direction:column;flex:none;height:auto;}
     #tablewrap{flex:none;max-height:260px;}
+    #meas.plot #tablewrap{flex:none;}
+    #plotwrap{flex:none;height:260px;border-left:none;border-top:1px solid var(--line);}
     #mside{flex:none;border-left:none;border-top:1px solid var(--line);}
   }
 </style>
@@ -190,6 +199,7 @@
     <label class="check"><input type="checkbox" id="cbQ" checked> Ladungen auf den Platten</label>
     <label class="check"><input type="checkbox" id="cbFlow" checked> Elektronenfluss</label>
     <label class="check"><input type="checkbox" id="cbTau"> Zeitkonstante τ = R·C anzeigen</label>
+    <label class="check"><input type="checkbox" id="cbPlot"> Diagramm anzeigen</label>
   </div>
 
   <div class="group">
@@ -226,12 +236,14 @@
       <div class="tempty" id="tempty">Noch keine Messwerte. Kondensator aufladen,
         entladen und zu den gewünschten Zeitpunkten „Messen“ drücken.</div>
     </div>
+    <div id="plotwrap"><canvas id="plot"></canvas></div>
     <div id="mside">
       <button class="btn prim big" id="btnMeasure">Messen</button>
       <div class="hint">oder <kbd>Leertaste</kbd></div>
-      <div class="btns">
+      <div class="btns" style="grid-template-columns:1fr 1fr 1fr">
         <button class="btn" id="btnCopy">Kopieren</button>
         <button class="btn" id="btnCsv">Als CSV</button>
+        <button class="btn" id="btnGgb" title="CSV nur mit Zeit und Spannung der letzten Messreihe">GeoGebra</button>
       </div>
       <div class="btns">
         <button class="btn" id="btnUndo">Letzten löschen</button>
@@ -256,7 +268,8 @@
    fuer jede Schrittweite fehlerfrei. Die Messwerte werden wie bei einem
    Digitalmessgeraet auf vier Stellen gerundet, die Zeit auf 0,01 s.
    Bewusst wird KEINE Kurve gezeichnet: die Lernenden sehen Voltmeter und
-   Stoppuhr laufen und halten die Werte selbst in der Tabelle fest.
+   Stoppuhr laufen und halten die Werte selbst in der Tabelle fest. Das
+   zuschaltbare Diagramm zeigt nur diese Messpunkte.
    ===================================================================== */
 const C_LIST = [100, 220, 470, 1000, 2200, 3300, 4700];   // µF
 const R_LIST = [1, 2.2, 4.7, 10, 22, 33, 47, 100];        // kΩ
@@ -606,6 +619,81 @@ function renderTable(){
   $('tbl').tBodies[0].innerHTML = html;
   $('tempty').style.display = k ? 'none' : 'block';
   const tw=$('tablewrap'); tw.scrollTop=tw.scrollHeight;
+  drawPlot();
+}
+
+/* ============================= Diagramm =========================== */
+/* Nur die gemessenen Punkte, bewusst ohne Verbindungslinie oder
+   Ausgleichskurve - den Verlauf sollen die Lernenden selbst erkennen. */
+const PLOT_COL = ['#ffc857','#4da3ff','#5ed39a','#ff5c6c','#c49bff','#ff9f5a'];
+function niceStep(range){
+  const raw=range/5, p=Math.pow(10,Math.floor(Math.log10(raw))), f=raw/p;
+  return (f<=1 ? 1 : f<=2 ? 2 : f<=5 ? 5 : 10)*p;
+}
+function drawPlot(){
+  const on=$('cbPlot').checked;
+  $('meas').classList.toggle('plot', on);
+  if(!on) return;
+  const pc=$('plot'), wrap=$('plotwrap');
+  const w=wrap.clientWidth, h=wrap.clientHeight, dpr=window.devicePixelRatio||1;
+  if(!w || !h) return;
+  pc.width=Math.round(w*dpr); pc.height=Math.round(h*dpr);
+  pc.style.width=w+'px'; pc.style.height=h+'px';
+  const g=pc.getContext('2d');
+  g.setTransform(dpr,0,0,dpr,0,0);
+  g.clearRect(0,0,w,h);
+
+  const filled=series.filter(s=>s.rows.length);
+  let tMax=0, uMax=0;
+  for(const s of filled) for(const r of s.rows){ tMax=Math.max(tMax,r.t); uMax=Math.max(uMax,r.U); }
+  if(!tMax) tMax=10;
+  if(!uMax) uMax=10;
+  const ts=niceStep(tMax), us=niceStep(uMax);
+  tMax=Math.ceil(tMax/ts)*ts; uMax=Math.ceil(uMax/us)*us;
+
+  const L=46, R=filled.length>1 ? 86 : 14, T=14, B=34;
+  const pw=w-L-R, ph=h-T-B;
+  if(pw<40 || ph<40) return;
+  const X=t=>L+t/tMax*pw, Y=u=>T+ph-u/uMax*ph;
+  const dec=s=>s<1 ? (s<0.1 ? 2 : 1) : 0;
+
+  g.font='11px "Segoe UI",system-ui,sans-serif';
+  g.lineWidth=1;
+  g.textAlign='center'; g.textBaseline='top';
+  for(let t=0; t<=tMax+ts/2; t+=ts){
+    g.strokeStyle='#1b2436'; g.beginPath(); g.moveTo(X(t)+.5,T); g.lineTo(X(t)+.5,T+ph); g.stroke();
+    g.fillStyle='#8b98b3'; g.fillText(fmt(t,dec(ts)), X(t), T+ph+5);
+  }
+  g.textAlign='right'; g.textBaseline='middle';
+  for(let u=0; u<=uMax+us/2; u+=us){
+    g.strokeStyle='#1b2436'; g.beginPath(); g.moveTo(L,Y(u)+.5); g.lineTo(L+pw,Y(u)+.5); g.stroke();
+    g.fillStyle='#8b98b3'; g.fillText(fmt(u,dec(us)), L-6, Y(u));
+  }
+  g.strokeStyle='#3a4766';
+  g.beginPath(); g.moveTo(L+.5,T); g.lineTo(L+.5,T+ph+.5); g.lineTo(L+pw,T+ph+.5); g.stroke();
+  g.fillStyle='#c3cde0'; g.textAlign='right'; g.textBaseline='bottom';
+  g.fillText('t in s', L+pw, T+ph+B-2);
+  g.textAlign='left'; g.textBaseline='top';
+  g.fillText('U in V', L+6, T);
+
+  filled.forEach((s,k)=>{
+    const col=PLOT_COL[k%PLOT_COL.length];
+    for(const r of s.rows){
+      g.fillStyle=col;
+      g.beginPath(); g.arc(X(r.t),Y(r.U), r===hlRow ? 4.5 : 3.2, 0, 2*Math.PI); g.fill();
+    }
+    if(filled.length>1){
+      const ly=T+6+k*17;
+      g.beginPath(); g.arc(L+pw+14, ly, 3.2, 0, 2*Math.PI); g.fill();
+      g.fillStyle='#c3cde0'; g.textBaseline='middle';
+      g.fillText('Reihe '+(k+1), L+pw+22, ly);
+    }
+  });
+  if(!filled.length){
+    g.fillStyle='#8b98b3'; g.textAlign='center'; g.textBaseline='middle';
+    g.font='italic 12px "Segoe UI",system-ui,sans-serif';
+    g.fillText('Die Messwerte erscheinen hier als Punkte.', L+pw/2, T+ph/2);
+  }
 }
 
 function removeRow(si,ri){
@@ -673,6 +761,7 @@ $('btnPause').addEventListener('click',()=>{ S.paused=!S.paused; sync(); });
 $('btnReset').addEventListener('click',reset);
 $('btnMeasure').addEventListener('click',measure);
 $('cbI').addEventListener('change',renderTable);
+$('cbPlot').addEventListener('change',()=>{ drawPlot(); resize(); });
 
 $('btnUndo').addEventListener('click',()=>{
   for(let si=series.length-1; si>=0; si--){
@@ -716,6 +805,23 @@ $('btnCsv').addEventListener('click',()=>{
   a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   msg('CSV gespeichert.');
+});
+// GeoGebra: nur t und U, und nur die letzte Messreihe - mehrere Reihen
+// in zwei Spalten ergaeben eine sinnlose Punktwolke.
+$('btnGgb').addEventListener('click',()=>{
+  const filled=series.filter(s=>s.rows.length);
+  if(!filled.length){ msg('Noch keine Messwerte.'); return; }
+  const s=filled[filled.length-1];
+  const lines=['Zeit in s;Spannung in V'];
+  for(const r of s.rows) lines.push(fmt(r.t,2)+';'+dmm(r.U));
+  const blob=new Blob([lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='kondensator-entladung-geogebra.csv';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  msg(filled.length>1 ? 'GeoGebra-CSV gespeichert (nur Messreihe '+filled.length+').'
+                      : 'GeoGebra-CSV gespeichert.');
 });
 
 // Buttons nach dem Klick entfokussieren, sonst loest die Leertaste
@@ -761,7 +867,7 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 
-window.addEventListener('resize',resize);
+window.addEventListener('resize',()=>{ resize(); drawPlot(); });
 resize();
 sync();
 renderTable();
