@@ -817,7 +817,8 @@ $('btnGgb').addEventListener('click',()=>{
   const blob=new Blob([lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download='kondensator-entladung-geogebra.csv';
+  // R und C im Dateinamen, damit mehrere Exporte sich nicht ueberschreiben
+  a.download='entladung_R'+fmt(s.R, s.R%1 ? 1 : 0)+'kOhm_C'+s.C+'uF.csv';
   a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   msg(filled.length>1 ? 'GeoGebra-CSV gespeichert (nur Messreihe '+filled.length+').'
